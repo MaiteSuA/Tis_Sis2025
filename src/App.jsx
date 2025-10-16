@@ -47,6 +47,7 @@ function App() {
           Ver ejemplo de Tailwind
         </button>
       </Link>
+
     </>
   );
 }
