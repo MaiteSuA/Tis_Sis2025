@@ -250,7 +250,7 @@ const EvaluacionesClasificatoria = () => {
                           <Trash2 size={18} />
                         </button>
 
-                        {/* Agregar solo en la última fila agregada */}
+                        {/* Agregar fila*/}
                         {evaluacion.id === evaluaciones[evaluaciones.length - 1]?.id && (
                           <button
                             onClick={agregarFila}
@@ -268,6 +268,19 @@ const EvaluacionesClasificatoria = () => {
               </tbody>
             </table>
           </div>
+        </div>
+        <div className="flex justify-end gap-3 mt-4">
+          <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition">
+            Editar
+          </button>
+
+          <button className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg transition">
+            Guardar Cambios
+          </button>
+
+          <button className="bg-black hover:bg-gray-800 text-white font-medium px-4 py-2 rounded-lg transition">
+            Exportar
+          </button>
         </div>
       </div>
     </div>
