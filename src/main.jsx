@@ -8,7 +8,7 @@ import App from './App.jsx'
 import './styles/index.css'
 // Componente de ejemplo de Tailwind. Se puede eliminar cuando no se necesite.
 import Ejemplo from './components/ejemplo.jsx';
-import RegistrarNotas from "./pages/Registrar-notas.jsx";
+import EvaluacionesClasificatoria from "./pages/Registrar-notas.jsx";
 
 // El 'root' es el punto de entrada de la aplicación en el DOM
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -29,7 +29,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         */}
         <Route path="/tailwind-example" element={<Ejemplo />} />
         <Route path="/" element={<App />} />
-        <Route path="/registrar-notas" element={<RegistrarNotas />} />
+        <Route path="/registrar-notas" element={<EvaluacionesClasificatoria/>} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>,
