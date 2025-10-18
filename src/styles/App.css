@@ -6,13 +6,24 @@
   por clases de Tailwind en el propio archivo App.jsx.
   =============================================================
 */
-
+@import "tailwindcss";
+@import "./ui.css";
 /* Estilo para el contenedor raíz de la app */
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+#root { color-scheme: light; }
+ /* max-width: 1280px;  */
+  /* margin: 0 auto;     */
+  /* padding: 2rem;      */
+  /* text-align: center; */
+  html, body, #root {
+  background: #f3f4f6;   /* gris claro como en el mockup */
+  color: #111827;        /* texto gris oscuro */
+  min-height: 100%;
+}
+
+/* opcional: tipografía y suavizado */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Estilos generales para los logos */
@@ -57,4 +68,18 @@
 /* Estilo para el texto de documentación */
 .read-the-docs {
   color: #888;
+}
+
+
+/* Barra derecha negra (decorativa) */
+body::after{
+  content:"";
+  position: fixed;
+  right: 0;
+  top: 56px;     /* ajusta a la altura real del header */
+  bottom: 0;
+  width: 16px;   /* grosor del rail derecho */
+  background: #000;    /* negro */
+  pointer-events: none;
+  z-index: 10;
 }

@@ -5,7 +5,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 // Componente principal de la aplicación. Es la base de todo.
 import App from './App.jsx'
 // El archivo CSS con los estilos globales y las directivas de Tailwind
-import './styles/index.css'
+import "./styles/App.css";
 // Componente de ejemplo de Tailwind. Se puede eliminar cuando no se necesite.
 import Ejemplo from './components/ejemplo.jsx';
 
