@@ -1,6 +1,8 @@
-import { useState } from "react";
-import { Plus, Trash2, CheckCircle, AlertCircle } from "lucide-react";
+// src/pages/EvaluacionesClasificatoria.jsx
+import { useState, useMemo } from "react";
+import { CheckCircle, AlertCircle } from "lucide-react";
 import SearchBar from "../components/search_bar";
+import ExcelGrid from "../components/excel_grid";
 import ActionButton from "../components/action_button";
 
 const EvaluacionesClasificatoria = () => {
@@ -12,218 +14,186 @@ const EvaluacionesClasificatoria = () => {
   const [mensajeGuardado, setMensajeGuardado] = useState("");
   const [errorValidacion, setErrorValidacion] = useState({});
 
+  // Config columnas para el Grid
+  const columns = useMemo(
+    () => [
+      { header: "Competidor", field: "competidor", align: "center" },
+      { header: "Nota", field: "nota", width: "w-24", align: "center" },
+      { header: "Observación", field: "observacion", align: "center" },
+      { header: "Estado", field: "estado", align: "center", width: "w-44", align: "center" },
+    ],
+    []
+  );
+
+  // Validacion de nota
   const validarNota = (nota) => {
     if (nota === "") return true;
-    const num = parseFloat(nota);
-    return !isNaN(num) && num >= 0 && num <= 100;
+    const num = Number(nota);
+    return Number.isFinite(num) && num >= 0 && num <= 100;
   };
 
-  const handleNotaChange = (id, valor) => {
-    if (validarNota(valor)) {
-      setEvaluaciones((prev) =>
-        prev.map((ev) => (ev.id === id ? { ...ev, nota: valor } : ev))
-      );
-      setErrorValidacion((prev) => ({ ...prev, [id]: "" }));
-    } else {
-      setErrorValidacion((prev) => ({
-        ...prev,
-        [id]: "La nota debe ser un número entre 0 y 100",
-      }));
+  // Cambios de celda (genérico)
+  const onCellChange = (id, field, value) => {
+    if (field === "nota") {
+      if (!validarNota(value)) {
+        setErrorValidacion((prev) => ({
+          ...prev,
+          [id]: "La nota debe ser un número entre 0 y 100",
+        }));
+        // igual guardamos el valor para que el usuario lo corrija
+      } else {
+        setErrorValidacion((prev) => ({ ...prev, [id]: "" }));
+      }
     }
-  };
 
-  const handleCompetidorChange = (id, valor) => {
     setEvaluaciones((prev) =>
-      prev.map((ev) => (ev.id === id ? { ...ev, competidor: valor } : ev))
+      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
     );
   };
 
-  const handleEstadoChange = (id, nuevoEstado) => {
-    setEvaluaciones((prev) =>
-      prev.map((ev) => (ev.id === id ? { ...ev, estado: nuevoEstado } : ev))
-    );
+  // Eliminar fila
+  const onDeleteRow = (id) => {
+    setEvaluaciones((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev));
   };
 
-  const handleObservacionChange = (id, valor) => {
-    setEvaluaciones((prev) =>
-      prev.map((ev) => (ev.id === id ? { ...ev, observacion: valor } : ev))
-    );
-  };
-
+  // Agregar fila
   const agregarFila = () => {
-    const nuevoId = Math.max(...evaluaciones.map((e) => e.id), 0) + 1;
+    const nuevoId = Math.max(0, ...evaluaciones.map((e) => e.id)) + 1;
     setEvaluaciones((prev) => [
       ...prev,
-      {
-        id: nuevoId,
-        competidor: "",
-        nota: "",
-        observacion: "",
-        estado: "Pendiente",
-      },
+      { id: nuevoId, competidor: "", nota: "", observacion: "", estado: "Pendiente" },
     ]);
   };
 
-  const eliminarFila = (id) => {
-    if (evaluaciones.length > 1) {
-      setEvaluaciones((prev) => prev.filter((ev) => ev.id !== id));
-    }
-  };
-
-  const evaluacionesFiltradas = evaluaciones.filter(
-    (ev) =>
-      (ev.competidor || "").toLowerCase().includes(busqueda.toLowerCase()) ||
-      (ev.observacion || "").toLowerCase().includes(busqueda.toLowerCase())
+  // Filtrado por busqueda
+  const dataFiltrada = useMemo(
+    () =>
+      evaluaciones.filter(
+        (ev) =>
+          (ev.competidor || "").toLowerCase().includes(busqueda.toLowerCase()) ||
+          (ev.observacion || "").toLowerCase().includes(busqueda.toLowerCase())
+      ),
+    [evaluaciones, busqueda]
   );
+
+  // Renderizar celdas específicas (inputs/select y validacion visual)
+  const renderCell = (row, col, rowIndex, colIndex, onCellChange) => {
+    if (col.field === "competidor") {
+      return (
+        <input
+          type="text"
+          value={row.competidor}
+          onChange={(e) => onCellChange(row.id, "competidor", e.target.value)}
+          placeholder="Nombre del competidor"
+          className="w-full h-full px-2 py-1.5 text-sm border-none focus:ring-2 focus:ring-gray-300 focus:ring-inset outline-none bg-transparent"
+        />
+      );
+    }
+
+    if (col.field === "nota") {
+      const hasError = !!errorValidacion[row.id];
+      return (
+        <div className="p-0">
+          <input
+            type="text"
+            inputMode="numeric"
+            value={row.nota}
+            onChange={(e) => onCellChange(row.id, "nota", e.target.value)}
+            placeholder="0-100"
+            className={`w-full h-full px-2 py-1.5 text-sm border-none focus:ring-2 focus:ring-gray-300 focus:ring-inset outline-none bg-transparent text-center ${
+              hasError ? "ring-2 ring-red-400" : ""
+            }`}
+          />
+          {hasError && (
+            <div className="flex items-center gap-1 px-2 py-1 text-red-600 text-xs">
+              <AlertCircle size={12} />
+              <span>{errorValidacion[row.id]}</span>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (col.field === "observacion") {
+      return (
+        <input
+          type="text"
+          value={row.observacion}
+          onChange={(e) => onCellChange(row.id, "observacion", e.target.value)}
+          placeholder="Comentarios adicionales"
+          className="w-full h-full px-2 py-1.5 text-sm border-none focus:ring-2 focus:ring-gray-300 focus:ring-inset outline-none bg-transparent"
+        />
+      );
+    }
+
+    if (col.field === "estado") {
+      const base =
+        "w-full h-full px-2 py-1.5 text-sm font-medium border-none focus:ring-2 focus:ring-gray-300 focus:ring-inset outline-none rounded-none";
+      const k = row.estado;
+      const color =
+        k === "Clasificado"
+          ? "bg-green-100 text-green-800"
+          : k === "No Clasificado"
+          ? "bg-red-100 text-red-800"
+          : k === "Desclasificado"
+          ? "bg-yellow-100 text-yellow-800"
+          : "bg-white text-gray-700";
+
+      return (
+        <select
+          value={row.estado}
+          onChange={(e) => onCellChange(row.id, "estado", e.target.value)}
+          className={`${base} ${color}`}
+        >
+          <option value="Pendiente">Pendiente</option>
+          <option value="Clasificado">Clasificado</option>
+          <option value="No Clasificado">No Clasificado</option>
+          <option value="Desclasificado">Desclasificado</option>
+        </select>
+      );
+    }
+
+    // Fallback a input por defecto
+    return (
+      <input
+        type="text"
+        value={row[col.field] ?? ""}
+        onChange={(e) => onCellChange(row.id, col.field, e.target.value)}
+        placeholder={col.placeholder ?? ""}
+        className="w-full h-full px-2 py-1.5 text-sm border-none focus:ring-2 focus:ring-blue-500 focus:ring-inset outline-none bg-transparent"
+      />
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="bg-gray-200 rounded-lg max-w-7xl mx-auto p-5">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6 flex-row">
-          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6 flex items-center justify-between flex-wrap gap-4">
-            <h1 className="text-2xl font-bold text-slate-800">
-              Lista de Evaluaciones - Clasificatoria
-            </h1>
-            <SearchBar value={busqueda} onChange={setBusqueda} />
-          </div>
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6 flex items-center justify-between flex-wrap gap-4">
+          <h1 className="text-2xl font-bold text-slate-800">
+            Lista de Evaluaciones - Clasificatoria
+          </h1>
+
+          {mensajeGuardado && (
+            <div className="flex items-center gap-2 text-green-600 bg-green-50 px-4 py-2 rounded-lg border border-green-200">
+              <CheckCircle size={16} />
+              <span className="text-sm font-medium">{mensajeGuardado}</span>
+            </div>
+          )}
+
+          <SearchBar value={busqueda} onChange={setBusqueda} />
         </div>
-        
-        {/* Tabla */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="text-left px-4 py-3 text-sm font-semibold text-slate-700 w-16">
-                    Nº
-                  </th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold text-slate-700">
-                    Competidor
-                  </th>
-                  <th className="text-right px-4 py-3 text-sm font-semibold text-slate-700 w-32">
-                    Nota
-                  </th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold text-slate-700">
-                    Observación
-                  </th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold text-slate-700 w-40">
-                    Estado
-                  </th>
-                  <th className="text-center px-4 py-3 text-sm font-semibold text-slate-700 w-20">
-                    Acción
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {evaluacionesFiltradas.map((evaluacion, index) => (
-                  <tr key={evaluacion.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 text-sm text-slate-600 font-medium">
-                      {index + 1}
-                    </td>
 
-                    <td className="px-4 py-3">
-                      <input
-                        type="text"
-                        value={evaluacion.competidor}
-                        onChange={(e) =>
-                          handleCompetidorChange(evaluacion.id, e.target.value)
-                        }
-                        placeholder="Nombre del competidor"
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
-                      />
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <div>
-                        <input
-                          type="text"
-                          value={evaluacion.nota}
-                          onChange={(e) =>
-                            handleNotaChange(evaluacion.id, e.target.value)
-                          }
-                          placeholder="0-100"
-                          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm ${
-                            errorValidacion[evaluacion.id]
-                              ? "border-red-400"
-                              : "border-slate-300"
-                          } text-right`}
-                        />
-                        {errorValidacion[evaluacion.id] && (
-                          <div className="flex items-center gap-1 mt-1 text-red-600 text-xs">
-                            <AlertCircle size={12} />
-                            <span>{errorValidacion[evaluacion.id]}</span>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <input
-                        type="text"
-                        value={evaluacion.observacion}
-                        onChange={(e) =>
-                          handleObservacionChange(evaluacion.id, e.target.value)
-                        }
-                        placeholder="Comentarios adicionales"
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
-                      />
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <select
-                        value={evaluacion.estado}
-                        onChange={(e) =>
-                          handleEstadoChange(evaluacion.id, e.target.value)
-                        }
-                        className={`w-full px-3 py-2 border rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none
-                          ${
-                            evaluacion.estado === "Clasificado"
-                              ? "bg-green-100 text-green-800 border-green-300"
-                              : evaluacion.estado === "No Clasificado"
-                              ? "bg-red-100 text-red-800 border-red-300"
-                              : evaluacion.estado === "Desclasificado"
-                              ? "bg-yellow-100 text-yellow-800 border-yellow-300"
-                              : "bg-white text-gray-600 border-gray-300"
-                          }`}
-                      >
-                        <option value="Pendiente">Pendiente</option>
-                        <option value="Clasificado">Clasificado</option>
-                        <option value="No Clasificado">No Clasificado</option>
-                        <option value="Desclasificado">Desclasificado</option>
-                      </select>
-                    </td>
-
-                    <td className="px-4 py-3 text-center">
-                      <div className="inline-flex items-center gap-2">
-                        <button
-                          onClick={() => eliminarFila(evaluacion.id)}
-                          disabled={evaluaciones.length === 1}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                          title="Eliminar fila"
-                          aria-label="Eliminar fila"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-
-                        {evaluacion.id === evaluaciones[evaluaciones.length - 1]?.id && (
-                          <button
-                            onClick={agregarFila}
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors"
-                            title="Agregar competidor (nueva fila)"
-                            aria-label="Agregar competidor"
-                          >
-                            <Plus size={18} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        {/* GRID tabla*/}
+        <ExcelGrid
+          columns={columns}
+          data={dataFiltrada}
+          onCellChange={onCellChange}
+          onDeleteRow={onDeleteRow}
+          onAddRow={agregarFila}
+          renderCell={renderCell}
+          className="rounded-lg"
+        />
 
         {/* Acciones */}
         <div className="bg-gray-200 flex justify-end gap-3 mt-4 p-5">

@@ -1,7 +1,6 @@
 import { Pencil, Save, FileDown } from "lucide-react";
 
 const ActionButton = ({ type = "edit", label, onClick }) => {
-  // Mapear iconos y estilos según tipo
   const variants = {
     edit: {
       icon: <Pencil size={16} />,
