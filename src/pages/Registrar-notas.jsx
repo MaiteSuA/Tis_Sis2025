@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus, Trash2, CheckCircle, AlertCircle } from "lucide-react";
 import SearchBar from "../components/search_bar";
+import ActionButton from "../components/action_button";
 
 const EvaluacionesClasificatoria = () => {
   const [evaluaciones, setEvaluaciones] = useState([
@@ -84,7 +85,6 @@ const EvaluacionesClasificatoria = () => {
             <h1 className="text-2xl font-bold text-slate-800">
               Lista de Evaluaciones - Clasificatoria
             </h1>
-
             <SearchBar value={busqueda} onChange={setBusqueda} />
           </div>
         </div>
@@ -227,15 +227,9 @@ const EvaluacionesClasificatoria = () => {
 
         {/* Acciones */}
         <div className="bg-gray-200 flex justify-end gap-3 mt-4 p-5">
-          <button className="bg-white hover:bg-gray-100 text-black font-medium px-4 py-2 rounded-lg transition">
-            Editar
-          </button>
-          <button className="bg-white hover:bg-gray-100 text-black font-medium px-4 py-2 rounded-lg transition">
-            Guardar Cambios
-          </button>
-          <button className="bg-black hover:bg-gray-800 text-white font-medium px-4 py-2 rounded-lg transition">
-            Exportar
-          </button>
+          <ActionButton type="edit" label="Editar" onClick={() => console.log("Editar")} />
+          <ActionButton type="save" label="Guardar Cambios" onClick={() => console.log("Guardar")} />
+          <ActionButton type="export" label="Exportar" onClick={() => console.log("Exportar")} />
         </div>
       </div>
     </div>
