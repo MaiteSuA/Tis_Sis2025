@@ -7,34 +7,125 @@ import UsuarioForm from "../components/UsuarioForm.jsx";
 export default function AdminUsuarios() {
   const [tab, setTab] = useState("RESPONSABLE");
   const [rows, setRows] = useState([]);
-  const [areas] = useState([{ id: 1, nombre: "Sistemas" }, { id: 2, nombre: "Industrial" }, { id: 3, nombre: "Civil" }]);
-  const [showForm, setShowForm] = useState(false);
 
+  const [areas] = useState([
+    { id: 1, nombre: "Sistemas" },
+    { id: 2, nombre: "Industrial" },
+    { id: 3, nombre: "Civil" },
+  ]);
+
+  // modal state
+  const [showForm, setShowForm] = useState(false);
+  const [mode, setMode] = useState("create"); // "create" | "edit"
+  const [selected, setSelected] = useState(null); // fila seleccionada
+
+  // datos demo por pestaña
   useEffect(() => {
     if (tab === "RESPONSABLE") {
-      setRows([{ id: 1, nombres: "María", apellidos: "Pérez", rol: "RESPONSABLE", area: "Sistemas", estado: true, correo: "maria@umss.edu" }]);
+      setRows([
+        {
+          id: 1,
+          nombres: "María",
+          apellidos: "Pérez",
+          rol: "RESPONSABLE",
+          area: "Sistemas",
+          estado: true,
+          correo: "maria@umss.edu",
+          telefono: "70000001",
+          nombreUsuario: "MP",
+        },
+      ]);
     } else {
-      setRows([{ id: 2, nombres: "Carlos", apellidos: "Rojas", rol: "EVALUADOR", area: "Industrial", estado: true, correo: "carlos@umss.edu" }]);
+      setRows([
+        {
+          id: 2,
+          nombres: "Carlos",
+          apellidos: "Rojas",
+          rol: "EVALUADOR",
+          area: "Industrial",
+          estado: true,
+          correo: "carlos@umss.edu",
+          telefono: "70000002",
+          nombreUsuario: "CR",
+        },
+      ]);
     }
   }, [tab]);
 
-  const handleDelete = (id) => setRows(rows.filter(r => r.id !== id));
-  const handleEdit   = () => setShowForm(true);
-  const handleSave   = (nuevo) => {
-    setRows([...rows, { ...nuevo, id: rows.length + 1, rol: tab, area: areas.find(a => a.id === Number(nuevo.areaId))?.nombre }]);
+  const handleDelete = (id) => setRows((r) => r.filter((x) => x.id !== id));
+
+  // EDITAR → abre modal con fila seleccionada
+  const handleEdit = (row) => {
+    setSelected(row);
+    setMode("edit");
+    setShowForm(true);
+  };
+
+  // CREAR → abre modal vacío
+  const handleCreate = () => {
+    setSelected(null);
+    setMode("create");
+    setShowForm(true);
+  };
+
+  // Guardar (create/edit)
+  const handleSave = (data) => {
+    // resolver nombre de área si viene por id
+    const areaNombre =
+      data.area ??
+      areas.find((a) => a.id === Number(data.areaId))?.nombre ??
+      "Sistemas";
+
+    // iniciales para columna Usuario
+    const iniciales = `${(data.nombres || "").charAt(0)}${(data.apellidos || "").charAt(0)}`.toUpperCase();
+
+    if (mode === "edit" && selected) {
+      setRows((prev) =>
+        prev.map((x) =>
+          x.id === selected.id
+            ? {
+                ...x,
+                ...data,
+                area: areaNombre,
+                rol: data.rol ?? x.rol,
+                estado: data.activo ?? data.estado ?? true,
+                nombreUsuario: iniciales,
+              }
+            : x
+        )
+      );
+    } else {
+      const nextId = Math.max(0, ...rows.map((x) => x.id)) + 1;
+      setRows((prev) => [
+        ...prev,
+        {
+          id: nextId,
+          rol: data.rol ?? tab,
+          nombres: data.nombres,
+          apellidos: data.apellidos,
+          correo: data.correo,
+          telefono: data.telefono,
+          estado: data.activo ?? true,
+          area: areaNombre,
+          nombreUsuario: iniciales,
+        },
+      ]);
+    }
+
     setShowForm(false);
+    setSelected(null);
   };
 
   return (
     <AdminLayout>
-      {/* “Dashboard” tipo breadcrumb como en el mock */}
+      {/* breadcrumb / título */}
       <div className="text-sm text-gray-600 mb-2">Dashboard</div>
 
-      {/* 3 tarjetas grises */}
+      {/* tarjetas superiores (puedes dejar igual) */}
       <section className="space-y-4">
         <div className="panel">
           <label className="section">Numeros de Usuarios Registrados</label>
-          <input disabled value={123} className="kpi-input w-40" />
+          <input disabled value={rows.length} className="kpi-input w-40" />
         </div>
 
         <div className="panel">
@@ -67,12 +158,12 @@ export default function AdminUsuarios() {
         </div>
       </section>
 
-      {/* Card blanca: tabs + tabla + footer */}
+      {/* tabs + tabla */}
       <section className="mt-4 card">
         <UsuariosTabs
           tabs={[
             { key: "RESPONSABLE", label: "Tabla de Responsables de área" },
-            { key: "EVALUADOR",  label: "Tabla de Evaluadores" },
+            { key: "EVALUADOR", label: "Tabla de Evaluadores" },
           ]}
           active={tab}
           onChange={setTab}
@@ -84,16 +175,26 @@ export default function AdminUsuarios() {
 
         <div className="px-4 pb-4 flex justify-between">
           <button className="btn-light">Historial</button>
-          <button className="btn-dark">+ Agregar nuevo usuario</button>
+          <button className="btn-dark" onClick={handleCreate}>
+            + Agregar nuevo usuario
+          </button>
         </div>
       </section>
 
+      {/* modal */}
       {showForm && (
         <UsuarioForm
-          title={`Registrar ${tab === "RESPONSABLE" ? "Responsable" : "Evaluador"}`}
+          key={mode + (selected?.id ?? "nuevo")} // fuerza reinicio al cambiar modo/fila
+          mode={mode}
+          title={mode === "edit" ? "Editar Usuario" : "Registro de Usuario"}
           areas={areas}
+          initialData={selected}
+          defaultRol={tab}
           onSubmit={handleSave}
-          onCancel={() => setShowForm(false)}
+          onCancel={() => {
+            setShowForm(false);
+            setSelected(null);
+          }}
         />
       )}
     </AdminLayout>
