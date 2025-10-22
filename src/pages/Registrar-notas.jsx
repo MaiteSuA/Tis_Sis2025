@@ -93,11 +93,11 @@ const EvaluacionesClasificatoria = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="bg-gray-500 min-h-screen  from-slate-50 to-slate-100 p-6">
+      <div className="bg-gray-200 max-w-7xl mx-auto p-5">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6 flex flex-row" >
+          <div className="flex items-center justify-between mb-4 p-5">
             <h1 className="text-2xl font-bold text-slate-800">
               Lista de Evaluaciones - Clasificatoria
             </h1>
@@ -111,7 +111,7 @@ const EvaluacionesClasificatoria = () => {
           </div>
 
           {/* Búsqueda */}
-          <div className="relative">
+          <div className="p-5">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
               size={20}
@@ -269,12 +269,12 @@ const EvaluacionesClasificatoria = () => {
             </table>
           </div>
         </div>
-        <div className="flex justify-end gap-3 mt-4">
-          <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition">
+        <div className="bg-gray-200  flex justify-end gap-3 mt-4 p-5">
+          <button className="bg-white hover:bg-gray-100 text-back font-medium px-4 py-2 rounded-lg transition">
             Editar
           </button>
 
-          <button className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg transition">
+          <button className="bg-white hover:bg-gray-100 text-back font-medium px-4 py-2 rounded-lg transition">
             Guardar Cambios
           </button>
 
