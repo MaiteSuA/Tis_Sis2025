@@ -1,32 +1,15 @@
-import React, { useState, useEffect } from "react";
-import { Search, Plus, Trash2, CheckCircle, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { Plus, Trash2, CheckCircle, AlertCircle } from "lucide-react";
+import SearchBar from "../components/search_bar";
 
 const EvaluacionesClasificatoria = () => {
   const [evaluaciones, setEvaluaciones] = useState([
-    { id: 1, competidor: "", nota: "", observacion: "", estado: "" },
+    { id: 1, competidor: "", nota: "", observacion: "", estado: "Pendiente" },
   ]);
 
   const [busqueda, setBusqueda] = useState("");
   const [mensajeGuardado, setMensajeGuardado] = useState("");
   const [errorValidacion, setErrorValidacion] = useState({});
-
-  // Guardado automático simulado
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      guardarDatos();
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [evaluaciones]);
-
-  const guardarDatos = () => {
-    const evaluacionesCompletas = evaluaciones.filter(
-      (e) => e.competidor && e.nota !== ""
-    );
-    if (evaluacionesCompletas.length > 0) {
-      setMensajeGuardado("Guardado automáticamente");
-      setTimeout(() => setMensajeGuardado(""), 2000);
-    }
-  };
 
   const validarNota = (nota) => {
     if (nota === "") return true;
@@ -93,39 +76,19 @@ const EvaluacionesClasificatoria = () => {
   );
 
   return (
-    <div className="bg-gray-500 min-h-screen  from-slate-50 to-slate-100 p-6">
-      <div className="bg-gray-200 max-w-7xl mx-auto p-5">
+    <div className="min-h-screen bg-gray-100 p-6">
+      <div className="bg-gray-200 rounded-lg max-w-7xl mx-auto p-5">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6 flex flex-row" >
-          <div className="flex items-center justify-between mb-4 p-5">
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6 flex-row">
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6 flex items-center justify-between flex-wrap gap-4">
             <h1 className="text-2xl font-bold text-slate-800">
               Lista de Evaluaciones - Clasificatoria
             </h1>
 
-            {mensajeGuardado && (
-              <div className="flex items-center gap-2 text-green-600 bg-green-50 px-4 py-2 rounded-lg border border-green-200">
-                <CheckCircle size={16} />
-                <span className="text-sm font-medium">{mensajeGuardado}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Búsqueda */}
-          <div className="p-5">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              size={20}
-            />
-            <input
-              type="text"
-              placeholder="Buscar"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            />
+            <SearchBar value={busqueda} onChange={setBusqueda} />
           </div>
         </div>
-
+        
         {/* Tabla */}
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
@@ -138,7 +101,7 @@ const EvaluacionesClasificatoria = () => {
                   <th className="text-left px-4 py-3 text-sm font-semibold text-slate-700">
                     Competidor
                   </th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold text-slate-700 w-32">
+                  <th className="text-right px-4 py-3 text-sm font-semibold text-slate-700 w-32">
                     Nota
                   </th>
                   <th className="text-left px-4 py-3 text-sm font-semibold text-slate-700">
@@ -154,10 +117,7 @@ const EvaluacionesClasificatoria = () => {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {evaluacionesFiltradas.map((evaluacion, index) => (
-                  <tr
-                    key={evaluacion.id}
-                    className="hover:bg-slate-50 transition-colors"
-                  >
+                  <tr key={evaluacion.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-4 py-3 text-sm text-slate-600 font-medium">
                       {index + 1}
                     </td>
@@ -187,7 +147,7 @@ const EvaluacionesClasificatoria = () => {
                             errorValidacion[evaluacion.id]
                               ? "border-red-400"
                               : "border-slate-300"
-                          }`}
+                          } text-right`}
                         />
                         {errorValidacion[evaluacion.id] && (
                           <div className="flex items-center gap-1 mt-1 text-red-600 text-xs">
@@ -203,10 +163,7 @@ const EvaluacionesClasificatoria = () => {
                         type="text"
                         value={evaluacion.observacion}
                         onChange={(e) =>
-                          handleObservacionChange(
-                            evaluacion.id,
-                            e.target.value
-                          )
+                          handleObservacionChange(evaluacion.id, e.target.value)
                         }
                         placeholder="Comentarios adicionales"
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
@@ -227,10 +184,10 @@ const EvaluacionesClasificatoria = () => {
                               ? "bg-red-100 text-red-800 border-red-300"
                               : evaluacion.estado === "Desclasificado"
                               ? "bg-yellow-100 text-yellow-800 border-yellow-300"
-                              : "bg-gray-100 text-gray-600 border-gray-300"
+                              : "bg-white text-gray-600 border-gray-300"
                           }`}
                       >
-                        <option value="">Seleccione…</option>
+                        <option value="Pendiente">Pendiente</option>
                         <option value="Clasificado">Clasificado</option>
                         <option value="No Clasificado">No Clasificado</option>
                         <option value="Desclasificado">Desclasificado</option>
@@ -239,7 +196,6 @@ const EvaluacionesClasificatoria = () => {
 
                     <td className="px-4 py-3 text-center">
                       <div className="inline-flex items-center gap-2">
-                        {/* Eliminar fila */}
                         <button
                           onClick={() => eliminarFila(evaluacion.id)}
                           disabled={evaluaciones.length === 1}
@@ -250,7 +206,6 @@ const EvaluacionesClasificatoria = () => {
                           <Trash2 size={18} />
                         </button>
 
-                        {/* Agregar fila*/}
                         {evaluacion.id === evaluaciones[evaluaciones.length - 1]?.id && (
                           <button
                             onClick={agregarFila}
@@ -269,15 +224,15 @@ const EvaluacionesClasificatoria = () => {
             </table>
           </div>
         </div>
-        <div className="bg-gray-200  flex justify-end gap-3 mt-4 p-5">
-          <button className="bg-white hover:bg-gray-100 text-back font-medium px-4 py-2 rounded-lg transition">
+
+        {/* Acciones */}
+        <div className="bg-gray-200 flex justify-end gap-3 mt-4 p-5">
+          <button className="bg-white hover:bg-gray-100 text-black font-medium px-4 py-2 rounded-lg transition">
             Editar
           </button>
-
-          <button className="bg-white hover:bg-gray-100 text-back font-medium px-4 py-2 rounded-lg transition">
+          <button className="bg-white hover:bg-gray-100 text-black font-medium px-4 py-2 rounded-lg transition">
             Guardar Cambios
           </button>
-
           <button className="bg-black hover:bg-gray-800 text-white font-medium px-4 py-2 rounded-lg transition">
             Exportar
           </button>
