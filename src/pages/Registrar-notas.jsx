@@ -3,68 +3,30 @@ import { CheckCircle, AlertCircle } from "lucide-react";
 import SearchBar from "../components/search_bar";
 import ExcelGrid from "../components/excel_grid";
 import ActionButton from "../components/action_button";
+import MetricCard from "../components/metric_card";
+import useEvaluaciones from "../hook/use_evaluaciones";
+import { getColumns } from "../utils/table_config";
 
 const EvaluacionesClasificatoria = () => {
-  const [evaluaciones, setEvaluaciones] = useState([
-    { id: 1, competidor: "", nota: "", observacion: "", estado: "Pendiente" },
-  ]);
-
   const [busqueda, setBusqueda] = useState("");
   const [mensajeGuardado, setMensajeGuardado] = useState("");
-  const [errorValidacion, setErrorValidacion] = useState({});
 
-  // Config columnas para el Grid
-  const columns = useMemo(
-    () => [
-      { header: "Competidor", field: "competidor", align: "center" },
-      { header: "Nota", field: "nota", width: "w-24", align: "center" },
-      { header: "Observación", field: "observacion", align: "center" },
-      { header: "Estado", field: "estado", align: "center", width: "w-44" },
-    ],
-    []
-  );
+  const {
+    evaluaciones,
+    errorValidacion,
+    onCellChange,
+    onDeleteRow,
+    agregarFila,
+  } = useEvaluaciones();
 
-  // Validacion de nota
-  const validarNota = (nota) => {
-    if (nota === "") return true;
-    const num = Number(nota);
-    return Number.isFinite(num) && num >= 0 && num <= 100;
-  };
+  // Métricas calculadas
+  const metricas = useMemo(() => ({
+    asignados: evaluaciones.length,
+    pendientes: evaluaciones.filter((e) => e.estado === "Pendiente").length,
+    completadas: evaluaciones.filter((e) => String(e.nota).trim() !== "").length,
+  }), [evaluaciones]);
 
-  // Cambios de celda (generico)
-  const onCellChange = (id, field, value) => {
-    if (field === "nota") {
-      if (!validarNota(value)) {
-        setErrorValidacion((prev) => ({
-          ...prev,
-          [id]: "La nota debe ser un número entre 0 y 100",
-        }));
-        // igual guardamos el valor para que el usuario lo corrija
-      } else {
-        setErrorValidacion((prev) => ({ ...prev, [id]: "" }));
-      }
-    }
-
-    setEvaluaciones((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
-    );
-  };
-
-  // Eliminar fila
-  const onDeleteRow = (id) => {
-    setEvaluaciones((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev));
-  };
-
-  // Agregar fila
-  const agregarFila = () => {
-    const nuevoId = Math.max(0, ...evaluaciones.map((e) => e.id)) + 1;
-    setEvaluaciones((prev) => [
-      ...prev,
-      { id: nuevoId, competidor: "", nota: "", observacion: "", estado: "Pendiente" },
-    ]);
-  };
-
-  // Filtrado por busqueda
+  // Datos filtrados
   const dataFiltrada = useMemo(
     () =>
       evaluaciones.filter(
@@ -75,8 +37,8 @@ const EvaluacionesClasificatoria = () => {
     [evaluaciones, busqueda]
   );
 
-  // Renderizar celdas específicas (inputs/select y validacion visual)
-  const renderCell = (row, col, rowIndex, colIndex, onCellChange) => {
+  // Render personalizado de celdas
+  const renderCell = (row, col) => {
     if (col.field === "competidor") {
       return (
         <input
@@ -92,20 +54,20 @@ const EvaluacionesClasificatoria = () => {
     if (col.field === "nota") {
       const hasError = !!errorValidacion[row.id];
       return (
-        <div className="p-0">
+        <div className="relative">
           <input
             type="text"
             inputMode="numeric"
             value={row.nota}
             onChange={(e) => onCellChange(row.id, "nota", e.target.value)}
             placeholder="0-100"
-            className={`w-full h-full px-2 py-1.5 text-sm border-none focus:ring-2 focus:ring-gray-300 focus:ring-inset outline-none bg-transparent text-center ${
-              hasError ? "ring-2 ring-red-400" : ""
+            className={`w-full h-full px-2 py-1.5 text-sm border-none focus:ring-2 focus:ring-inset outline-none bg-transparent text-center ${
+              hasError ? "ring-2 ring-red-400 bg-red-50" : "focus:ring-gray-300"
             }`}
           />
           {hasError && (
-            <div className="flex items-center gap-1 px-2 py-1 text-red-600 text-xs">
-              <AlertCircle size={12} />
+            <div className="absolute top-full left-0 right-0 bg-red-600 text-white text-xs px-2 py-1 z-10 flex items-center gap-1">
+              <AlertCircle size={10} />
               <span>{errorValidacion[row.id]}</span>
             </div>
           )}
@@ -126,23 +88,18 @@ const EvaluacionesClasificatoria = () => {
     }
 
     if (col.field === "estado") {
-      const base =
-        "w-full h-full px-2 py-1.5 text-sm font-medium border-none focus:ring-2 focus:ring-gray-300 focus:ring-inset outline-none rounded-none";
-      const k = row.estado;
-      const color =
-        k === "Clasificado"
-          ? "bg-green-100 text-green-800"
-          : k === "No Clasificado"
-          ? "bg-red-100 text-red-800"
-          : k === "Desclasificado"
-          ? "bg-yellow-100 text-yellow-800"
-          : "bg-white text-gray-700";
+      const estados = {
+        Pendiente: "bg-white text-gray-700",
+        Clasificado: "bg-green-100 text-green-800",
+        "No Clasificado": "bg-red-100 text-red-800",
+        Desclasificado: "bg-yellow-100 text-yellow-800",
+      };
 
       return (
         <select
           value={row.estado}
           onChange={(e) => onCellChange(row.id, "estado", e.target.value)}
-          className={`${base} ${color}`}
+          className={`w-full h-full px-2 py-1.5 text-sm font-medium border-none focus:ring-2 focus:ring-gray-300 focus:ring-inset outline-none ${estados[row.estado]}`}
         >
           <option value="Pendiente">Pendiente</option>
           <option value="Clasificado">Clasificado</option>
@@ -152,21 +109,27 @@ const EvaluacionesClasificatoria = () => {
       );
     }
 
-    // Fallback a input por defecto
-    return (
-      <input
-        type="text"
-        value={row[col.field] ?? ""}
-        onChange={(e) => onCellChange(row.id, col.field, e.target.value)}
-        placeholder={col.placeholder ?? ""}
-        className="w-full h-full px-2 py-1.5 text-sm border-none focus:ring-2 focus:ring-blue-500 focus:ring-inset outline-none bg-transparent"
-      />
-    );
+    return null;
+  };
+
+  const handleGuardar = () => {
+    setMensajeGuardado("Guardado automáticamente");
+    setTimeout(() => setMensajeGuardado(""), 1800);
   };
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="bg-gray-200 rounded-lg max-w-7xl mx-auto p-5">
+        {/* Métricas */}
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-4">
+          <div className="grid grid-cols-3 divide-x divide-slate-300">
+            <MetricCard label="Cantidad Asignados:" value={metricas.asignados} />
+            <MetricCard label="Cantidad Pendientes" value={metricas.pendientes} showDivider />
+            <MetricCard label="Cantidad Hechas" value={metricas.completadas} showDivider />
+          </div>
+        </div>
+
+
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6 flex items-center justify-between flex-wrap gap-4">
           <h1 className="text-2xl font-bold text-slate-800">
@@ -183,9 +146,9 @@ const EvaluacionesClasificatoria = () => {
           <SearchBar value={busqueda} onChange={setBusqueda} />
         </div>
 
-        {/* GRID tabla*/}
+        {/* Grid */}
         <ExcelGrid
-          columns={columns}
+          columns={getColumns()}
           data={dataFiltrada}
           onCellChange={onCellChange}
           onDeleteRow={onDeleteRow}
@@ -196,9 +159,24 @@ const EvaluacionesClasificatoria = () => {
 
         {/* Acciones */}
         <div className="bg-gray-200 flex justify-end gap-3 mt-4 p-5">
-          <ActionButton type="edit" label="Editar" onClick={() => console.log("Editar")} />
-          <ActionButton type="save" label="Guardar Cambios" onClick={() => console.log("Guardar")} />
-          <ActionButton type="export" label="Exportar" onClick={() => console.log("Exportar")} />
+          <ActionButton
+            type="edit"
+            label="Editar"
+            onClick={() => console.log("Editar")}
+            icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>}
+          />
+          <ActionButton
+            type="save"
+            label="Guardar"
+            onClick={handleGuardar}
+            icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>}
+          />
+          <ActionButton
+            type="export"
+            label="Exportar"
+            onClick={() => console.log("Exportar")}
+            icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>}
+          />
         </div>
       </div>
     </div>
