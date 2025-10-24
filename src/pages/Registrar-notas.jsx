@@ -1,186 +1,155 @@
-import { useState, useMemo } from "react";
-import { CheckCircle, AlertCircle } from "lucide-react";
+import { useMemo, useState } from "react";
 import SearchBar from "../components/search_bar";
 import ExcelGrid from "../components/excel_grid";
 import ActionButton from "../components/action_button";
 import MetricCard from "../components/metric_card";
-import useEvaluaciones from "../hook/use_evaluaciones";
-import { getColumns } from "../utils/table_config";
+import datos from "../data/datos_prueba.json";
 
-const EvaluacionesClasificatoria = () => {
-  const [busqueda, setBusqueda] = useState("");
+export default function RegistrarNotasReplanteado() {
+  // ----- estado demo -----
+  const [evaluaciones, setEvaluaciones] = useState(datos.clasificados);
+  const [historial, setHistorial] = useState(datos.historial);
+  const [busqEval, setBusqEval] = useState("");
+  const [busqHist, setBusqHist] = useState("");
   const [mensajeGuardado, setMensajeGuardado] = useState("");
 
-  const {
-    evaluaciones,
-    errorValidacion,
-    onCellChange,
-    onDeleteRow,
-    agregarFila,
-  } = useEvaluaciones();
+  // ----- métricas -----
+  const totalAsignados = evaluaciones.length;
+  const totalPendientes = evaluaciones.filter(e => e.estado === "Pendiente").length;
+  const totalHechas = evaluaciones.filter(e => String(e.nota).trim() !== "").length;
 
-  // Métricas calculadas
-  const metricas = useMemo(() => ({
-    asignados: evaluaciones.length,
-    pendientes: evaluaciones.filter((e) => e.estado === "Pendiente").length,
-    completadas: evaluaciones.filter((e) => String(e.nota).trim() !== "").length,
-  }), [evaluaciones]);
+  // ----- columnas -----
+  const columnsEval = useMemo(() => [
+    { header: "Competidor", field: "competidor", align: "left" },
+    { header: "Nota", field: "nota", align: "center", width: "w-24" },
+    { header: "Observación", field: "observacion", align: "left" },
+    { header: "Estado", field: "estado", align: "center", width: "w-40" },
+  ], []);
 
-  // Datos filtrados
-  const dataFiltrada = useMemo(
-    () =>
-      evaluaciones.filter(
-        (ev) =>
-          (ev.competidor || "").toLowerCase().includes(busqueda.toLowerCase()) ||
-          (ev.observacion || "").toLowerCase().includes(busqueda.toLowerCase())
-      ),
-    [evaluaciones, busqueda]
+  const columnsHist = useMemo(() => [
+    { header: "Competidor", field: "competidor", align: "left" },
+    { header: "Nota Anterior", field: "notaAnterior", align: "center", width: "w-28" },
+    { header: "Nota Nueva", field: "notaNueva", align: "center", width: "w-28" },
+    { header: "Fecha", field: "fecha", align: "center", width: "w-32" },
+    { header: "Usuario", field: "usuario", align: "center", width: "w-28" },
+  ], []);
+
+  const dataEval = useMemo(
+    () => evaluaciones.filter(
+      r => (r.competidor||"").toLowerCase().includes(busqEval.toLowerCase())
+        || (r.observacion||"").toLowerCase().includes(busqEval.toLowerCase())
+    ),
+    [evaluaciones, busqEval]
   );
 
-  // Render personalizado de celdas
-  const renderCell = (row, col) => {
-    if (col.field === "competidor") {
-      return (
-        <input
-          type="text"
-          value={row.competidor}
-          onChange={(e) => onCellChange(row.id, "competidor", e.target.value)}
-          placeholder="Nombre del competidor"
-          className="w-full h-full px-2 py-1.5 text-sm border-none focus:ring-2 focus:ring-gray-300 focus:ring-inset outline-none bg-transparent"
-        />
-      );
-    }
+  const dataHist = useMemo(
+    () => historial.filter(
+      r => (r.competidor||"").toLowerCase().includes(busqHist.toLowerCase())
+        || (r.usuario||"").toLowerCase().includes(busqHist.toLowerCase())
+    ),
+    [historial, busqHist]
+  );
 
-    if (col.field === "nota") {
-      const hasError = !!errorValidacion[row.id];
-      return (
-        <div className="relative">
-          <input
-            type="text"
-            inputMode="numeric"
-            value={row.nota}
-            onChange={(e) => onCellChange(row.id, "nota", e.target.value)}
-            placeholder="0-100"
-            className={`w-full h-full px-2 py-1.5 text-sm border-none focus:ring-2 focus:ring-inset outline-none bg-transparent text-center ${
-              hasError ? "ring-2 ring-red-400 bg-red-50" : "focus:ring-gray-300"
-            }`}
-          />
-          {hasError && (
-            <div className="absolute top-full left-0 right-0 bg-red-600 text-white text-xs px-2 py-1 z-10 flex items-center gap-1">
-              <AlertCircle size={10} />
-              <span>{errorValidacion[row.id]}</span>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    if (col.field === "observacion") {
-      return (
-        <input
-          type="text"
-          value={row.observacion}
-          onChange={(e) => onCellChange(row.id, "observacion", e.target.value)}
-          placeholder="Comentarios adicionales"
-          className="w-full h-full px-2 py-1.5 text-sm border-none focus:ring-2 focus:ring-gray-300 focus:ring-inset outline-none bg-transparent"
-        />
-      );
-    }
-
-    if (col.field === "estado") {
-      const estados = {
-        Pendiente: "bg-white text-gray-700",
-        Clasificado: "bg-green-100 text-green-800",
-        "No Clasificado": "bg-red-100 text-red-800",
-        Desclasificado: "bg-yellow-100 text-yellow-800",
-      };
-
-      return (
-        <select
-          value={row.estado}
-          onChange={(e) => onCellChange(row.id, "estado", e.target.value)}
-          className={`w-full h-full px-2 py-1.5 text-sm font-medium border-none focus:ring-2 focus:ring-gray-300 focus:ring-inset outline-none ${estados[row.estado]}`}
-        >
-          <option value="Pendiente">Pendiente</option>
-          <option value="Clasificado">Clasificado</option>
-          <option value="No Clasificado">No Clasificado</option>
-          <option value="Desclasificado">Desclasificado</option>
-        </select>
-      );
-    }
-
-    return null;
-  };
-
-  const handleGuardar = () => {
-    setMensajeGuardado("Guardado automáticamente");
-    setTimeout(() => setMensajeGuardado(""), 1800);
-  };
+  // ----- handlers mínimos -----
+  const onCellChange = (id, field, value) =>
+    setEvaluaciones(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+  const onDeleteRow = (id) =>
+    setEvaluaciones(prev => prev.length > 1 ? prev.filter(r => r.id !== id) : prev);
+  const onAddRow = () =>
+    setEvaluaciones(prev => [...prev, {
+      id: Math.max(0, ...prev.map(p => p.id))+1, competidor:"", nota:"", observacion:"", estado:"Pendiente"
+    }]);
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
-      <div className="bg-gray-200 rounded-lg max-w-7xl mx-auto p-5">
-        {/* Métricas */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-4">
-          <div className="grid grid-cols-3 divide-x divide-slate-300">
-            <MetricCard label="Cantidad Asignados:" value={metricas.asignados} />
-            <MetricCard label="Cantidad Pendientes" value={metricas.pendientes} showDivider />
-            <MetricCard label="Cantidad Hechas" value={metricas.completadas} showDivider />
+      <div className="bg-gray-200 rounded-lg max-w-7xl mx-auto space-y-6 p-5">
+        {/* Encabezado superior: Dashboard / Área / Nivel */}
+        <div className="flex flex-wrap items-center justify-between gap-6 bg-gray-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-slate-700">Dashboard:</span>
+            <span className="text-slate-600">Clasificación General</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-slate-700">Área:</span>
+            <span className="text-slate-600">"default"</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-slate-700">Nivel:</span>
+            <span className="text-slate-600">"default"</span>
           </div>
         </div>
 
+        {/* MÉTRICAS: fila compacta con divisores */}
+        <section className="bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-200">
+            <MetricCard label="Cantidad Asignados:" value={totalAsignados} />
+            <MetricCard label="Cantidad Pendientes" value={totalPendientes} showDivider />
+            <MetricCard label="Cantidad Hechas" value={totalHechas} showDivider />
+          </div>
+        </section>
 
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6 flex items-center justify-between flex-wrap gap-4">
-          <h1 className="text-2xl font-bold text-slate-800">
-            Lista de Evaluaciones - Clasificatoria
-          </h1>
+        {/* EVALUACIONES */}
+        <section className="bg-white rounded-xl border border-slate-200 shadow-sm">
+          {/* header de sección */}
+          <div className="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-slate-200 sticky top-0 bg-white z-10 rounded-t-xl">
+            <h2 className="text-lg sm:text-xl font-bold text-black">
+              Lista de Evaluaciones - Clasificatoria
+            </h2>
+            <SearchBar value={busqEval} onChange={setBusqEval} />
+          </div>
 
-          {mensajeGuardado && (
-            <div className="flex items-center gap-2 text-green-600 bg-green-50 px-4 py-2 rounded-lg border border-green-200">
-              <CheckCircle size={16} />
-              <span className="text-sm font-medium">{mensajeGuardado}</span>
-            </div>
-          )}
+          {/* tabla */}
+          <div className="max-h-[210px] overflow-y-auto overscroll-contain p-4">
+            <ExcelGrid
+              columns={columnsEval}
+              data={dataEval}
+              onCellChange={onCellChange}
+              className="rounded-lg"
+            />
+          </div>
 
-          <SearchBar value={busqueda} onChange={setBusqueda} />
-        </div>
+          {/* acciones */}
+          <div className="flex justify-end gap-2 p-4 border-t border-slate-200 bg-gray-200 rounded-b-xl">
+            <ActionButton type="edit" label="Editar" />
+            <ActionButton type="save" label="Guardar cambios" onClick={()=>{
+              setMensajeGuardado("Guardado");
+              setTimeout(()=>setMensajeGuardado(""),1500);
+            }}/>
+            <ActionButton type="export" label="Exportar" />
+          </div>
+        </section>
 
-        {/* Grid */}
-        <ExcelGrid
-          columns={getColumns()}
-          data={dataFiltrada}
-          onCellChange={onCellChange}
-          onDeleteRow={onDeleteRow}
-          onAddRow={agregarFila}
-          renderCell={renderCell}
-          className="rounded-lg"
-        />
+        {/* HISTORIAL */}
+        <section className="bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-slate-200">
+            <h2 className="text-lg sm:text-xl font-bold text-black">Historial</h2>
+            <SearchBar value={busqHist} onChange={setBusqHist} />
+          </div>
+          <div className="max-h-[210px] overflow-y-auto overscroll-contain p-4">
+            <ExcelGrid
+              columns={columnsHist}
+              data={dataHist}
+              onCellChange={(id, f, v) =>
+                setHistorial(prev => prev.map(r => r.id===id?{...r,[f]:v}:r))
+              }
+              onDeleteRow={(id)=>
+                setHistorial(prev => prev.length>1?prev.filter(r=>r.id!==id):prev)
+              }
+              onAddRow={()=>{
+                const hoy = new Date().toISOString().split("T")[0];
+                setHistorial(prev => [...prev, {
+                  id: Math.max(0,...prev.map(p=>p.id))+1,
+                  competidor:"", notaAnterior:"", notaNueva:"", fecha:hoy, usuario:""
+                }])
+              }}
+              className="rounded-lg"
+            />
+          </div>
+        </section>
 
-        {/* Acciones */}
-        <div className="bg-gray-200 flex justify-end gap-3 mt-4 p-5">
-          <ActionButton
-            type="edit"
-            label="Editar"
-            onClick={() => console.log("Editar")}
-            icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>}
-          />
-          <ActionButton
-            type="save"
-            label="Guardar"
-            onClick={handleGuardar}
-            icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>}
-          />
-          <ActionButton
-            type="export"
-            label="Exportar"
-            onClick={() => console.log("Exportar")}
-            icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>}
-          />
-        </div>
       </div>
     </div>
   );
-};
-
-export default EvaluacionesClasificatoria;
+}

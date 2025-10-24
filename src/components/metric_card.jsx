@@ -6,7 +6,7 @@ const MetricCard = ({ label, value, showDivider = false }) => {
       }`}
     >
       {/* Etiqueta */}
-      <span className="text-sm sm:text-base text-slate-700 font-medium">
+      <span className="text-sm sm:text-base text-black font-medium">
         {label}
       </span>
 
