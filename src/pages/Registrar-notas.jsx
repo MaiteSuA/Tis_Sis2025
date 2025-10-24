@@ -1,4 +1,3 @@
-// src/pages/EvaluacionesClasificatoria.jsx
 import { useState, useMemo } from "react";
 import { CheckCircle, AlertCircle } from "lucide-react";
 import SearchBar from "../components/search_bar";
@@ -20,7 +19,7 @@ const EvaluacionesClasificatoria = () => {
       { header: "Competidor", field: "competidor", align: "center" },
       { header: "Nota", field: "nota", width: "w-24", align: "center" },
       { header: "Observación", field: "observacion", align: "center" },
-      { header: "Estado", field: "estado", align: "center", width: "w-44", align: "center" },
+      { header: "Estado", field: "estado", align: "center", width: "w-44" },
     ],
     []
   );
@@ -32,7 +31,7 @@ const EvaluacionesClasificatoria = () => {
     return Number.isFinite(num) && num >= 0 && num <= 100;
   };
 
-  // Cambios de celda (genérico)
+  // Cambios de celda (generico)
   const onCellChange = (id, field, value) => {
     if (field === "nota") {
       if (!validarNota(value)) {
