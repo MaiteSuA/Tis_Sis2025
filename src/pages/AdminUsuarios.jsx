@@ -6,8 +6,8 @@ import UsuarioForm from "../components/UsuarioForm.jsx";
 
 export default function AdminUsuarios() {
   const [tab, setTab] = useState("RESPONSABLE");
-  const [rows, setRows] = useState([]);
-
+  
+  //AREAS DISPONIBLES
   const [areas] = useState([
     { id: 1, nombre: "Sistemas" },
     { id: 2, nombre: "Industrial" },
@@ -60,38 +60,35 @@ export default function AdminUsuarios() {
   const [selected, setSelected] = useState(null);
 
   // datos demo por pestaña
-  useEffect(() => {
-    if (tab === "RESPONSABLE") {
-      setRows([
-        {
-          id: 1,
-          nombres: "María",
-          apellidos: "Pérez",
-          rol: "RESPONSABLE",
-          area: "Sistemas",
-          estado: true,
-          correo: "maria@umss.edu",
-          telefono: "70000001",
-          nombreUsuario: "MP",
-        },
-      ]);
-    } else {
-      setRows([
-        {
-          id: 2,
-          nombres: "Carlos",
-          apellidos: "Rojas",
-          rol: "EVALUADOR",
-          area: "Industrial",
-          estado: true,
-          correo: "carlos@umss.edu",
-          telefono: "70000002",
-          nombreUsuario: "CR",
-        },
-      ]);
-    }
-  }, [tab]);
+const [responsables, setResponsables] = useState([
+  {
+    id: 1,
+    nombres: "María",
+    apellidos: "Pérez",
+    rol: "RESPONSABLE",
+    area: "Sistemas",
+    estado: true,
+    correo: "maria@umss.edu",
+    telefono: "70000001",
+    nombreUsuario: "MP",
+  },
+]);
 
+const [evaluadores, setEvaluadores] = useState([
+  {
+    id: 2,
+    nombres: "Carlos",
+    apellidos: "Rojas",
+    rol: "EVALUADOR",
+    area: "Industrial",
+    estado: true,
+    correo: "carlos@umss.edu",
+    telefono: "70000002",
+    nombreUsuario: "CR",
+  },
+]);
+
+  const rows = tab === "RESPONSABLE" ? responsables : evaluadores;
   const handleDelete = (id) => setRows((r) => r.filter((x) => x.id !== id));
 
   const handleEdit = (row) => {
@@ -106,50 +103,36 @@ export default function AdminUsuarios() {
     setShowForm(true);
   };
 
-  const handleSave = (data) => {
-    const areaNombre =
-      data.area ??
-      areas.find((a) => a.id === Number(data.areaId))?.nombre ??
-      "Sistemas";
+const handleSave = (data) => {
+  const areaNombre =
+    data.area ??
+    areas.find((a) => a.id === Number(data.areaId))?.nombre ??
+    "Sistemas";
 
-    const iniciales = `${(data.nombres || "").charAt(0)}${(data.apellidos || "").charAt(0)}`.toUpperCase();
+  const iniciales = `${(data.nombres || "").charAt(0)}${(data.apellidos || "").charAt(0)}`.toUpperCase();
 
-    if (mode === "edit" && selected) {
-      setRows((prev) =>
-        prev.map((x) =>
-          x.id === selected.id
-            ? {
-                ...x,
-                ...data,
-                area: areaNombre,
-                rol: data.rol ?? x.rol,
-                estado: data.activo ?? data.estado ?? true,
-                nombreUsuario: iniciales,
-              }
-            : x
-        )
-      );
-    } else {
-      const nextId = Math.max(0, ...rows.map((x) => x.id)) + 1;
-      setRows((prev) => [
-        ...prev,
-        {
-          id: nextId,
-          rol: data.rol ?? tab,
-          nombres: data.nombres,
-          apellidos: data.apellidos,
-          correo: data.correo,
-          telefono: data.telefono,
-          estado: data.activo ?? true,
-          area: areaNombre,
-          nombreUsuario: iniciales,
-        },
-      ]);
-    }
-
-    setShowForm(false);
-    setSelected(null);
+  const newUser = {
+    id: Date.now(),
+    rol: data.rol ?? tab,
+    nombres: data.nombres,
+    apellidos: data.apellidos,
+    correo: data.correo,
+    telefono: data.telefono,
+    estado: data.activo ?? true,
+    area: areaNombre,
+    nombreUsuario: iniciales,
   };
+
+  if (tab === "RESPONSABLE") {
+    setResponsables((prev) => [...prev, newUser]);
+  } else {
+    setEvaluadores((prev) => [...prev, newUser]);
+  }
+
+  setShowForm(false);
+  setSelected(null);
+};
+
 
   return (
     <AdminLayout>
