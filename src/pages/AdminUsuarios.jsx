@@ -14,10 +14,50 @@ export default function AdminUsuarios() {
     { id: 3, nombre: "Civil" },
   ]);
 
+  // -------- NUEVO BLOQUE PARA MEDALLERO --------
+  const STORAGE_KEY = "ohsansi_parametros_medallero";
+  const [medallas, setMedallas] = useState({ oro: 0, plata: 0, bronce: 0 });
+  const [guardado, setGuardado] = useState(false);
+
+  // cargar valores guardados
+  useEffect(() => {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        setMedallas({
+          oro: Number(parsed.oro) || 0,
+          plata: Number(parsed.plata) || 0,
+          bronce: Number(parsed.bronce) || 0,
+        });
+      } catch {
+        // ignora si no hay datos válidos
+      }
+    }
+  }, []);
+
+  const onChangeMedalla = (campo) => (e) => {
+    const val = Math.max(0, Number(e.target.value || 0));
+    setMedallas((prev) => ({ ...prev, [campo]: val }));
+    setGuardado(false);
+  };
+
+  const guardarMedallas = () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(medallas));
+    setGuardado(true);
+  };
+
+  const resetMedallas = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setMedallas({ oro: 0, plata: 0, bronce: 0 });
+    setGuardado(false);
+  };
+  // ---------------------------------------------
+
   // modal state
   const [showForm, setShowForm] = useState(false);
   const [mode, setMode] = useState("create"); // "create" | "edit"
-  const [selected, setSelected] = useState(null); // fila seleccionada
+  const [selected, setSelected] = useState(null);
 
   // datos demo por pestaña
   useEffect(() => {
@@ -54,29 +94,24 @@ export default function AdminUsuarios() {
 
   const handleDelete = (id) => setRows((r) => r.filter((x) => x.id !== id));
 
-  // EDITAR → abre modal con fila seleccionada
   const handleEdit = (row) => {
     setSelected(row);
     setMode("edit");
     setShowForm(true);
   };
 
-  // CREAR → abre modal vacío
   const handleCreate = () => {
     setSelected(null);
     setMode("create");
     setShowForm(true);
   };
 
-  // Guardar (create/edit)
   const handleSave = (data) => {
-    // resolver nombre de área si viene por id
     const areaNombre =
       data.area ??
       areas.find((a) => a.id === Number(data.areaId))?.nombre ??
       "Sistemas";
 
-    // iniciales para columna Usuario
     const iniciales = `${(data.nombres || "").charAt(0)}${(data.apellidos || "").charAt(0)}`.toUpperCase();
 
     if (mode === "edit" && selected) {
@@ -118,38 +153,60 @@ export default function AdminUsuarios() {
 
   return (
     <AdminLayout>
-      {/* breadcrumb / título */}
       <div className="text-sm text-gray-600 mb-2">Dashboard</div>
 
-      {/* tarjetas superiores (puedes dejar igual) */}
       <section className="space-y-4">
         <div className="panel">
           <label className="section">Numeros de Usuarios Registrados</label>
           <input disabled value={rows.length} className="kpi-input w-40" />
         </div>
 
+        {/* ======= PANEL DE MEDALLAS EDITABLE ======= */}
         <div className="panel">
           <p className="section">Cantidad de Medallas:</p>
           <div className="flex items-center gap-6 flex-wrap">
             {[
-              ["Oro", 123456],
-              ["Plata", 123456],
-              ["Bronce", 123456],
-            ].map(([label, val]) => (
-              <div key={label} className="flex items-center gap-2">
+              ["Oro", "oro"],
+              ["Plata", "plata"],
+              ["Bronce", "bronce"],
+            ].map(([label, key]) => (
+              <div key={key} className="flex items-center gap-2">
                 <span className="text-gray-700 w-14">{label}:</span>
-                <input disabled value={val} className="kpi-input" />
+                <input
+                  type="number"
+                  min={0}
+                  value={medallas[key]}
+                  onChange={onChangeMedalla(key)}
+                  className="kpi-input"
+                />
               </div>
             ))}
-            <button className="btn-dark ml-auto">Guardar Cambios</button>
+
+            <div className="ml-auto flex items-center gap-3">
+              <button onClick={guardarMedallas} className="btn-dark">
+                Guardar Cambios
+              </button>
+              <button onClick={resetMedallas} className="btn-light">
+                Restablecer
+              </button>
+              {guardado && (
+                <span className="text-green-600 text-sm">✓ Guardado</span>
+              )}
+            </div>
           </div>
         </div>
+        {/* =========================================== */}
 
         <div className="panel">
           <span className="section">Estado del proceso:</span>
           <div className="flex items-center gap-8">
             <label className="inline-flex items-center gap-2 text-gray-800">
-              <input type="checkbox" defaultChecked className="accent-gray-700" /> En evaluación
+              <input
+                type="checkbox"
+                defaultChecked
+                className="accent-gray-700"
+              />{" "}
+              En evaluación
             </label>
             <label className="inline-flex items-center gap-2 text-gray-800">
               <input type="checkbox" className="accent-gray-700" /> Concluido
@@ -170,7 +227,11 @@ export default function AdminUsuarios() {
         />
 
         <div className="p-4">
-          <UsuariosTable rows={rows} onEdit={handleEdit} onDelete={handleDelete} />
+          <UsuariosTable
+            rows={rows}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
         </div>
 
         <div className="px-4 pb-4 flex justify-between">
@@ -181,10 +242,9 @@ export default function AdminUsuarios() {
         </div>
       </section>
 
-      {/* modal */}
       {showForm && (
         <UsuarioForm
-          key={mode + (selected?.id ?? "nuevo")} // fuerza reinicio al cambiar modo/fila
+          key={mode + (selected?.id ?? "nuevo")}
           mode={mode}
           title={mode === "edit" ? "Editar Usuario" : "Registro de Usuario"}
           areas={areas}
@@ -200,3 +260,4 @@ export default function AdminUsuarios() {
     </AdminLayout>
   );
 }
+
