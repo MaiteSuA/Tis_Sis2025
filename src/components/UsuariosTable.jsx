@@ -80,7 +80,8 @@ export default function UsuariosTable({ rows = [], onEdit, onDelete }) {
                     </button>
 
                     <button
-                      onClick={() => onDelete?.(r.id)}
+                      type="button"
+                      onClick={() => onDelete(row)}
                       className="btn-dark px-3 py-1 rounded-md hover:bg-gray-800 transition-colors"
                     >
                       Eliminar

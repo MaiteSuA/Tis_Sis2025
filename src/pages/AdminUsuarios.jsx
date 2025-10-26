@@ -89,7 +89,30 @@ const [evaluadores, setEvaluadores] = useState([
 ]);
 
   const rows = tab === "RESPONSABLE" ? responsables : evaluadores;
-  const handleDelete = (id) => setRows((r) => r.filter((x) => x.id !== id));
+  
+  const handleDelete = (arg) => {
+    // 1) tomar id desde objeto o desde valor primitivo
+    const raw = typeof arg === "object" && arg !== null ? arg.id : arg;
+    if (raw == null) return;
+
+    // 2) normalizar id: si es número válido -> Number, si no -> String
+    const norm = (v) => (isNaN(Number(v)) ? String(v) : Number(v));
+    const id = norm(raw);
+
+    // 3) borrar en la lista correcta (según pestaña)
+    const removeById = (arr) => arr.filter((x) => norm(x.id) !== id);
+
+    if (tab === "RESPONSABLE") {
+    setResponsables((prev) => removeById(prev));
+    } else {
+    setEvaluadores((prev) => removeById(prev));
+    }
+
+    if (selected && norm(selected.id) === id) {
+      setShowForm(false);
+      setSelected(null);
+    }
+};
 
   const handleEdit = (row) => {
     setSelected(row);
