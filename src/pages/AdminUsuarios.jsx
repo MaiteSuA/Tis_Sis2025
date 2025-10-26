@@ -112,7 +112,7 @@ const handleSave = (data) => {
   const iniciales = `${(data.nombres || "").charAt(0)}${(data.apellidos || "").charAt(0)}`.toUpperCase();
 
   const newUser = {
-    id: Date.now(),
+    id: selected?.id ?? Date.now(),
     rol: data.rol ?? tab,
     nombres: data.nombres,
     apellidos: data.apellidos,
@@ -124,9 +124,21 @@ const handleSave = (data) => {
   };
 
   if (tab === "RESPONSABLE") {
-    setResponsables((prev) => [...prev, newUser]);
+    setResponsables((prev) => {
+      if (mode === "edit" && selected) {
+        // ACTUALIZAR usuario existente
+        return prev.map((x) => (x.id === selected.id ? newUser : x));
+      }
+      // CREAR nuevo
+      return [...prev, newUser];
+    });
   } else {
-    setEvaluadores((prev) => [...prev, newUser]);
+    setEvaluadores((prev) => {
+      if (mode === "edit" && selected) {
+        return prev.map((x) => (x.id === selected.id ? newUser : x));
+      }
+      return [...prev, newUser];
+    });
   }
 
   setShowForm(false);
