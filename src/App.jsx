@@ -1,12 +1,16 @@
+import { Routes, Route, Navigate } from "react-router-dom";
 import AdminUsuarios from "./pages/AdminUsuarios";
-import "./styles/App.css";
-import "./styles/ui.css";
-function App() {
+import AdminLog from "./pages/AdminLog";  // asegúrate de tener este archivo
+
+export default function App() {
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <AdminUsuarios />
-    </div>
+    <Routes>
+      <Route path="/" element={<AdminUsuarios />} />
+      <Route path="/admin/usuarios" element={<AdminUsuarios />} />
+      <Route path="/admin/log" element={<AdminLog />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
-export default App;
+
