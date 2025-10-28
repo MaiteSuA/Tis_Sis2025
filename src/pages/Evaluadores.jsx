@@ -1,13 +1,4 @@
 import Navbar from "../components/Navbar";
-export default function Evaluadores(){
-  return (
-    <>
-      <Navbar />
-      <div className="page">
-        <h2>Convocatoria de Evaluadores</h2>
-        <p>Aquí puedes postularte como evaluador y ver requisitos.</p>
-      </div>
-    </>
-  );
+export default function Evaluadores() {
+  return <div className="p-6 text-2xl">Evaluadores ✅</div>;
 }
-

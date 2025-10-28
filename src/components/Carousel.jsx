@@ -1,77 +1,96 @@
-import { useEffect, useRef, useState } from "react";
-import "../styles/landing.css";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-const SLIDES = [
-  {
-    id: 1,
-    title: "Inscripciones abiertas",
-    text: "Postúlate a tu área favorita y revisa el cronograma.",
-    img: "/news/n1.jpg",
-    cta: { label: "Ver cronograma", to: "/resultados" }
-  },
-  {
-    id: 2,
-    title: "Convocatoria de evaluadores",
-    text: "Únete como evaluador y contribuye a la Olimpiada.",
-    img: "/news/n2.jpg",
-    cta: { label: "Postularme", to: "/evaluadores" }
-  },
-  {
-    id: 3,
-    title: "Eventos próximos",
-    text: "Charlas y prácticas de preparación, ¡no te las pierdas!",
-    img: "/news/n3.jpg",
-    cta: { label: "Ver eventos", to: "/medallero" }
-  }
-];
+export default function Carousel({ items = [], intervalMs = 4500 }) {
+  const slides = useMemo(() => items.filter(Boolean), [items]);
+  const [i, setI] = useState(0);
+  const timer = useRef(null);
+  const hover = useRef(false);
 
-export default function Carousel({ onNavigate }) {
-  const [idx, setIdx] = useState(0);
-  const timerRef = useRef(null);
-
-  const go = (next) => {
-    setIdx((i) => (i + next + SLIDES.length) % SLIDES.length);
-  };
-
-  const goto = (i) => setIdx(i);
+  const next = () => setI((v) => (v + 1) % slides.length);
+  const prev = () => setI((v) => (v - 1 + slides.length) % slides.length);
 
   useEffect(() => {
-    // autoplay
-    timerRef.current = setInterval(() => go(1), 6000);
-    return () => clearInterval(timerRef.current);
-  }, []);
+    if (!slides.length) return;
+    timer.current = setInterval(() => {
+      if (!hover.current) next();
+    }, intervalMs);
+    return () => clearInterval(timer.current);
+  }, [slides.length, intervalMs]);
+
+  if (!slides.length) {
+    return (
+      <div className="w-full h-64 rounded-2xl bg-gray-200 grid place-items-center text-gray-500">
+        Sin noticias por ahora
+      </div>
+    );
+  }
+
+  const s = slides[i];
 
   return (
-    <div className="carousel">
-      <button className="carousel__arrow" onClick={() => go(-1)}>‹</button>
+    <div
+      className="relative w-full h-64 md:h-72 rounded-2xl overflow-hidden bg-gray-300"
+      onMouseEnter={() => (hover.current = true)}
+      onMouseLeave={() => (hover.current = false)}
+    >
+      {/* Imagen de fondo + velo */}
+      {s.image && (
+        <>
+          <img
+            src={s.image}
+            alt={s.title}
+            className="absolute inset-0 w-full h-full object-cover opacity-80"
+          />
+          <div className="absolute inset-0 bg-black/30" />
+        </>
+      )}
 
-      <div className="carousel__slide">
-        <img className="carousel__img" src={SLIDES[idx].img} alt={SLIDES[idx].title} />
-        <div className="carousel__caption">
-          <h3>{SLIDES[idx].title}</h3>
-          <p>{SLIDES[idx].text}</p>
-          <button
-            className="btn"
-            onClick={() => onNavigate?.(SLIDES[idx].cta.to)}
-          >
-            {SLIDES[idx].cta.label}
-          </button>
+      {/* Texto central */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-white px-6 text-center">
+        <div className="uppercase tracking-wide text-xs md:text-sm opacity-90">
+          NOTICIAS / PRÓXIMOS EVENTOS
         </div>
+        <h3 className="mt-2 text-xl md:text-2xl font-semibold">
+          {s.title}
+        </h3>
+        {s.description && (
+          <p className="mt-1 text-xs md:text-sm opacity-90 max-w-3xl">
+            {s.description}
+          </p>
+        )}
       </div>
 
-      <button className="carousel__arrow" onClick={() => go(1)}>›</button>
+      {/* Flecha izquierda */}
+      <button
+        aria-label="Anterior"
+        onClick={prev}
+        className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg grid place-items-center bg-white/80 hover:bg-white text-gray-800 shadow"
+      >
+        ‹
+      </button>
 
-      <div className="carousel__dots">
-        {SLIDES.map((s, i) => (
+      {/* Flecha derecha */}
+      <button
+        aria-label="Siguiente"
+        onClick={next}
+        className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg grid place-items-center bg-white/80 hover:bg-white text-gray-800 shadow"
+      >
+        ›
+      </button>
+
+      {/* Dots */}
+      <div className="absolute bottom-3 w-full flex items-center justify-center gap-2">
+        {slides.map((_, idx) => (
           <button
-            key={s.id}
-            className={`dot ${i === idx ? "dot--active" : ""}`}
-            onClick={() => goto(i)}
-            aria-label={`Ir al slide ${i + 1}`}
+            key={idx}
+            onClick={() => setI(idx)}
+            aria-label={`Ir al slide ${idx + 1}`}
+            className={`w-3 h-3 rounded-full transition ${
+              idx === i ? "bg-white" : "bg-white/60 hover:bg-white"
+            }`}
           />
         ))}
       </div>
     </div>
   );
 }
-

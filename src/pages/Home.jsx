@@ -1,35 +1,49 @@
-import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Carousel from "../components/Carousel";
-import "../styles/landing.css";
+
+
+const news = [
+  { title: "Convocatoria Oficial 2025 publicada",
+    description: "Revisa fechas y requisitos para las Olimpiadas OhSanSi.",
+    image: "https://images.unsplash.com/photo-1523580846011-d3a5bc25702b?q=80&w=1600&auto=format&fit=crop" },
+  { title: "Capacitación a Evaluadores",
+    description: "Sesiones intro y rúbricas de evaluación por áreas.",
+    image: "https://images.unsplash.com/photo-1523580846011-8a49fd8d1a76?q=80&w=1600&auto=format&fit=crop" },
+  { title: "Clasificatorias regionales",
+    description: "Cronograma y sedes confirmadas para las pruebas.",
+    image: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?q=80&w=1600&auto=format&fit=crop" },
+];
 
 export default function Home() {
-  const navigate = useNavigate();
-
   return (
-    <>
+    <div className="min-h-screen w-screen bg-white overflow-x-hidden">
       <Navbar />
-      <main className="hero">
-        <section className="hero__headline">
-          <h1>
-            Sistema de<br />
-            Evaluación<br />
-            <span>Olimpiadas OhSanSi</span>
-          </h1>
-          <p className="hero__sub">NOTICIAS / PRÓXIMOS EVENTOS</p>
-        </section>
 
-        <section className="hero__carousel">
-          <Carousel onNavigate={(to) => navigate(to)} />
-        </section>
+      {/* HERO ocupa toda la pantalla */}
+      <section className="w-screen min-h-screen bg-gray-200 flex flex-col items-center justify-center text-center px-6">
+        <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-8">
+          Sistema de <br className="hidden md:block" />
+          Evaluacion <br className="hidden md:block" />
+          Olimpiadas OhSansi
+        </h1>
 
-        <section className="hero__cta">
-          <button className="btn btn--primary" onClick={() => navigate("/login")}>
-            Empezar
-          </button>
-        </section>
-      </main>
-    </>
+        {/* Carrusel centrado debajo del título */}
+        <div className="w-full max-w-5xl mb-8">
+          <Carousel items={news} />
+        </div>
+
+        {/* Botón “Empezar” */}
+        <a
+          href="/login"
+          className="mt-2 inline-block px-10 py-3 rounded-md bg-gray-800 text-white hover:bg-black transition text-lg font-medium"
+        >
+          Empezar
+        </a>
+      </section>
+
+      <footer className="w-screen bg-gray-100 py-6 text-center text-sm text-gray-500">
+        © 2025 OhSanSi — Todos los derechos reservados.
+      </footer>
+    </div>
   );
 }
-
