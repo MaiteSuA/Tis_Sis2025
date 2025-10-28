@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import AdminLayout from "../components/AdminLayout.jsx";
 import UsuariosTabs from "../components/UsuariosTabs.jsx";
 import UsuariosTable from "../components/UsuariosTable.jsx";
@@ -6,20 +6,19 @@ import UsuarioForm from "../components/UsuarioForm.jsx";
 
 export default function AdminUsuarios() {
   const [tab, setTab] = useState("RESPONSABLE");
-  
-  //AREAS DISPONIBLES
+
+  // ================= ÁREAS DISPONIBLES =================
   const [areas] = useState([
     { id: 1, nombre: "Sistemas" },
     { id: 2, nombre: "Industrial" },
     { id: 3, nombre: "Civil" },
   ]);
 
-  // -------- NUEVO BLOQUE PARA MEDALLERO --------
+  // ================= MEDALLERO =================
   const STORAGE_KEY = "ohsansi_parametros_medallero";
   const [medallas, setMedallas] = useState({ oro: 0, plata: 0, bronce: 0 });
   const [guardado, setGuardado] = useState(false);
 
-  // cargar valores guardados
   useEffect(() => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -31,7 +30,7 @@ export default function AdminUsuarios() {
           bronce: Number(parsed.bronce) || 0,
         });
       } catch {
-        // ignora si no hay datos válidos
+        /* noop */
       }
     }
   }, []);
@@ -52,67 +51,91 @@ export default function AdminUsuarios() {
     setMedallas({ oro: 0, plata: 0, bronce: 0 });
     setGuardado(false);
   };
-  // ---------------------------------------------
 
-  // modal state
+  // ============ ESTADO DEL PROCESO ============
+
+  const PROCESS_KEY = "ohsansi_estado_proceso";
+  const [proceso, setProceso] = useState({ en: false, fin: false }); // ambos sin marcar
+  const [dirtyProceso, setDirtyProceso] = useState(false);
+  const [savedProceso, setSavedProceso] = useState(false);
+
+  // 🔹 Guardamos referencia al último guardado
+  const lastSavedProceso = useRef({ en: false, fin: false });
+
+  const onChangeProceso = (campo) => (e) => {
+    const value = e.target.checked;
+    const nuevo = { ...proceso, [campo]: value };
+    setProceso(nuevo);
+
+    // Comparamos con el último guardado
+    const isDifferent =
+      nuevo.en !== lastSavedProceso.current.en ||
+      nuevo.fin !== lastSavedProceso.current.fin;
+
+    setDirtyProceso(isDifferent);
+    setSavedProceso(false);
+  };
+
+  const guardarProceso = () => {
+    localStorage.setItem(PROCESS_KEY, JSON.stringify(proceso));
+    // Actualizamos la referencia con el nuevo valor guardado
+    lastSavedProceso.current = { ...proceso };
+    setDirtyProceso(false);
+    setSavedProceso(true);
+  };
+
+  // ================= MODAL / CRUD =================
   const [showForm, setShowForm] = useState(false);
-  const [mode, setMode] = useState("create"); // "create" | "edit"
+  const [mode, setMode] = useState("create");
   const [selected, setSelected] = useState(null);
 
-  // datos demo por pestaña
-const [responsables, setResponsables] = useState([
-  {
-    id: 1,
-    nombres: "María",
-    apellidos: "Pérez",
-    rol: "RESPONSABLE",
-    area: "Sistemas",
-    estado: true,
-    correo: "maria@umss.edu",
-    telefono: "70000001",
-    nombreUsuario: "MP",
-  },
-]);
+  const [responsables, setResponsables] = useState([
+    {
+      id: 1,
+      nombres: "María",
+      apellidos: "Pérez",
+      rol: "RESPONSABLE",
+      area: "Sistemas",
+      estado: true,
+      correo: "maria@umss.edu",
+      telefono: "70000001",
+      nombreUsuario: "MP",
+    },
+  ]);
 
-const [evaluadores, setEvaluadores] = useState([
-  {
-    id: 2,
-    nombres: "Carlos",
-    apellidos: "Rojas",
-    rol: "EVALUADOR",
-    area: "Industrial",
-    estado: true,
-    correo: "carlos@umss.edu",
-    telefono: "70000002",
-    nombreUsuario: "CR",
-  },
-]);
+  const [evaluadores, setEvaluadores] = useState([
+    {
+      id: 2,
+      nombres: "Carlos",
+      apellidos: "Rojas",
+      rol: "EVALUADOR",
+      area: "Industrial",
+      estado: true,
+      correo: "carlos@umss.edu",
+      telefono: "70000002",
+      nombreUsuario: "CR",
+    },
+  ]);
 
   const rows = tab === "RESPONSABLE" ? responsables : evaluadores;
-  
   const handleDelete = (arg) => {
-    // 1) tomar id desde objeto o desde valor primitivo
     const raw = typeof arg === "object" && arg !== null ? arg.id : arg;
     if (raw == null) return;
-
-    // 2) normalizar id: si es número válido -> Number, si no -> String
     const norm = (v) => (isNaN(Number(v)) ? String(v) : Number(v));
     const id = norm(raw);
-
-    // 3) borrar en la lista correcta (según pestaña)
     const removeById = (arr) => arr.filter((x) => norm(x.id) !== id);
 
     if (tab === "RESPONSABLE") {
-    setResponsables((prev) => removeById(prev));
+      setResponsables((prev) => removeById(prev));
     } else {
-    setEvaluadores((prev) => removeById(prev));
+      setEvaluadores((prev) => removeById(prev));
     }
 
     if (selected && norm(selected.id) === id) {
       setShowForm(false);
       setSelected(null);
     }
-};
+  };
 
   const handleEdit = (row) => {
     setSelected(row);
@@ -126,60 +149,59 @@ const [evaluadores, setEvaluadores] = useState([
     setShowForm(true);
   };
 
-const handleSave = (data) => {
-  const areaNombre =
-    data.area ??
-    areas.find((a) => a.id === Number(data.areaId))?.nombre ??
-    "Sistemas";
+  const handleSave = (data) => {
+    const areaNombre =
+      data.area ??
+      areas.find((a) => a.id === Number(data.areaId))?.nombre ??
+      "Sistemas";
 
-  const iniciales = `${(data.nombres || "").charAt(0)}${(data.apellidos || "").charAt(0)}`.toUpperCase();
+    const iniciales = `${(data.nombres || "").charAt(0)}${(data.apellidos || "").charAt(0)}`.toUpperCase();
 
-  const newUser = {
-    id: selected?.id ?? Date.now(),
-    rol: data.rol ?? tab,
-    nombres: data.nombres,
-    apellidos: data.apellidos,
-    correo: data.correo,
-    telefono: data.telefono,
-    estado: data.activo ?? true,
-    area: areaNombre,
-    nombreUsuario: iniciales,
+    const newUser = {
+      id: selected?.id ?? Date.now(),
+      rol: data.rol ?? tab,
+      nombres: data.nombres,
+      apellidos: data.apellidos,
+      correo: data.correo,
+      telefono: data.telefono,
+      estado: data.activo ?? true,
+      area: areaNombre,
+      nombreUsuario: iniciales,
+    };
+
+    if (tab === "RESPONSABLE") {
+      setResponsables((prev) => {
+        if (mode === "edit" && selected) {
+          return prev.map((x) => (x.id === selected.id ? newUser : x));
+        }
+        return [...prev, newUser];
+      });
+    } else {
+      setEvaluadores((prev) => {
+        if (mode === "edit" && selected) {
+          return prev.map((x) => (x.id === selected.id ? newUser : x));
+        }
+        return [...prev, newUser];
+      });
+    }
+
+    setShowForm(false);
+    setSelected(null);
   };
 
-  if (tab === "RESPONSABLE") {
-    setResponsables((prev) => {
-      if (mode === "edit" && selected) {
-        // ACTUALIZAR usuario existente
-        return prev.map((x) => (x.id === selected.id ? newUser : x));
-      }
-      // CREAR nuevo
-      return [...prev, newUser];
-    });
-  } else {
-    setEvaluadores((prev) => {
-      if (mode === "edit" && selected) {
-        return prev.map((x) => (x.id === selected.id ? newUser : x));
-      }
-      return [...prev, newUser];
-    });
-  }
-
-  setShowForm(false);
-  setSelected(null);
-};
-
-
+  // ================= RENDER =================
   return (
     <AdminLayout>
       <div className="text-sm text-gray-600 mb-2">Dashboard</div>
 
+      {/* Tarjetas superiores */}
       <section className="space-y-4">
         <div className="panel">
-          <label className="section">Numeros de Usuarios Registrados</label>
+          <label className="section">Número de Usuarios Registrados</label>
           <input disabled value={rows.length} className="kpi-input w-40" />
         </div>
 
-        {/* ======= PANEL DE MEDALLAS EDITABLE ======= */}
+        {/* ======= PANEL DE MEDALLAS ======= */}
         <div className="panel">
           <p className="section">Cantidad de Medallas:</p>
           <div className="flex items-center gap-6 flex-wrap">
@@ -213,27 +235,54 @@ const handleSave = (data) => {
             </div>
           </div>
         </div>
-        {/* =========================================== */}
 
-        <div className="panel">
-          <span className="section">Estado del proceso:</span>
-          <div className="flex items-center gap-8">
-            <label className="inline-flex items-center gap-2 text-gray-800">
+        {/* ======= ESTADO DEL PROCESO ======= */}
+        <div className="panel bg-gray-100">
+          <div className="flex items-center gap-8 flex-wrap">
+            <span className="section">Estado del proceso:</span>
+
+            <label className="inline-flex items-center gap-2 text-gray-800 text-sm">
+              <span>En evaluación</span>
               <input
                 type="checkbox"
-                defaultChecked
                 className="accent-gray-700"
-              />{" "}
-              En evaluación
+                checked={proceso.en}
+                onChange={onChangeProceso("en")}
+              />
             </label>
-            <label className="inline-flex items-center gap-2 text-gray-800">
-              <input type="checkbox" className="accent-gray-700" /> Concluido
+
+            <label className="inline-flex items-center gap-2 text-gray-800 text-sm">
+              <span>Concluido</span>
+              <input
+                type="checkbox"
+                className="accent-gray-700"
+                checked={proceso.fin}
+                onChange={onChangeProceso("fin")}
+              />
             </label>
+
+            <div className="ml-auto flex items-center gap-3">
+              <button
+                onClick={guardarProceso}
+                disabled={!dirtyProceso}
+                className={`btn-dark ${
+                  !dirtyProceso ? "opacity-60 cursor-not-allowed" : ""
+                }`}
+              >
+                Guardar Cambios
+              </button>
+
+              {savedProceso && (
+                <span className="text-green-600 text-sm whitespace-nowrap">
+                  ✓ Guardado
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* tabs + tabla */}
+      {/* Tabla principal */}
       <section className="mt-4 card">
         <UsuariosTabs
           tabs={[
@@ -278,4 +327,3 @@ const handleSave = (data) => {
     </AdminLayout>
   );
 }
-

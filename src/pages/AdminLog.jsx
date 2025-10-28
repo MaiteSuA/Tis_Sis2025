@@ -33,7 +33,7 @@ export default function AdminLog() {
   const [filtroArea, setFiltroArea] = useState("");
   const [filtroFecha, setFiltroFecha] = useState("");
 
-  // 📤 handlers de export
+  // handlers de export
   const handleExportExcel = () => {
     // TODO: aquí conectas tu export real (ej. XLSX.utils.json_to_sheet + file-saver)
     console.log("Exportar a Excel con filas filtradas...");
