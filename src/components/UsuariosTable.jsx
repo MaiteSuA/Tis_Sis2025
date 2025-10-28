@@ -69,7 +69,7 @@ export default function UsuariosTable({ rows = [], onEdit, onDelete }) {
 
                 <td className="px-4 py-2">
                   <div className="flex justify-end items-center gap-2">
-                    {/* ✅ pasa la fila completa para pre-rellenar el formulario */}
+                    {/* pasa la fila completa para pre-rellenar el formulario */}
                     <button
                       onClick={() => onEdit?.(r)}
                       className="btn-light px-3 py-1 rounded-md inline-flex items-center gap-1 hover:bg-gray-200 transition-colors"
@@ -81,7 +81,7 @@ export default function UsuariosTable({ rows = [], onEdit, onDelete }) {
 
                     <button
                       type="button"
-                      onClick={() => onDelete(row)}
+                      onClick={() => onDelete(r)}
                       className="btn-dark px-3 py-1 rounded-md hover:bg-gray-800 transition-colors"
                     >
                       Eliminar
