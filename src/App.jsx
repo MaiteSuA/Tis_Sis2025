@@ -1,54 +1,44 @@
-// El hook 'useState' se usa para manejar el estado de los componentes
 import { useState } from "react";
-// Logos de ejemplo importados como recursos estáticos
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-// El componente Link de React Router se usa para la navegación interna
-import { Link } from 'react-router-dom';
-// El CSS específico para este componente
-import "./styles/App.css";
+import TopNav from "./components/TopNav";
+import Sidebar from "./components/Sidebar";
+import StatsStrip from "./components/StatsStrip";
+import ImportCsvCard from "./components/ImportCsvCard";
+import DataTable from "./components/DataTable";
 
-// Este es el componente principal de React
-function App() {
-    // El 'state' de ejemplo para el contador
-  const [count, setCount] = useState(0);
+export default function App() {
+  const [previewRows, setPreviewRows] = useState([]);
+  const totals = { total: 123456, clasificados: 123456, reportes: 123456 };
+
+  const handleUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Demo de previsualización
+    setPreviewRows([
+      { Nombres: "Ana", Apellidos: "Quispe", CI: "123", Colegio: "C1" },
+      { Nombres: "Luis", Apellidos: "Mamani", CI: "456", Colegio: "C2" },
+      { Nombres: "María", Apellidos: "Guzmán", CI: "789", Colegio: "C3" },
+    ]);
+  };
+
+  const handleConfirm = () => {
+    // aquí llamarías a tu endpoint real
+    alert("Importación confirmada (simulada).");
+  };
 
   return (
-    <>
-      <div>
-          {/* Los siguientes dos enlaces y las imágenes son ejemplos de Vite */}
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="container-app">
+      <TopNav />
+      <div className="flex">
+        <Sidebar />
+        <main className="flex-1">
+          <div className="w-full max-w-6xl mx-auto px-4 py-5 space-y-4">
+            <h1 className="text-sm font-semibold text-gray-600">Dashboard</h1>
+            <StatsStrip totals={totals} />
+            <ImportCsvCard onUpload={handleUpload} onConfirm={handleConfirm} />
+            <DataTable rows={previewRows} />
+          </div>
+        </main>
       </div>
-        {/* El siguiente título y tarjeta son ejemplos que puedes eliminar */}
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-      {/*
-        Este es el botón de navegación de ejemplo usando React Router.
-        Se puede eliminar si no se necesita.
-      */}
-      {/* Botón para navegar a la nueva página */}
-      <Link to="/tailwind-example">
-        <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4">
-          Ver ejemplo de Tailwind
-        </button>
-      </Link>
-    </>
+    </div>
   );
 }
-
-export default App;

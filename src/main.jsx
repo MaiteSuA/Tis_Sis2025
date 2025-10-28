@@ -1,3 +1,4 @@
+//main,jsx
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 // La librería de ruteo para la navegación de la aplicación
