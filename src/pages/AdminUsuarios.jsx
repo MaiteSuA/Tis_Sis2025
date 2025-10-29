@@ -4,17 +4,31 @@ import UsuariosTabs from "../components/UsuariosTabs.jsx";
 import UsuariosTable from "../components/UsuariosTable.jsx";
 import UsuarioForm from "../components/UsuarioForm.jsx";
 
+import {
+  fetchResponsables,
+  createResponsable,
+  updateResponsable,
+  deleteResponsable,
+} from "../api/responsables.js";
+
+import {
+  fetchEvaluadores,
+  createEvaluador,
+  updateEvaluador,
+  deleteEvaluador,
+} from "../api/evaluadores.js";
+
 export default function AdminUsuarios() {
   const [tab, setTab] = useState("RESPONSABLE");
 
-  // ================= ÁREAS DISPONIBLES =================
+  // ÁREAS (por ahora mock, idealmente vendrá de /api/areas)
   const [areas] = useState([
     { id: 1, nombre: "Sistemas" },
     { id: 2, nombre: "Industrial" },
     { id: 3, nombre: "Civil" },
   ]);
 
-  // ================= MEDALLERO =================
+  // MEDALLAS (localStorage)
   const STORAGE_KEY = "ohsansi_parametros_medallero";
   const [medallas, setMedallas] = useState({ oro: 0, plata: 0, bronce: 0 });
   const [guardado, setGuardado] = useState(false);
@@ -52,14 +66,11 @@ export default function AdminUsuarios() {
     setGuardado(false);
   };
 
-  // ============ ESTADO DEL PROCESO ============
-
+  // ESTADO DEL PROCESO (UI local)
   const PROCESS_KEY = "ohsansi_estado_proceso";
-  const [proceso, setProceso] = useState({ en: false, fin: false }); // ambos sin marcar
+  const [proceso, setProceso] = useState({ en: false, fin: false });
   const [dirtyProceso, setDirtyProceso] = useState(false);
   const [savedProceso, setSavedProceso] = useState(false);
-
-  // 🔹 Guardamos referencia al último guardado
   const lastSavedProceso = useRef({ en: false, fin: false });
 
   const onChangeProceso = (campo) => (e) => {
@@ -67,7 +78,6 @@ export default function AdminUsuarios() {
     const nuevo = { ...proceso, [campo]: value };
     setProceso(nuevo);
 
-    // Comparamos con el último guardado
     const isDifferent =
       nuevo.en !== lastSavedProceso.current.en ||
       nuevo.fin !== lastSavedProceso.current.fin;
@@ -78,130 +88,136 @@ export default function AdminUsuarios() {
 
   const guardarProceso = () => {
     localStorage.setItem(PROCESS_KEY, JSON.stringify(proceso));
-    // Actualizamos la referencia con el nuevo valor guardado
     lastSavedProceso.current = { ...proceso };
     setDirtyProceso(false);
     setSavedProceso(true);
   };
 
-  // ================= MODAL / CRUD =================
+  // LISTAS DESDE BACKEND
+  const [responsables, setResponsables] = useState([]);
+  const [evaluadores, setEvaluadores] = useState([]);
+
+  // MODAL USUARIO
   const [showForm, setShowForm] = useState(false);
-  const [mode, setMode] = useState("create");
+  const [mode, setMode] = useState("create"); // "create" | "edit"
   const [selected, setSelected] = useState(null);
 
-  const [responsables, setResponsables] = useState([
-    {
-      id: 1,
-      nombres: "María",
-      apellidos: "Pérez",
-      rol: "RESPONSABLE",
-      area: "Sistemas",
-      estado: true,
-      correo: "maria@umss.edu",
-      telefono: "70000001",
-      nombreUsuario: "MP",
-    },
-  ]);
-
-  const [evaluadores, setEvaluadores] = useState([
-    {
-      id: 2,
-      nombres: "Carlos",
-      apellidos: "Rojas",
-      rol: "EVALUADOR",
-      area: "Industrial",
-      estado: true,
-      correo: "carlos@umss.edu",
-      telefono: "70000002",
-      nombreUsuario: "CR",
-    },
-  ]);
-
-  const rows = tab === "RESPONSABLE" ? responsables : evaluadores;
-  const handleDelete = (arg) => {
-    const raw = typeof arg === "object" && arg !== null ? arg.id : arg;
-    if (raw == null) return;
-    const norm = (v) => (isNaN(Number(v)) ? String(v) : Number(v));
-    const id = norm(raw);
-    const removeById = (arr) => arr.filter((x) => norm(x.id) !== id);
-
-    if (tab === "RESPONSABLE") {
-      setResponsables((prev) => removeById(prev));
-    } else {
-      setEvaluadores((prev) => removeById(prev));
+  // 1) cargar data del backend cuando cambia el tab
+  useEffect(() => {
+    async function cargar() {
+      if (tab === "RESPONSABLE") {
+        const data = await fetchResponsables(); // GET /api/responsables
+        setResponsables(data);
+      } else if (tab === "EVALUADOR") {
+        const dataEval = await fetchEvaluadores(); // GET /api/evaluadores
+        setEvaluadores(dataEval);
+      }
     }
 
-    if (selected && norm(selected.id) === id) {
+    cargar();
+  }, [tab]);
+
+  // 2) cuál lista mostrar
+  const rows = tab === "RESPONSABLE" ? responsables : evaluadores;
+
+  // 3) eliminar
+  const handleDelete = async (row) => {
+    const id = row?.id;
+    if (!id) return;
+
+    if (tab === "RESPONSABLE") {
+      await deleteResponsable(id); // DELETE /api/responsables/:id
+      setResponsables((prev) => prev.filter((x) => x.id !== id));
+    } else {
+      await deleteEvaluador(id); // DELETE /api/evaluadores/:id
+      setEvaluadores((prev) => prev.filter((x) => x.id !== id));
+    }
+
+    if (selected && selected.id === id) {
       setShowForm(false);
       setSelected(null);
     }
   };
 
+  // 4) editar
   const handleEdit = (row) => {
     setSelected(row);
     setMode("edit");
     setShowForm(true);
   };
 
+  // 5) crear
   const handleCreate = () => {
     setSelected(null);
     setMode("create");
     setShowForm(true);
   };
 
-  const handleSave = (data) => {
-    const areaNombre =
-      data.area ??
-      areas.find((a) => a.id === Number(data.areaId))?.nombre ??
-      "Sistemas";
+  // 6) guardar (create o update)
+  const handleSave = async (dataFormDelModal) => {
+    // dataFormDelModal viene de UsuarioForm
+    // {
+    //   nombres, apellidos, rol, areaId, area, correo, telefono, activo
+    // }
 
-    const iniciales = `${(data.nombres || "").charAt(0)}${(data.apellidos || "").charAt(0)}`.toUpperCase();
+    const payloadResponsable = {
+      nombres: dataFormDelModal.nombres,
+      apellidos: dataFormDelModal.apellidos,
+      correo: dataFormDelModal.correo,
+      usuario:
+        ((dataFormDelModal.nombres?.[0] || "") +
+          (dataFormDelModal.apellidos?.[0] || "")).toUpperCase(),
+      id_area: dataFormDelModal.areaId,
+      password: "123456",
+    };
 
-    const newUser = {
-      id: selected?.id ?? Date.now(),
-      rol: data.rol ?? tab,
-      nombres: data.nombres,
-      apellidos: data.apellidos,
-      correo: data.correo,
-      telefono: data.telefono,
-      estado: data.activo ?? true,
-      area: areaNombre,
-      nombreUsuario: iniciales,
+    const payloadEvaluador = {
+      nombres: dataFormDelModal.nombres,
+      apellidos: dataFormDelModal.apellidos,
+      id_area: dataFormDelModal.areaId,
     };
 
     if (tab === "RESPONSABLE") {
-      setResponsables((prev) => {
-        if (mode === "edit" && selected) {
-          return prev.map((x) => (x.id === selected.id ? newUser : x));
-        }
-        return [...prev, newUser];
-      });
+      if (mode === "edit" && selected) {
+        const updated = await updateResponsable(selected.id, payloadResponsable);
+        setResponsables((prev) =>
+          prev.map((x) => (x.id === selected.id ? updated : x))
+        );
+      } else {
+        const nuevo = await createResponsable(payloadResponsable);
+        setResponsables((prev) => [...prev, nuevo]);
+      }
     } else {
-      setEvaluadores((prev) => {
-        if (mode === "edit" && selected) {
-          return prev.map((x) => (x.id === selected.id ? newUser : x));
-        }
-        return [...prev, newUser];
-      });
+      if (mode === "edit" && selected) {
+        const updatedEval = await updateEvaluador(
+          selected.id,
+          payloadEvaluador
+        );
+        setEvaluadores((prev) =>
+          prev.map((x) => (x.id === selected.id ? updatedEval : x))
+        );
+      } else {
+        const nuevoEval = await createEvaluador(payloadEvaluador);
+        setEvaluadores((prev) => [...prev, nuevoEval]);
+      }
     }
 
     setShowForm(false);
     setSelected(null);
   };
 
-  // ================= RENDER =================
+  // RENDER
   return (
     <AdminLayout>
       <div className="text-sm text-gray-600 mb-2">Dashboard</div>
 
-      {/* Tarjetas superiores */}
+      {/* KPIs y estado */}
       <section className="space-y-4">
         <div className="panel">
           <label className="section">Número de Usuarios Registrados</label>
           <input disabled value={rows.length} className="kpi-input w-40" />
         </div>
 
-        {/* ======= PANEL DE MEDALLAS ======= */}
         <div className="panel">
           <p className="section">Cantidad de Medallas:</p>
           <div className="flex items-center gap-6 flex-wrap">
@@ -236,7 +252,6 @@ export default function AdminUsuarios() {
           </div>
         </div>
 
-        {/* ======= ESTADO DEL PROCESO ======= */}
         <div className="panel bg-gray-100">
           <div className="flex items-center gap-8 flex-wrap">
             <span className="section">Estado del proceso:</span>
@@ -282,7 +297,7 @@ export default function AdminUsuarios() {
         </div>
       </section>
 
-      {/* Tabla principal */}
+      {/* Tabla de usuarios */}
       <section className="mt-4 card">
         <UsuariosTabs
           tabs={[
@@ -316,7 +331,7 @@ export default function AdminUsuarios() {
           title={mode === "edit" ? "Editar Usuario" : "Registro de Usuario"}
           areas={areas}
           initialData={selected}
-          defaultRol={tab}
+          defaultRol={tab} // esto rellena el <select Rol> en el modal
           onSubmit={handleSave}
           onCancel={() => {
             setShowForm(false);
