@@ -106,8 +106,8 @@ export default function AdminUsuarios() {
   useEffect(() => {
     async function cargar() {
       if (tab === "RESPONSABLE") {
-        const data = await fetchResponsables(); // GET /api/responsables
-        setResponsables(data);
+       const ui = await fetchResponsables(); // ya mapeado en la API
+       setResponsables(data); 
       } else if (tab === "EVALUADOR") {
         const dataEval = await fetchEvaluadores(); // GET /api/evaluadores
         setEvaluadores(dataEval);
@@ -116,6 +116,70 @@ export default function AdminUsuarios() {
 
     cargar();
   }, [tab]);
+
+  // ✅ Adaptadores de forma UI ↔ Back
+  const mapUIToBackResponsable = (f) => ({
+    nombres_evaluador: f.nombres,
+    apellidos: f.apellidos,
+    correo_electronico: f.correo,
+    usuario_responsable: `${(f.nombres?.[0] || "").toUpperCase()}${(f.apellidos?.[0] || "").toUpperCase()}`,
+    pass_responsable: "123456",          // o usa f.ci si lo tienes en el form
+    id_area: Number(f.areaId),
+  });
+
+  const mapBackToUIResponsable = (r) => ({
+    id: r.id ?? r.id_responsable,
+    nombres: r.nombres ?? r.nombres_evaluador,
+    apellidos: r.apellidos ?? "",
+    rol: "RESPONSABLE",
+    // area puede venir como string u objeto {id_area, nombre_area}
+    area: r.area?.nombre_area ?? r.area ?? "",
+    estado: true,
+    correo: r.correo ?? r.correo_electronico ?? "",
+  });
+
+  // ✅ Guardar (create/update) usando el form que llega del modal
+  const handleSave = async (formDelModal) => {
+    try {
+      if (tab === "RESPONSABLE") {
+        const payload = mapUIToBackResponsable(formDelModal);
+
+        if (mode === "edit" && selected) {
+          const updated = await updateResponsable(selected.id, payload);
+          const ui = mapBackToUIResponsable(updated);
+          setResponsables((prev) => prev.map((x) => (x.id === selected.id ? ui : x)));
+        } else {
+          const created = await createResponsable(payload);
+          const ui = mapBackToUIResponsable(created);
+          setResponsables((prev) => [...prev, ui]);
+        }
+      } else {
+        // EVALUADOR (ajusta si ya tienes mapeo para evaluador)
+        const payloadEval = {
+          nombres: formDelModal.nombres,
+          apellidos: formDelModal.apellidos,
+          id_area: Number(formDelModal.areaId),
+        };
+
+        if (mode === "edit" && selected) {
+          const updatedEval = await updateEvaluador(selected.id, payloadEval);
+          setEvaluadores((prev) => prev.map((x) => (x.id === selected.id ? updatedEval : x)));
+        } else {
+          const createdEval = await createEvaluador(payloadEval);
+          setEvaluadores((prev) => [...prev, createdEval]);
+        }
+      }
+
+      setShowForm(false);
+      setSelected(null);
+    } catch (e) {
+      console.error("Error al guardar:", e);
+      alert("No se pudo guardar. Revisa la consola para más detalles.");
+    }
+  };
+
+
+
 
   // 2) cuál lista mostrar
   const rows = tab === "RESPONSABLE" ? responsables : evaluadores;
@@ -153,58 +217,6 @@ export default function AdminUsuarios() {
     setShowForm(true);
   };
 
-  // 6) guardar (create o update)
-  const handleSave = async (dataFormDelModal) => {
-    // dataFormDelModal viene de UsuarioForm
-    // {
-    //   nombres, apellidos, rol, areaId, area, correo, telefono, activo
-    // }
-
-    const payloadResponsable = {
-      nombres: dataFormDelModal.nombres,
-      apellidos: dataFormDelModal.apellidos,
-      correo: dataFormDelModal.correo,
-      usuario:
-        ((dataFormDelModal.nombres?.[0] || "") +
-          (dataFormDelModal.apellidos?.[0] || "")).toUpperCase(),
-      id_area: dataFormDelModal.areaId,
-      password: "123456",
-    };
-
-    const payloadEvaluador = {
-      nombres: dataFormDelModal.nombres,
-      apellidos: dataFormDelModal.apellidos,
-      id_area: dataFormDelModal.areaId,
-    };
-
-    if (tab === "RESPONSABLE") {
-      if (mode === "edit" && selected) {
-        const updated = await updateResponsable(selected.id, payloadResponsable);
-        setResponsables((prev) =>
-          prev.map((x) => (x.id === selected.id ? updated : x))
-        );
-      } else {
-        const nuevo = await createResponsable(payloadResponsable);
-        setResponsables((prev) => [...prev, nuevo]);
-      }
-    } else {
-      if (mode === "edit" && selected) {
-        const updatedEval = await updateEvaluador(
-          selected.id,
-          payloadEvaluador
-        );
-        setEvaluadores((prev) =>
-          prev.map((x) => (x.id === selected.id ? updatedEval : x))
-        );
-      } else {
-        const nuevoEval = await createEvaluador(payloadEvaluador);
-        setEvaluadores((prev) => [...prev, nuevoEval]);
-      }
-    }
-
-    setShowForm(false);
-    setSelected(null);
-  };
 
   // RENDER
   return (

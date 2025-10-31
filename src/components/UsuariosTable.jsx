@@ -3,6 +3,7 @@ export default function UsuariosTable({ rows = [], onEdit, onDelete }) {
   const getInitials = (nombres = "", apellidos = "") => {
     const n = (nombres || "").trim().split(/\s+/)[0] || "";
     const a = (apellidos || "").trim().split(/\s+/)[0] || "";
+    const safeRows = Array.isArray(rows) ? rows : [];
     return `${n.charAt(0)}${a.charAt(0)}`.toUpperCase() || "-";
   };
 
@@ -45,6 +46,7 @@ export default function UsuariosTable({ rows = [], onEdit, onDelete }) {
 
             {rows.map((r) => (
               <tr key={r.id} className="border-b hover:bg-gray-50 transition-colors">
+
                 {/* Nueva columna: iniciales */}
                 <td className="px-4 py-2 font-semibold">
                   {r.nombreUsuario ?? getInitials(r.nombres, r.apellidos)}
@@ -53,7 +55,11 @@ export default function UsuariosTable({ rows = [], onEdit, onDelete }) {
                 <td className="px-4 py-2">{r.nombres}</td>
                 <td className="px-4 py-2">{r.apellidos ?? "-"}</td>
                 <td className="px-4 py-2">{r.rol}</td>
-                <td className="px-4 py-2">{r.area}</td>
+                <td className="px-4 py-2">
+                  {typeof r.area === "string"
+                  ? r.area
+                  : r.area?.nombre_area ?? "-"}
+                </td>
 
                 <td className="px-4 py-2">
                   <span
@@ -81,7 +87,7 @@ export default function UsuariosTable({ rows = [], onEdit, onDelete }) {
 
                     <button
                       type="button"
-                      onClick={() => onDelete(r)}
+                      onClick={() => onDelete?.(r)}
                       className="btn-dark px-3 py-1 rounded-md hover:bg-gray-800 transition-colors"
                     >
                       Eliminar
