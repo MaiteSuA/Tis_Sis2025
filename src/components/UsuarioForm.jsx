@@ -21,6 +21,7 @@ export default function UsuarioForm({
     area: areas[0]?.nombre ?? "",
     correo: "",
     telefono: "",
+    carnet: "",
     activo: true,
   });
 
@@ -40,6 +41,7 @@ export default function UsuarioForm({
         area: initialData.area ?? (areas.find((a) => a.id === areaId)?.nombre ?? ""),
         correo: initialData.correo ?? "",
         telefono: initialData.telefono ?? "",
+        carnet: initialData.carnet ?? "",
         activo: typeof initialData.estado === "boolean" ? initialData.estado : true,
       });
     } else {
@@ -53,6 +55,7 @@ export default function UsuarioForm({
         apellidos: "",
         correo: "",
         telefono: "",
+        carnet: "",
         activo: true,
       }));
     }
@@ -83,6 +86,18 @@ export default function UsuarioForm({
               required
             />
           </div>
+
+          <div>
+            <label className="text-sm text-gray-600">CI / Carnet</label>
+            <input
+              value={form.carnet}
+              onChange={(e) => set("carnet", e.target.value)}
+              className="w-full mt-1 px-3 py-2 rounded-xl border"
+              placeholder="Ej. 7890123"
+              required
+            />
+          </div> 
+
           <div>
             <label className="text-sm text-gray-600">Apellidos</label>
             <input
