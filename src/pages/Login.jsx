@@ -1,6 +1,9 @@
 import Navbar from "../components/Navbar";
 import { useState } from "react";
 import Carousel from "../components/Carousel";
+//importes back
+
+import { loginApi } from "../api/auth";
 
 const news = [
   {
@@ -112,4 +115,49 @@ export default function Login() {
     </div>
   );
 }
+/*
+//backend simulacion
+export default function LoginBack() {
+  const [role, setRole] = useState("Administrador");
+  const [showPwd, setShowPwd] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
 
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setErr(""); setLoading(true);
+    const form = new FormData(e.currentTarget);
+    const username = form.get("username");
+    const password = form.get("password");
+    try {
+      await loginApi({ username, password, role });
+      // redirige a tu ruta que corresponda
+      window.location.href = "/"; // o /dashboard
+    } catch (e) {
+      setErr(e.message);
+    } finally { setLoading(false); }
+  }
+*/
+
+  //return (
+  //  <div className="min-h-screen w-screen bg-white overflow-x-hidden">
+  //    {/* ... tu Navbar y carrusel */}
+  /*    <form onSubmit={handleSubmit} className="bg-white/80 rounded-3xl shadow p-8 md:p-10">
+        {/* inputs */
+      //}
+      /*
+        <input name="username" type="text" placeholder="Usuario" className="w-full rounded-md border px-4 py-2 mb-4" />
+        <div className="relative mb-6">
+          <input name="password" type={showPwd ? "text" : "password"} placeholder="********" className="w-full rounded-md border px-4 py-2 pr-10" />
+          <button type="button" onClick={() => setShowPwd(s=>!s)} className="absolute right-2 top-1/2 -translate-y-1/2">👁️</button>
+        </div>
+        <button disabled={loading} className="w-full rounded-md bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2">
+          {loading ? "Ingresando..." : "Ingresar"}
+        </button> /*
+        {err && <p className="text-red-600 mt-2 text-sm">{err}</p>}
+        <p className="text-center text-xs text-gray-500 mt-3">Rol seleccionado: <b>{role}</b></p>
+      </form>
+    </div>
+  );
+}
+*/

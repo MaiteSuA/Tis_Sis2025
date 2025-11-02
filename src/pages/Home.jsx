@@ -19,7 +19,7 @@ export default function Home() {
     <div className="min-h-screen w-screen bg-white overflow-x-hidden">
       <Navbar />
 
-      {/* HERO ocupa toda la pantalla */}
+      {/* HERO esto ocupa toda la pantalla */}
       <section className="w-screen min-h-screen bg-gray-200 flex flex-col items-center justify-center text-center px-6">
         <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-8">
           Sistema de <br className="hidden md:block" />
