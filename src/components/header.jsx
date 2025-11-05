@@ -11,7 +11,6 @@ const Header = () => {
         {/* Navegación */}
         <nav className="flex gap-4 text-sm">
           <button className="bg-white text-black px-4 py-2 rounded-lg hover:bg-gray-200">Inicio</button>
-          <button className="bg-white text-black px-4 py-2 rounded-lg hover:bg-gray-200">Mis Evaluaciones</button>
           <button className="bg-white text-black px-4 py-2 rounded-lg hover:bg-gray-200">Cerrar Sesión</button>
         </nav>
       </div>
