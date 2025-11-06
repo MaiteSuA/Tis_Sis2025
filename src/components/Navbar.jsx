@@ -15,7 +15,7 @@ export default function Navbar() {
   const active =
     "bg-gray-200 border-gray-300 text-gray-800 shadow-inner"; // gris claro activo
   const inactive =
-    "border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-100"; // gris medio y hover
+    "border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-100"; // gris medio y hoverrr
 
   return (
     <header className="w-screen bg-white border-b sticky top-0 z-50">

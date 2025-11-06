@@ -1,9 +1,14 @@
 import Navbar from "../components/Navbar";
 import { useState } from "react";
 import Carousel from "../components/Carousel";
+import { useNavigate } from "react-router-dom";
+//import { BrowserRouter, Routes, Route } from "react-router-dom";
+//import Login from "./Login";
 //importes back
 
-import { loginApi } from "../api/auth";
+//import { loginApi } from "../api/auth";
+
+
 
 const news = [
   {
@@ -28,10 +33,22 @@ const news = [
 
 const ROLES = ["Administrador", "Coordinador", "Evaluador", "Responsable de Area"];
 
+const ROLE_ROUTES = {
+  "Administrador": "/admin",
+  "Coordinador": "/coordinador",
+  "Evaluador": "/evaluador",
+  "Responsable de Area": "/responsable",
+};
+
 export default function Login() {
   const [role, setRole] = useState(ROLES[0]);
   const [showPwd, setShowPwd] = useState(false);
-  // const navigate = useNavigate(); // si quieres redirigir después de login
+  const navigate = useNavigate(); // redirigir después de login
+
+  const goToRole = () => {
+    const path = ROLE_ROUTES[role] || "/";
+    navigate(path);
+  };
 
   return (
     <div className="min-h-screen w-screen bg-white overflow-x-hidden">
@@ -98,8 +115,9 @@ export default function Login() {
 
               {/* Ingresar */}
               <button
-                type="button"         
-                disabled={false}      
+                type="button"    
+                onClick={goToRole}  //navegar    
+                //disabled={false}      
                 className="
                         w-full rounded-md  !bg-gray-700 hover:!bg-gray-800  !text-white font-semibold py-2 shadow-md transition !opacity-100 relative z-10"
               >
@@ -116,6 +134,7 @@ export default function Login() {
       </section>
     </div>
   );
+  
 }
 /*
 //backend simulacion
