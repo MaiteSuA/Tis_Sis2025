@@ -106,7 +106,7 @@ export default function AdminUsuarios() {
   useEffect(() => {
     async function cargar() {
       if (tab === "RESPONSABLE") {
-       const ui = await fetchResponsables(); // ya mapeado en la API
+       const data = await fetchResponsables(); // ya mapeado en la API
        setResponsables(data); 
       } else if (tab === "EVALUADOR") {
         const dataEval = await fetchEvaluadores(); // GET /api/evaluadores
@@ -142,16 +142,14 @@ export default function AdminUsuarios() {
   const handleSave = async (formDelModal) => {
     try {
       if (tab === "RESPONSABLE") {
-        const payload = mapUIToBackResponsable(formDelModal);
+         console.log("🟡 Form recibido del modal:", formDelModal);
 
         if (mode === "edit" && selected) {
-          const updated = await updateResponsable(selected.id, payload);
-          const ui = mapBackToUIResponsable(updated);
+          const updated = await updateResponsable(selected.id, formDelModal);
           setResponsables((prev) => prev.map((x) => (x.id === selected.id ? ui : x)));
         } else {
-          const created = await createResponsable(payload);
-          const ui = mapBackToUIResponsable(created);
-          setResponsables((prev) => [...prev, ui]);
+          const created = await createResponsable(formDelModal);
+          setResponsables((prev) => [...prev, created]);
         }
       } else {
         // EVALUADOR (ajusta si ya tienes mapeo para evaluador)

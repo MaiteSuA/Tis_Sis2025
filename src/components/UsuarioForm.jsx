@@ -65,7 +65,10 @@ export default function UsuarioForm({
   const set = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
 
   const submit = (e) => {
+    //e.preventDefault();
+    //onSubmit(form);
     e.preventDefault();
+    console.log("📦 Datos enviados al backend:", form); // 👈 LOG del contenido del formulario
     onSubmit(form);
   };
 
