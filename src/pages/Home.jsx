@@ -35,7 +35,7 @@ export default function Home() {
         {/* Botón “Empezar” */}
         <a
           href="/login"
-          className="mt-2 inline-block px-10 py-3 rounded-md bg-gray-800 text-white hover:bg-black transition text-lg font-medium"
+          className="px-8 py-2 rounded-md !bg-gray-700 hover:!bg-gray-800 !text-white font-semibold shadow-md transition !opacity-100 relative z-10"
         >
           Empezar
         </a>

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import leftArrow from "../assets/izquierda.jpg";
+import rightArrow from "../assets/derecha.jpg";
 
 export default function Carousel({ items = [], intervalMs = 4500 }) {
   const slides = useMemo(() => items.filter(Boolean), [items]);
@@ -59,23 +61,38 @@ export default function Carousel({ items = [], intervalMs = 4500 }) {
           </p>
         )}
       </div>
-
-      {/* Flecha izquierda */}
-      <button
+      {/* Flecha izquierda (imagen) */}
+    <button
         aria-label="Anterior"
         onClick={prev}
-        className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg grid place-items-center bg-white/80 hover:bg-white text-gray-800 shadow"
+        className="absolute left-3 top-1/2 -translate-y-1/2
+                   w-12 h-12 md:w-14 md:h-14 rounded-full
+                   bg-white/90 hover:bg-white shadow
+                   grid place-items-center focus:outline-none focus:ring-2 focus:ring-white/70"
       >
-        ‹
+        <img
+          src={leftArrow}
+          alt="Anterior"
+          className="w-6 h-6 md:w-7 md:h-7 object-contain"
+          draggable="false"
+        />
       </button>
 
-      {/* Flecha derecha */}
+      {/* Flecha derecha (imagen) */}
       <button
         aria-label="Siguiente"
         onClick={next}
-        className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg grid place-items-center bg-white/80 hover:bg-white text-gray-800 shadow"
+        className="absolute right-3 top-1/2 -translate-y-1/2
+                   w-12 h-12 md:w-14 md:h-14 rounded-full
+                   bg-white/90 hover:bg-white shadow
+                   grid place-items-center focus:outline-none focus:ring-2 focus:ring-white/70"
       >
-        ›
+        <img
+          src={rightArrow}
+          alt="Siguiente"
+          className="w-6 h-6 md:w-7 md:h-7 object-contain"
+          draggable="false"
+        />
       </button>
 
       {/* Dots */}

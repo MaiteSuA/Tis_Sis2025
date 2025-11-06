@@ -98,8 +98,10 @@ export default function Login() {
 
               {/* Ingresar */}
               <button
-                // onClick={() => navigate("/")} // ejemplo
-                className="w-full rounded-md bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 transition"
+                type="button"         
+                disabled={false}      
+                className="
+                        w-full rounded-md  !bg-gray-700 hover:!bg-gray-800  !text-white font-semibold py-2 shadow-md transition !opacity-100 relative z-10"
               >
                 Ingresar
               </button>
