@@ -1,4 +1,5 @@
 //este archivo de ejemplo de tailwind puede ser eliminado
+/*
 const Ejemplo = () => {
   return (
     <div className="bg-blue-500 p-4 text-white text-center rounded-md shadow-lg">
@@ -12,4 +13,4 @@ const Ejemplo = () => {
   );
 };
 
-export default Ejemplo;
+export default Ejemplo;*/

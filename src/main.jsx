@@ -1,11 +1,19 @@
-// src/main.jsx
 import React from "react";
-import ReactDOM from "react-dom/client";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
-import "./styles/index.css"; 
+import "./styles/App.css";
+import "./styles/ui.css";
+import "./styles/index.css";
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <App />
+    {/* BrowserRouter es necesario para usar las rutas en la aplicación */}
+    <BrowserRouter>
+     {/* Routes define los grupos de rutas */}
+      <App />  
+    </BrowserRouter>
   </React.StrictMode>
 );
+
+
