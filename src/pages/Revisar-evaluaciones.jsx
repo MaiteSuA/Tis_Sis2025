@@ -24,8 +24,8 @@ const RevisarEvaluaciones = () => {
     fetchCompetidores();
   }, []);
 
-  if (loading) return <p className="text-center mt-10">Cargando Clasificatoria...</p>;
-  if (error) return <p className="text-center mt-10 text-red-600">Error: {error}</p>;
+  //if (loading) return <p className="text-center mt-10">Cargando Clasificatoria...</p>;
+  //if (error) return <p className="text-center mt-10 text-red-600">Error: {error}</p>;
 
   return (
     <div className="bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen pt-24">
@@ -83,6 +83,7 @@ const RevisarEvaluaciones = () => {
                   <th className="p-3 text-left">Estado</th>
                 </tr>
               </thead>
+              
               <tbody>
                 {competidores.map((c, i) => (
                     <tr key={i} className="border-t hover:bg-gray-50">
