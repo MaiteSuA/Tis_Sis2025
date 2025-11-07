@@ -9,7 +9,7 @@ const RevisarEvaluaciones = () => {
   useEffect(() => {
     const fetchCompetidores = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/areas`);
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/evaluaciones`);
         if (!response.ok) throw new Error("Error al obtener los datos");
         const result = await response.json();
         if (result.ok) setCompetidores(result.data);
@@ -84,13 +84,17 @@ const RevisarEvaluaciones = () => {
                 </tr>
               </thead>
               <tbody>
-                {competidores.map((a) => (
-                  <tr key={a.id_area} className="border-t hover:bg-gray-50">
-                    <td className="p-3">{a.id_area}</td>
-                    <td className="p-3">{a.nombre_area}</td>
-                  </tr>
-                ))}
+                {competidores.map((c, i) => (
+                    <tr key={i} className="border-t hover:bg-gray-50">
+                      <td className="p-3">{c.competidor}</td>
+                      <td className="p-3">{c.nota}</td>
+                      <td className="p-3">{c.observacion}</td>
+                      <td className="p-3">{c.estado}</td>
+                    </tr>
+                  ))
+                }
               </tbody>
+
             </table>
           </div>
 
