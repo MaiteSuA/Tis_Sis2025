@@ -9,7 +9,7 @@ const RevisarEvaluaciones = () => {
   useEffect(() => {
     const fetchCompetidores = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/evaluaciones`);
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/evaluaciones`);
         if (!response.ok) throw new Error("Error al obtener los datos");
         const result = await response.json();
         if (result.ok) setCompetidores(result.data);
