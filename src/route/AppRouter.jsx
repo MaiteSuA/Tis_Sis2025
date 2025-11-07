@@ -7,6 +7,7 @@ import Medallero from "../pages/Medallero.jsx";
 import Forbidden from "../pages/Forbidden.jsx";
 import AdminUsuarios from "../pages/AdminUsuarios.jsx";
 import AdminLog from "../pages/AdminLog.jsx";
+import ResponsableArea from "../pages/Revisar-evaluaciones.jsx"
 import Ejemplo from "../pages/ejemplo.jsx";
 import Ejemplo2 from "../pages/ejemplo2.jsx";
 import ProtectedRoute from "./ProtectedRoute.jsx";
@@ -37,7 +38,7 @@ export default function AppRouter() {
 
         <Route path="/coordinador" element={<Ejemplo2 />} />
         <Route path="/evaluador" element={<Ejemplo />} />
-        <Route path="/responsable" element={<Ejemplo2 />} />
+        <Route path="/responsable" element={<ResponsableArea />} />
         
         {/* Layout de Admin con rutas anidadas */}
       {/* Si quieres proteger luego, envuelve esto con ProtectedRoute y usa <Outlet/> ahí también */}

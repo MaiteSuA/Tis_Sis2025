@@ -1,5 +1,6 @@
 import React from "react";
 import logo from "../assets/ohSansi-Logo.png"; // Ajusta la ruta a tu logo
+import { NavLink } from "react-router-dom";
 
 const Header = () => {
   return (
@@ -9,9 +10,21 @@ const Header = () => {
         <img src={logo} alt="Oh Sansi Logo" className="h-18" />
 
         {/* Navegación */}
-        <nav className="flex gap-4 text-sm">
-          <button className="bg-white text-black px-4 py-2 rounded-lg hover:bg-gray-200">Inicio</button>
-          <button className="bg-white text-black px-4 py-2 rounded-lg hover:bg-gray-200">Cerrar Sesión</button>
+        <nav
+          role="navigation"
+          aria-label="Secciones"
+          className="rounded-full border border-gray-300 bg-white px-2 py-1 shadow-sm inline-flex items-center gap-1"
+        >
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              `px-3 py-1.5 rounded-full text-sm hover:bg-gray-50 ${
+                isActive ? "bg-gray-200" : "bg-white"
+              }`              }
+          >
+            Cerrar Sesion
+          </NavLink>
         </nav>
       </div>
     </header>
