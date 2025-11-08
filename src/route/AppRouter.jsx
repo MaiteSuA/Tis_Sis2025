@@ -11,6 +11,8 @@ import ResponsableArea from "../pages/Revisar-evaluaciones.jsx"
 import Ejemplo from "../pages/ejemplo.jsx";
 import Ejemplo2 from "../pages/ejemplo2.jsx";
 import ProtectedRoute from "./ProtectedRoute.jsx";
+import RegistrarNotasReplanteado from "../pages/Registrar-notas.jsx";
+
 //importar las vitas por rol aca, cambiar su ruta y tambien reemplazar 
 
 /*
@@ -25,7 +27,7 @@ export default function AppRouter() {
       <Routes>
         {/* Públicas */}
         <Route path="/" element={<Home />} />
-        <Route path="/evaluadores" element={<Evaluadores />} />
+        <Route path="/evaluadores" element={<RegistrarNotasReplanteado />} />
         <Route path="/resultados" element={<Resultados />} />
         <Route path="/medallero" element={<Medallero />} />
         <Route path="/login" element={<Login />} />
