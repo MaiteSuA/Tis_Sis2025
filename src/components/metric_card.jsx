@@ -10,7 +10,7 @@ const MetricCard = ({ label, value, showDivider = false }) => {
         {label}
       </span>
 
-      {/* “Chip” numérico */}
+      {/* “Chip” numerico */}
       <span className="inline-flex min-w-22 justify-center rounded-md border border-slate-400 bg-white px-4 py-1 text-sm font-medium text-slate-700 shadow-sm">
         <span className="font-mono tracking-tight">{value}</span>
       </span>

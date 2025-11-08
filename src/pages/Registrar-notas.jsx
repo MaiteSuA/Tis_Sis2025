@@ -13,7 +13,7 @@ export default function RegistrarNotasReplanteado() {
   const [busqHist, setBusqHist] = useState("");
   const [mensajeGuardado, setMensajeGuardado] = useState("");
 
-  // ----- métricas -----
+  // ----- metricas -----
   const totalAsignados = evaluaciones.length;
   const totalPendientes = evaluaciones.filter(e => e.estado === "Pendiente").length;
   const totalHechas = evaluaciones.filter(e => String(e.nota).trim() !== "").length;
@@ -50,15 +50,9 @@ export default function RegistrarNotasReplanteado() {
     [historial, busqHist]
   );
 
-  // ----- handlers mínimos -----
+  // ----- handlers minimos -----
   const onCellChange = (id, field, value) =>
     setEvaluaciones(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
-  const onDeleteRow = (id) =>
-    setEvaluaciones(prev => prev.length > 1 ? prev.filter(r => r.id !== id) : prev);
-  const onAddRow = () =>
-    setEvaluaciones(prev => [...prev, {
-      id: Math.max(0, ...prev.map(p => p.id))+1, competidor:"", nota:"", observacion:"", estado:"Pendiente"
-    }]);
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -82,7 +76,7 @@ export default function RegistrarNotasReplanteado() {
           </div>
         </div>
 
-        {/* MÉTRICAS: fila compacta con divisores */}
+        {/* METRICAS: fila compacta con divisores */}
         <section className="bg-white rounded-xl border border-slate-200 shadow-sm">
           <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-200">
             <MetricCard label="Cantidad Asignados:" value={totalAsignados} />
@@ -93,7 +87,7 @@ export default function RegistrarNotasReplanteado() {
 
         {/* EVALUACIONES */}
         <section className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          {/* header de sección */}
+          {/* header de seccion */}
           <div className="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-slate-200 sticky top-0 bg-white z-10 rounded-t-xl">
             <h2 className="text-lg sm:text-xl font-bold text-black">
               Lista de Evaluaciones - Clasificatoria
