@@ -1,5 +1,6 @@
 // src/api/responsables.js
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+//const API = import.meta.env.VITE_API_URL;
 
 // BACK -> UI (tabla)
 function mapBackToUI(r) {
