@@ -1,6 +1,8 @@
+// Importa NavLink para navegación interna y el logo de la aplicación
 import { NavLink } from "react-router-dom";
 import logo from "../assets/logo-ohsansi.png";
 
+// Componente principal del layout del panel de administración
 export default function AdminLayout({ children }) {
   return (
     <div className="min-h-screen bg-gray-100 text-gray-800">
@@ -25,12 +27,13 @@ export default function AdminLayout({ children }) {
             <span className="font-semibold text-gray-800 text-lg">OhSanSi</span>
           </div>
 
-          {/* NAV */}
+          {/* Barra de navegación superior (links del panel) */}
           <nav
             role="navigation"
             aria-label="Secciones"
             className="rounded-full border border-gray-300 bg-white px-2 py-1 shadow-sm inline-flex items-center gap-1"
           >
+            {/* Botón: Ir al inicio */}
             <NavLink
               to="/"
               end
@@ -43,6 +46,7 @@ export default function AdminLayout({ children }) {
               Inicio
             </NavLink>
 
+            {/* Botón: Dashboard principal del administrador */}
             <NavLink
               to="/admin/usuarios"
               end
@@ -55,6 +59,7 @@ export default function AdminLayout({ children }) {
               Dashboard
             </NavLink>
 
+            {/* Botón: Log de actividades */}
             <NavLink
               to="/admin/log"
               className={({ isActive }) =>
@@ -69,7 +74,7 @@ export default function AdminLayout({ children }) {
         </div>
       </header>
 
-      {/* CONTENIDO */}
+      {/* CONTENIDO principal*/}
       <main className="max-w-6xl mx-auto px-4 py-6 relative z-0">{children}</main>
 
       {/* Riel derecho */}

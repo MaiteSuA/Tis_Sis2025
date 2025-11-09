@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef } from "react";
+// Layout y componentes UI del módulo
 import AdminLayout from "../components/AdminLayout.jsx";
 import UsuariosTabs from "../components/UsuariosTabs.jsx";
 import UsuariosTable from "../components/UsuariosTable.jsx";
 import UsuarioForm from "../components/UsuarioForm.jsx";
 
+// API Responsables 
 import {
   fetchResponsables,
   createResponsable,
@@ -11,6 +13,7 @@ import {
   deleteResponsable,
 } from "../api/responsables.js";
 
+// API Evaluadores
 import {
   fetchEvaluadores,
   createEvaluador,
@@ -19,20 +22,28 @@ import {
 } from "../api/evaluadores.js";
 
 export default function AdminUsuarios() {
+  // -----------------------------
+  // pestaña activa: RESPONSABLE | EVALUADOR
+  // -----------------------------
   const [tab, setTab] = useState("RESPONSABLE");
 
-  // ÁREAS (por ahora mock, idealmente vendrá de /api/areas)
+  // -----------------------------
+  // catálogo de ÁREAS (mock por ahora)
+  // -----------------------------
   const [areas] = useState([
     { id: 1, nombre: "Sistemas" },
     { id: 2, nombre: "Industrial" },
     { id: 3, nombre: "Civil" },
   ]);
 
-  // MEDALLAS (localStorage)
+  // -----------------------------
+  // Parámetros de medallas (se persisten en localStorage)
+  // -----------------------------
   const STORAGE_KEY = "ohsansi_parametros_medallero";
   const [medallas, setMedallas] = useState({ oro: 0, plata: 0, bronce: 0 });
   const [guardado, setGuardado] = useState(false);
 
+  // Al montar, leer valores persistidos de medallas
   useEffect(() => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -44,35 +55,41 @@ export default function AdminUsuarios() {
           bronce: Number(parsed.bronce) || 0,
         });
       } catch {
-        /* noop */
+        /* si falla el parse, ignora */
       }
     }
   }, []);
 
+  // handler: cambia una de las tres medallas y marca “no guardado”
   const onChangeMedalla = (campo) => (e) => {
     const val = Math.max(0, Number(e.target.value || 0));
     setMedallas((prev) => ({ ...prev, [campo]: val }));
     setGuardado(false);
   };
 
+  // persistir parámetros de medallas
   const guardarMedallas = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(medallas));
     setGuardado(true);
   };
 
+  // resetear parámetros de medallas
   const resetMedallas = () => {
     localStorage.removeItem(STORAGE_KEY);
     setMedallas({ oro: 0, plata: 0, bronce: 0 });
     setGuardado(false);
   };
 
-  // ESTADO DEL PROCESO (UI local)
+  // -----------------------------
+  // Estado del proceso (UI local + localStorage)
+  // -----------------------------
   const PROCESS_KEY = "ohsansi_estado_proceso";
   const [proceso, setProceso] = useState({ en: false, fin: false });
   const [dirtyProceso, setDirtyProceso] = useState(false);
   const [savedProceso, setSavedProceso] = useState(false);
   const lastSavedProceso = useRef({ en: false, fin: false });
 
+  // handler: marca cambios en checkboxes
   const onChangeProceso = (campo) => (e) => {
     const value = e.target.checked;
     const nuevo = { ...proceso, [campo]: value };
@@ -86,6 +103,7 @@ export default function AdminUsuarios() {
     setSavedProceso(false);
   };
 
+  // guardar el estado del proceso en localStorage
   const guardarProceso = () => {
     localStorage.setItem(PROCESS_KEY, JSON.stringify(proceso));
     lastSavedProceso.current = { ...proceso };
@@ -106,9 +124,11 @@ export default function AdminUsuarios() {
   useEffect(() => {
     async function cargar() {
       if (tab === "RESPONSABLE") {
+        // GET responsables (la API ya devuelve mapeado a UI)
        const data = await fetchResponsables(); // ya mapeado en la API
        setResponsables(data); 
       } else if (tab === "EVALUADOR") {
+        // GET evaluadores
         const dataEval = await fetchEvaluadores(); // GET /api/evaluadores
         setEvaluadores(dataEval);
       }
@@ -117,7 +137,7 @@ export default function AdminUsuarios() {
     cargar();
   }, [tab]);
 
-  // ✅ Adaptadores de forma UI ↔ Back
+  // Adaptadores de forma UI ↔ Back
   const mapUIToBackResponsable = (f) => ({
     nombres_evaluador: f.nombres,
     apellidos: f.apellidos,
@@ -138,11 +158,11 @@ export default function AdminUsuarios() {
     correo: r.correo ?? r.correo_electronico ?? "",
   });
 
-  // ✅ Guardar (create/update) usando el form que llega del modal
+  // Guardar (create/update) usando el form que llega del modal
   const handleSave = async (formDelModal) => {
     try {
       if (tab === "RESPONSABLE") {
-         console.log("🟡 Form recibido del modal:", formDelModal);
+         console.log(" Form recibido del modal:", formDelModal);
 
         if (mode === "edit" && selected) {
           const updated = await updateResponsable(selected.id, formDelModal);
@@ -175,9 +195,6 @@ export default function AdminUsuarios() {
       alert("No se pudo guardar. Revisa la consola para más detalles.");
     }
   };
-
-
-
 
   // 2) cuál lista mostrar
   const rows = tab === "RESPONSABLE" ? responsables : evaluadores;

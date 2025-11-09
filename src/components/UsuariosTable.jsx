@@ -1,3 +1,9 @@
+// Componente: UsuariosTable
+// Muestra una tabla de usuarios con opciones para editar o eliminar cada fila.
+// Recibe como props:
+// - rows: lista de usuarios a mostrar
+// - onEdit: función para manejar la edición
+// - onDelete: función para manejar la eliminación
 export default function UsuariosTable({ rows = [], onEdit, onDelete }) {
   // Helper para iniciales: primer nombre + primer apellido
   const getInitials = (nombres = "", apellidos = "") => {
@@ -6,7 +12,7 @@ export default function UsuariosTable({ rows = [], onEdit, onDelete }) {
     const safeRows = Array.isArray(rows) ? rows : [];
     return `${n.charAt(0)}${a.charAt(0)}`.toUpperCase() || "-";
   };
-
+  // Encabezados de la tabla
   const headers = [
     "Usuario",
     "Nombres",
@@ -20,8 +26,10 @@ export default function UsuariosTable({ rows = [], onEdit, onDelete }) {
 
   return (
     <div className="relative">
+       {/* Contenedor con scroll horizontal y estilos visuales */}
       <div className="overflow-x-auto bg-white rounded-xl border border-gray-400 shadow-sm">
         <table className="table-auto w-full border-collapse">
+          {/* Encabezado de la tabla */}
           <thead className="bg-gray-100 border-b">
             <tr>
               {headers.map((h) => (
@@ -35,7 +43,9 @@ export default function UsuariosTable({ rows = [], onEdit, onDelete }) {
             </tr>
           </thead>
 
+          {/* Cuerpo de la tabla */}
           <tbody>
+            {/* Caso: sin registros */}
             {rows.length === 0 && (
               <tr>
                 <td className="text-center text-gray-500 py-6" colSpan={headers.length}>
@@ -44,6 +54,7 @@ export default function UsuariosTable({ rows = [], onEdit, onDelete }) {
               </tr>
             )}
 
+            {/* Caso: hay registros */}
             {rows.map((r) => (
               <tr key={r.id} className="border-b hover:bg-gray-50 transition-colors">
 
@@ -52,15 +63,19 @@ export default function UsuariosTable({ rows = [], onEdit, onDelete }) {
                   {r.nombreUsuario ?? getInitials(r.nombres, r.apellidos)}
                 </td>
 
+                {/* Otras columnas de información */}
                 <td className="px-4 py-2">{r.nombres}</td>
                 <td className="px-4 py-2">{r.apellidos ?? "-"}</td>
                 <td className="px-4 py-2">{r.rol}</td>
+
+                {/* Muestra el nombre del área (si existe) */}
                 <td className="px-4 py-2">
                   {typeof r.area === "string"
                   ? r.area
                   : r.area?.nombre_area ?? "-"}
                 </td>
 
+                {/* Estado visual: Activo/Inactivo */}
                 <td className="px-4 py-2">
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -71,8 +86,10 @@ export default function UsuariosTable({ rows = [], onEdit, onDelete }) {
                   </span>
                 </td>
 
+                {/* Columna de correo */}
                 <td className="px-4 py-2">{r.correo}</td>
 
+                {/* Columna de acciones: Editar y Eliminar */}
                 <td className="px-4 py-2">
                   <div className="flex justify-end items-center gap-2">
                     {/* pasa la fila completa para pre-rellenar el formulario */}
@@ -85,6 +102,7 @@ export default function UsuariosTable({ rows = [], onEdit, onDelete }) {
                       <span>Editar</span>
                     </button>
 
+                    {/* Botón Eliminar */}
                     <button
                       type="button"
                       onClick={() => onDelete?.(r)}
