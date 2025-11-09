@@ -1,7 +1,12 @@
 // src/api/responsables.js
+// URL base de la API 
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-// BACK -> UI (tabla)
+/* ================================================================
+   FUNCIÓN: mapBackToUI()
+   Convierte un objeto recibido del backend (BACK) al formato que
+   la interfaz (UI) necesita para mostrar los datos correctamente.
+   ================================================================= */
 function mapBackToUI(r) {
   return {
     id: r.id_responsable,
@@ -12,11 +17,15 @@ function mapBackToUI(r) {
     estado: true,
     correo: r.correo_electronico,
     telefono: r.telefono || '',
-    nombreUsuario: (r.nombres_evaluador?.[0] || '') + (r.apellidos?.[0] || '')
+    nombreUsuario: (r.nombres_evaluador?.[0] || '') + (r.apellidos?.[0] || ''), // Iniciales del usuario
   };
 }
 
-// UI(form) -> BACK (POST/PUT)
+/* ================================================================
+  FUNCIÓN: mapUIToBack()
+   Convierte un objeto desde el formulario (UI) al formato que
+   el backend (BACK) necesita para crear o actualizar registros.
+   ================================================================= */
 function mapUIToBack(f) {
   return {
     nombres_evaluador: f.nombres,
@@ -29,6 +38,10 @@ function mapUIToBack(f) {
   };
 }
 
+/* ================================================================
+   FUNCIÓN: fetchResponsables()
+   Obtiene la lista de responsables desde el backend.
+   ================================================================= */
 export async function fetchResponsables() {
   const r = await fetch(`${BASE}/responsables`);
   if (!r.ok) throw new Error('Error al listar responsables');
@@ -36,6 +49,10 @@ export async function fetchResponsables() {
   return data.map(mapBackToUI);
 }
 
+/* ================================================================
+   FUNCIÓN: createResponsable()
+   Crea un nuevo responsable en la base de datos.
+   ================================================================= */
 export async function createResponsable(form) {
   const payload = mapUIToBack(form);
   const r = await fetch(`${BASE}/responsables`, {
@@ -48,6 +65,10 @@ export async function createResponsable(form) {
   return mapBackToUI(json.data);
 }
 
+/* ================================================================
+   FUNCIÓN: updateResponsable()
+   Actualiza los datos de un responsable existente.
+   ================================================================= */
 export async function updateResponsable(id, form) {
   const payload = mapUIToBack(form);
   const r = await fetch(`${BASE}/responsables/${id}`, {
@@ -60,6 +81,10 @@ export async function updateResponsable(id, form) {
   return mapBackToUI(json.data);
 }
 
+/* ================================================================
+   FUNCIÓN: deleteResponsable()
+   Elimina un responsable de la base de datos por ID.
+   ================================================================= */
 export async function deleteResponsable(id) {
   const r = await fetch(`${BASE}/responsables/${id}`, { method: 'DELETE' });
   if (!r.ok) {

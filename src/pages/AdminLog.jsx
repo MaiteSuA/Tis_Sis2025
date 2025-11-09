@@ -1,4 +1,6 @@
+// Importa el hook useState de React para manejar estados locales
 import { useState } from "react";
+// Importa el layout del panel de administrador
 import AdminLayout from "../components/AdminLayout.jsx";
 
 //  Ejemplo de datos mock (luego lo cambias por props o fetch)
@@ -27,6 +29,7 @@ const MOCK_ROWS = [
   },
 ];
 
+// Componente principal: página de auditoría (log de evaluaciones)
 export default function AdminLog() {
   // estados de filtro
   const [filtroUsuario, setFiltroUsuario] = useState("");
@@ -39,12 +42,13 @@ export default function AdminLog() {
     console.log("Exportar a Excel con filas filtradas...");
   };
 
+  // Handler: exportar resultados filtrados a PDF
   const handleExportPDF = () => {
     // TODO: aquí conectas tu export real (ej. jsPDF / pdfmake)
     console.log("Exportar a PDF con filas filtradas...");
   };
 
-  //  handler de búsqueda
+  // handler de búsqueda
   const handleBuscar = () => {
     console.log("Buscar con:", {
       usuario: filtroUsuario,
@@ -208,7 +212,9 @@ export default function AdminLog() {
                 </tr>
               </thead>
 
+              {/* Cuerpo de la tabla */}
               <tbody>
+                {/* Caso: sin registros */}
                 {rows.length === 0 && (
                   <tr>
                     <td
@@ -220,6 +226,7 @@ export default function AdminLog() {
                   </tr>
                 )}
 
+                {/* Caso: hay registros */}
                 {rows.map((r) => (
                   <tr
                     key={r.id}
