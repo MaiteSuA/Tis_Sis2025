@@ -1,11 +1,70 @@
 import React, { useEffect, useState } from "react";
 import Header from "../components/header"; 
+import EvaluadorForm from "../components/EvaluadorForm.jsx";
 
 const RevisarEvaluaciones = () => {
+  // Estado que guarda la lista de competidores
   const [competidores, setCompetidores] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [areas, setAreas] = useState([]);
 
+  // Estados para manejar el modal del formulario de evaluadores
+  const [showForm, setShowForm] = useState(false);
+  const [mode, setMode] = useState("create");
+  const [selected, setSelected] = useState(null);
+
+  // Traer las áreas desde la API
+  useEffect(() => {
+    const fetchAreas = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/areas`);
+        const data = await res.json();
+
+        if (data.ok && Array.isArray(data.data)) {
+          const formatted = data.data.map((a) => ({
+            id: parseInt(a.id_area),
+            nombre: a.nombre_area,
+          }));
+          setAreas(formatted);
+        } else {
+          console.error("Error: formato de datos incorrecto");
+        }
+      } catch (error) {
+        console.error("Error al obtener áreas:", error);
+      } finally {
+        setLoadingAreas(false);
+      }
+    };
+
+    fetchAreas();
+  }, []);
+
+
+  // Abre el modal en modo "crear nuevo evaluador"
+  const handleCreate = () => {
+    setSelected(null);
+    setMode("create");
+    setShowForm(true);
+  };
+
+  // Guarda un nuevo evaluador llamando a la API
+  const handleSave = async (formDelModal) => {
+    try {
+      const payloadEval = {
+        nombres: formDelModal.nombres,
+        apellidos: formDelModal.apellidos,
+        id_area: Number(formDelModal.areaId),
+      };
+
+      await createEvaluador(payloadEval);
+      alert("Evaluador registrado correctamente.");
+      setShowForm(false);
+    } catch (e) {
+      console.error("Error al guardar:", e);
+      alert("No se pudo registrar el evaluador.");
+    }
+  };
+
+  // Obtiene los datos de las evaluaciones al cargar la página
   useEffect(() => {
     const fetchCompetidores = async () => {
       try {
@@ -24,11 +83,9 @@ const RevisarEvaluaciones = () => {
     fetchCompetidores();
   }, []);
 
-  //if (loading) return <p className="text-center mt-10">Cargando Clasificatoria...</p>;
-  //if (error) return <p className="text-center mt-10 text-red-600">Error: {error}</p>;
 
   return (
-    <div className="bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen pt-24">
+    <div className="bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen">
       {/* Header fijo */}
       <Header />
 
@@ -105,8 +162,30 @@ const RevisarEvaluaciones = () => {
               <button className="!bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700">Exportar Excel</button>
               <button className="!bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700">Autorizar Publicación</button>
             </div>
-            <button className="!bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700">Registrar Evaluador</button>
+            <button 
+              className="!bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+              onClick={handleCreate}
+            >
+              Registrar Evaluador
+            </button>
           </div>
+
+          {showForm && (
+            <EvaluadorForm
+              key={mode + (selected?.id ?? "nuevo")}
+              mode={mode}
+              title="Registro de Evaluador"
+              areas={areas}
+              initialData={selected}
+              defaultRol="EVALUADOR"
+              onSubmit={handleSave}
+              onCancel={() => {
+                setShowForm(false);
+                setSelected(null);
+              }}
+            />
+          )}    
+
         </div>
       </div>
     </div>
