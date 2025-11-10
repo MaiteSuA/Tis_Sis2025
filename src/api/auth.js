@@ -1,32 +1,33 @@
-//  FUNCIÓN DE LOGIN: Maneja la autenticación con el backend
+//  src/api/auth.js
+
+//  Función asíncrona que envía la solicitud de login al backend
 export async function loginApi({ username, password, role }) {
-  
-  //  PETICIÓN HTTP: Realiza una llamada POST al endpoint de login del backend
-  const res = await fetch('http://localhost:3000/api/auth/loginBack', {
-    method: 'POST', //  Método HTTP para enviar datos al servidor
+  // Se realiza una petición HTTP tipo POST al endpoint del backend
+  const res = await fetch('http://localhost:3000/api/auth/login', { // ← URL del backend
+    method: 'POST', // Método POST porque enviamos datos
     headers: { 
-      'Content-Type': 'application/json' //  Especifica que el contenido es JSON
+      'Content-Type': 'application/json', // Indicamos que el cuerpo de la petición será JSON
     },
-    body: JSON.stringify({  //  Convierte el objeto JavaScript a string JSON
-      username,  //  Nombre de usuario proporcionado
-      password,  //  Contraseña proporcionada
-      role       //  Rol seleccionado (Administrador, Coordinador, etc.)
-    }),
+    // Convertimos los datos del formulario (usuario, contraseña y rol) a JSON
+    body: JSON.stringify({ username, password, role }),
   });
 
-  //  PROCESAMIENTO DE RESPUESTA: Convierte la respuesta HTTP a objeto JavaScript
+  // Esperamos la respuesta del servidor y la convertimos en objeto JSON
   const data = await res.json();
 
-  // VALIDACIÓN DE RESPUESTA: Verifica si la respuesta fue exitosa
+  // Validamos si la respuesta fue exitosa:
+  //  `res.ok` es false si el HTTP status no fue 2xx
+  //  `data.ok` viene desde tu backend (true/false según el login)
   if (!res.ok || !data.ok) {
-    // MANEJO DE ERRORES: Lanza excepción con mensaje de error
+    // Lanzamos un error con el mensaje del backend o un mensaje por defecto
     throw new Error(data.error || 'Login failed');
   }
 
-  // ALMACENAMIENTO LOCAL: Guarda datos de sesión en el navegador
-  localStorage.setItem('token', data.token); //  Token JWT para autenticación futura
-  localStorage.setItem('user', JSON.stringify(data.user)); //  Datos del usuario serializados
+  //  Si todo salió bien:
+  // Guardamos el token y los datos del usuario en el almacenamiento local del navegador
+  localStorage.setItem('token', data.token);                // Token JWT
+  localStorage.setItem('user', JSON.stringify(data.user));  // Información del usuario (objeto convertido a string)
 
-  //  RETORNO DE DATOS: Devuelve la respuesta completa del servidor
+  // Retornamos la data completa para usarla en el frontend (por ejemplo, redirección o estado)
   return data;
 }
