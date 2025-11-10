@@ -1,7 +1,8 @@
+// Importa los hooks de React: useEffect (efectos secundarios) y useState (manejo de estado local)
 import { useEffect, useState } from "react";
-
+// Lista de roles posibles para el usuario
 const ROLES = ["RESPONSABLE", "EVALUADOR"];
-
+// Componente principal del formulario de usuario
 export default function UsuarioForm({
   mode = "create",
   title = "Registro de Usuario",
@@ -11,28 +12,33 @@ export default function UsuarioForm({
   onSubmit,
   onCancel,
 }) {
+    // Verifica si el formulario está en modo edición
   const isEdit = mode === "edit";
-
+  // Estado local para guardar todos los campos del formulario
   const [form, setForm] = useState({
     nombres: "",
     apellidos: "",
     rol: defaultRol,
-    areaId: areas[0]?.id ?? 0,
+    areaId: areas[0]?.id ?? 0,// por defecto la primera área
     area: areas[0]?.nombre ?? "",
     correo: "",
     telefono: "",
     carnet: "",
     activo: true,
   });
+ 
+  // Hook useEffect: se ejecuta cuando el componente se monta o cambia algún dato dependiente
+  // Su función es precargar los datos si el formulario está en modo edición
 
   // Pre-cargar datos cuando se edita
   useEffect(() => {
     if (isEdit && initialData) {
+      // Busca el área correspondiente al nombre en los datos iniciales
       const areaId =
         areas.find((a) => a.nombre === initialData.area)?.id ??
         areas[0]?.id ??
         0;
-
+       // Carga los valores del usuario que se va a editar
       setForm({
         nombres: initialData.nombres ?? "",
         apellidos: initialData.apellidos ?? "",
@@ -63,22 +69,26 @@ export default function UsuarioForm({
   }, [isEdit, initialData, defaultRol, JSON.stringify(areas)]);
 
   const set = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
-
+// Función que maneja el envío del formulario
   const submit = (e) => {
     //e.preventDefault();
     //onSubmit(form);
-    e.preventDefault();
+    e.preventDefault();// Evita recargar la página
     console.log("📦 Datos enviados al backend:", form); // 👈 LOG del contenido del formulario
-    onSubmit(form);
+    onSubmit(form);// Llama a la función que se pasa desde el componente padre
   };
 
   return (
+    // Contenedor que cubre toda la pantalla para mostrar el formulario tipo modal
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+       {/* Fondo semitransparente para oscurecer detrás del modal */}
       <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
+       {/* Formulario principal */}
       <form onSubmit={submit} className="relative w-full max-w-xl bg-white rounded-2xl p-6 shadow space-y-4">
         <h3 className="text-lg font-semibold">{title}</h3>
-
+           {/* Estructura en dos columnas para los campos */}
         <div className="grid grid-cols-2 gap-3">
+          {/* Campo: Nombres */}
           <div>
             <label className="text-sm text-gray-600">Nombres</label>
             <input
@@ -89,7 +99,7 @@ export default function UsuarioForm({
               required
             />
           </div>
-
+           {/* Campo: Nombres */}
           <div>
             <label className="text-sm text-gray-600">CI / Carnet</label>
             <input
@@ -100,7 +110,7 @@ export default function UsuarioForm({
               required
             />
           </div> 
-
+          {/* Campo: Apellidos */}
           <div>
             <label className="text-sm text-gray-600">Apellidos</label>
             <input
@@ -110,7 +120,7 @@ export default function UsuarioForm({
               placeholder="Apellidos"
             />
           </div>
-
+          {/* Campo: Correo electrónico */}
           <div>
             <label className="text-sm text-gray-600">Correo</label>
             <input
@@ -122,6 +132,7 @@ export default function UsuarioForm({
               required
             />
           </div>
+           {/* Campo: Teléfono */}
           <div>
             <label className="text-sm text-gray-600">Teléfono</label>
             <input
@@ -131,7 +142,7 @@ export default function UsuarioForm({
               placeholder="Teléfono"
             />
           </div>
-
+            {/* Campo: Rol */}
           <div>
             <label className="text-sm text-gray-600">Rol</label>
             <select
@@ -139,6 +150,7 @@ export default function UsuarioForm({
               onChange={(e) => set("rol", e.target.value)}
               className="w-full mt-1 px-3 py-2 rounded-xl border"
             >
+              {/* Genera las opciones a partir del array ROLES */}
               {ROLES.map((r) => (
                 <option key={r} value={r}>
                   {r}
@@ -146,7 +158,7 @@ export default function UsuarioForm({
               ))}
             </select>
           </div>
-
+           {/* Campo: Área */}
           <div>
             <label className="text-sm text-gray-600">Área</label>
             <select
@@ -158,6 +170,7 @@ export default function UsuarioForm({
               }}
               className="w-full mt-1 px-3 py-2 rounded-xl border"
             >
+              {/* Muestra todas las áreas disponibles */}
               {areas.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.nombre}
@@ -165,7 +178,7 @@ export default function UsuarioForm({
               ))}
             </select>
           </div>
-
+          {/* Checkbox: estado activo o inactivo */}
           <label className="col-span-2 inline-flex items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -175,7 +188,7 @@ export default function UsuarioForm({
             Activo
           </label>
         </div>
-
+        {/* Botones de acción */}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onCancel} className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200">
             Cancelar
