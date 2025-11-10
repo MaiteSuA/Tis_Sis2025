@@ -27,7 +27,7 @@ export default function AppRouter() {
       <Routes>
         {/* Públicas */}
         <Route path="/" element={<Home />} />
-        <Route path="/evaluadores" element={<RegistrarNotasReplanteado />} />
+        <Route path="/evaluadores" element={<Evaluadores />} />
         <Route path="/resultados" element={<Resultados />} />
         <Route path="/medallero" element={<Medallero />} />
         <Route path="/login" element={<Login />} />
@@ -39,7 +39,7 @@ export default function AppRouter() {
  
 
         <Route path="/coordinador" element={<Ejemplo2 />} />
-        <Route path="/evaluador" element={<Ejemplo />} />
+        <Route path="/evaluador" element={<RegistrarNotasReplanteado />} />
         <Route path="/responsable" element={<ResponsableArea />} />
         
         {/* Layout de Admin con rutas anidadas */}
