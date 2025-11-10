@@ -10,9 +10,18 @@ import { importInscritosCsv, getDashboardStats } from "../services/api";
 import Papa from "papaparse";
 import AssignEvaluatorBar from "../components/AssignEvaluatorBar";
 
+/**
+ * Pantalla de Coordinador para:
+ * - Previsualizar un CSV localmente (sin tocar la BD)
+ * - Filtrar por Área y Nivel
+ * - Seleccionar filas con checkboxes
+ * - (Más adelante) Enviar filas filtradas/seleccionadas a un evaluador
+ */
+
 export default function ImportarInscritos() {
   const navigate = useNavigate();
 
+  // Estado base del dashboard
   const [previewRows, setPreviewRows] = useState([]);
   const [totals, setTotals] = useState({
     total: 0,
@@ -26,9 +35,10 @@ export default function ImportarInscritos() {
   const [filters, setFilters] = useState({ area: null, nivel: null });
   const [selected, setSelected] = useState(new Set());
 
+  // Evaluador elegido en el combo
   const [selectedEval, setSelectedEval] = useState(null); // 👈 nuevo
 
-  // columnas esperadas por la tabla
+  // columnas esperadas por la tabla (cabecera fija de la previsualización)
   const TARGET_COLS = [
     "Nombres",
     "Apellidos",
@@ -42,6 +52,7 @@ export default function ImportarInscritos() {
     "Tutor_Académico",
   ];
 
+  // Mock de evaluadores
   const EVALUADORES = [
     { id: "eva-mate-1", area: "Matemática", nombre: "Ana Pérez" },
     { id: "eva-fis-1", area: "Física", nombre: "Luis Soto" },
@@ -51,11 +62,19 @@ export default function ImportarInscritos() {
     { id: "eva-rob-1", area: "Robótica", nombre: "Jorge Vargas" },
   ];
 
+  /**
+   * useMemo: devuelve los evaluadores visibles según el filtro de Área.
+   * Evita recalcular en cada render si el área no cambió.
+   */
   const evaluadoresFiltrados = useMemo(() => {
     if (!filters.area) return EVALUADORES;
     return EVALUADORES.filter((e) => e.area === filters.area);
   }, [filters.area]);
 
+  /**
+   * useEffect: carga las métricas del dashboard al montar el componente.
+   * En caso de error, no rompe la pantalla: muestra un aviso suave.
+   */
   useEffect(() => {
     (async () => {
       try {
@@ -68,7 +87,12 @@ export default function ImportarInscritos() {
     })();
   }, []);
 
-  // ---- Vista previa local ----
+  /**
+   * handleSelect: lee el CSV local y genera la previsualización.
+   * - NO envía datos al backend (seguro)
+   * - Normaliza encabezados variables del CSV a las columnas TARGET_COLS
+   * - Mantiene un máximo de 300 filas en la vista previa por performance
+   */
   function handleSelect(file) {
     if (!file) {
       setPreviewRows([]);
@@ -77,17 +101,26 @@ export default function ImportarInscritos() {
     }
 
     Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      transformHeader: (h) => (h || "").trim(),
+      header: true, // Usa la primera fila como cabecera
+      skipEmptyLines: true, // Ignora filas vacías
+      transformHeader: (h) => (h || "").trim(), // Limpia espacios en headers
       complete: ({ data }) => {
         const mapKey = (k) => {
+          /**
+           * mapKey: normaliza un nombre de columna libre del CSV
+           * a una de las claves oficiales de la tabla.
+           * Reglas:
+           * - minúsculas
+           * - sin acentos
+           * - espacios -> guión bajo
+           * - mapeo por ALIAS ("cedula" -> "CI")
+           */
           const key = (k || "")
             .trim()
             .toLowerCase()
             .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/\s+/g, "_");
+            .replace(/[\u0300-\u036f]/g, "") // quita acentos
+            .replace(/\s+/g, "_"); // espacios -> _
           const ALIAS = {
             nombres: "Nombres",
             apellidos: "Apellidos",
@@ -106,9 +139,10 @@ export default function ImportarInscritos() {
             tutor_academico: "Tutor_Académico",
             tutor: "Tutor_Académico",
           };
-          return ALIAS[key] || null;
+          return ALIAS[key] || null; // si no hay mapeo, la columna se ignora
         };
 
+        // Convierte cada fila cruda del CSV a un objeto con las TARGET_COLS
         const rows = (data || []).slice(0, 300).map((row) => {
           const out = Object.fromEntries(TARGET_COLS.map((c) => [c, ""]));
           Object.entries(row).forEach(([k, v]) => {
@@ -118,8 +152,8 @@ export default function ImportarInscritos() {
           return out;
         });
 
-        setPreviewRows(rows);
-        setSelected(new Set());
+        setPreviewRows(rows); // pinta la previsualización
+        setSelected(new Set()); // limpia selección previa
         setMsg(
           rows.length
             ? `Previsualizando ${rows.length} fila(s)`
@@ -135,7 +169,8 @@ export default function ImportarInscritos() {
   }
 
   // ---- Import real al backend ----
-  // dentro de src/pages/ImportarInscritos.jsx
+  // (la función de importación vive aquí debajo; cuando se activa,
+  //  puedes reutilizar filteredRows/selected para decidir qué enviar)
 
   async function handleConfirm(file) {
     try {
@@ -146,20 +181,22 @@ export default function ImportarInscritos() {
       if (selected.size > 0) {
         indexes = Array.from(selected); // ya son índices de previewRows
       } else {
-        // tomar índices reales (en previewRows) de las filas filtradas
+        // Mapear cada fila filtrada a su índice real en previewRows
         indexes = filteredRows.map((r) => previewRows.indexOf(r));
       }
 
       setLoading(true);
       setMsg("Importando...");
 
+      // 2) Llamada al servicio (puedes enviar también filtros e índices seleccionados)
       const r = await importInscritosCsv({
-        file,
-        area: filters.area || undefined,
-        nivel: filters.nivel || undefined,
-        selectedIndexes: indexes,
+        file, // archivo original
+        area: filters.area || undefined, // filtro activo
+        nivel: filters.nivel || undefined, // filtro activo
+        selectedIndexes: indexes, // QUÉ filas importar
       });
 
+      // 3) Feedback al usuario + refresco de métricas del dashboard
       if (r?.ok) {
         const { total, importados, errores } = r.data;
         setMsg(`✅ Importados: ${importados}/${total}. Errores: ${errores}.`);
@@ -176,7 +213,12 @@ export default function ImportarInscritos() {
     }
   }
 
-  // valores únicos para filtros
+  /**
+   * Valores únicos para los combos de filtro:
+   * - areas: único por columna "Área"
+   * - niveles: único por columna "Grado_Escolaridad"
+   * useMemo evita recalcular si previewRows no cambia.
+   */
   const areas = useMemo(
     () =>
       Array.from(
@@ -192,7 +234,11 @@ export default function ImportarInscritos() {
     [previewRows]
   );
 
-  // aplicar filtros
+  /**
+   * Aplica filtros actuales sobre la previsualización completa.
+   * Devuelve SOLO las filas visibles.
+   * useMemo evita recomputar si no cambian previewRows o filters.
+   */
   const filteredRows = useMemo(() => {
     return previewRows.filter((r) => {
       if (filters.area && r["Área"] !== filters.area) return false;
@@ -202,7 +248,13 @@ export default function ImportarInscritos() {
     });
   }, [previewRows, filters]);
 
-  // selección (considera índices de la lista completa)
+  /**
+   * Selección de una fila:
+   * - El checkbox actúa sobre el índice RELATIVO del filtrado (idxInFiltered),
+   *   por eso mapeamos a índice REAL en previewRows.
+   * - Guardamos la selección como Set de índices reales para que sea estable
+   *   aunque cambien los filtros.
+   */
   function toggleRow(idxInFiltered) {
     const realIndex = previewRows.indexOf(filteredRows[idxInFiltered]);
     const next = new Set(selected);
@@ -210,6 +262,13 @@ export default function ImportarInscritos() {
     else next.add(realIndex);
     setSelected(next);
   }
+
+  /**
+   * Seleccionar / deseleccionar TODO lo visible:
+   * - Si TODAS las filas filtradas ya están en 'selected', las quitamos.
+   * - Si falta alguna, seleccionamos todas las filtradas.
+   * - Siempre trabajamos con índices REALES de previewRows.
+   */
   function toggleAll() {
     if (filteredRows.length === 0) return;
     const allSelected = filteredRows.every((r) =>
@@ -217,33 +276,55 @@ export default function ImportarInscritos() {
     );
     const next = new Set(selected);
     if (allSelected)
+      // Quitar todos los visibles
       filteredRows.forEach((r) => next.delete(previewRows.indexOf(r)));
+    // Agregar todos los visibles
     else filteredRows.forEach((r) => next.add(previewRows.indexOf(r)));
     setSelected(next);
   }
 
-  // limpiar lista
+  /**
+   * Limpia toda la previsualización y los filtros activos.
+   * - Vacía la lista de inscritos previsualizados.
+   * - Reinicia la selección y los filtros (área, nivel).
+   * - Muestra un mensaje temporal de confirmación.
+   */
   function clearList() {
-    setPreviewRows([]);
-    setSelected(new Set());
-    setFilters({ area: null, nivel: null });
-    setMsg("Lista limpiada.");
-    setTimeout(() => setMsg(""), 3000);
+    setPreviewRows([]); // Borra todas las filas previsualizadas.
+    setSelected(new Set()); // Quita todas las filas seleccionadas.
+    setFilters({ area: null, nivel: null }); // Reinicia los filtros del combobox.
+    setMsg("Lista limpiada."); // Mensaje de estado para el usuario.
+    setTimeout(() => setMsg(""), 3000); // Borra el mensaje después de 3 segundos.
   }
 
+  /**
+   * Envía (simuladamente en front) las filas filtradas o seleccionadas
+   * al evaluador de área elegido en el combobox.
+   *
+   * - Si no se elige evaluador, muestra advertencia.
+   * - Si hay filas seleccionadas (checkbox), envía solo esas.
+   * - Si no hay selección, envía todas las filas filtradas actualmente.
+   * - Crea un payload con todos los datos listos para enviar al backend.
+   * - Muestra mensaje de confirmación visual (sin conexión real todavía).
+   */
   function handleSendToEvaluator() {
+    // Verificación obligatoria: debe elegirse un evaluador antes de enviar
     if (!selectedEval) {
       setMsg("⚠️ Selecciona un evaluador de área.");
       return;
     }
-    // Si hay seleccionados, enviamos esos; si no, todo lo filtrado
-    const selectedInFiltered = filteredRows.filter((r) =>
-      selected.has(previewRows.indexOf(r))
+
+    // Determinar qué filas se enviarán:
+    // - Si hay checkboxes marcados: solo esas filas
+    // - Si no hay selección: todas las que pasan los filtros
+    const selectedInFiltered = filteredRows.filter(
+      (r) => selected.has(previewRows.indexOf(r)) // revisa si el índice real está en el set
     );
     const rowsToSend = selectedInFiltered.length
       ? selectedInFiltered
       : filteredRows;
 
+    // Construir el payload de envío (estructura lista para un POST futuro
     const payload = {
       evaluadorId: selectedEval,
       filtros: { area: filters.area, nivel: filters.nivel },

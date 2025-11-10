@@ -6,7 +6,7 @@ function authHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-/** Importar SOLO lo filtrado (y opcionalmente solo seleccionados) */
+/** Importar SOLO lo filtrado */
 export async function importInscritosCsv({
   file,
   area,               // p.ej. "Matemática"
