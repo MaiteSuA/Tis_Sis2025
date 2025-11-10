@@ -19,7 +19,7 @@ export default function AppRouter() {
     <Routes>
       {/* Públicas */}
       <Route path="/" element={<Home />} />
-      <Route path="/evaluadores" element={<RegistrarNotasReplanteado />} />
+      <Route path="/evaluadores" element={<Evaluadores />} />
       <Route path="/resultados" element={<Resultados />} />
       <Route path="/medallero" element={<Medallero />} />
       <Route path="/login" element={<Login />} />
@@ -30,7 +30,7 @@ export default function AppRouter() {
       <Route path="/admin/log" element={<AdminLog />} />
       <Route path="/admin/usuarios" element={<AdminUsuarios />} />
       <Route path="/coordinador" element={<ImportarInscritos />} />
-      <Route path="/evaluador" element={<Ejemplo />} />
+      <Route path="/evaluador" element={<RegistrarNotasReplanteado />} />
       <Route path="/responsable" element={<ResponsableArea />} />
       {/* Protegidas por rol */}
       <Route element={<ProtectedRoute allow={["ADMIN"]} />}>
