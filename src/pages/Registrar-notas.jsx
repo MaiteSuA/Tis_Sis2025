@@ -4,6 +4,7 @@ import ExcelGrid from "../components/excel_grid";
 import ActionButton from "../components/action_button";
 import MetricCard from "../components/metric_card";
 import datos from "../data/datos_prueba.json";
+import Header from "../components/header";
 
 export default function RegistrarNotasReplanteado() {
   // ----- estado demo -----
@@ -55,8 +56,8 @@ export default function RegistrarNotasReplanteado() {
     setEvaluaciones(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-
+    <div className="min-h-screen bg-gray-100 pt-30 p-6">
+      <Header />
       <div className="bg-gray-200 rounded-lg max-w-7xl mx-auto space-y-6 p-5">
         {/* Encabezado superior: Dashboard / Área / Nivel */}
         <div className="flex flex-wrap items-center justify-between gap-6 bg-gray-200 rounded-lg p-4 mb-4">
