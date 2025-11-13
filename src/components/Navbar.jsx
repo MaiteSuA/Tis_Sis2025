@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import logo from "../assets/logo.jpg";
-
+/*
 const tabs = [
   { to: "/", label: "Inicio", end: true },
   { to: "/evaluadores", label: "Evaluadores" },
@@ -8,6 +8,15 @@ const tabs = [
   { to: "/medallero", label: "Medallero" },
   { to: "/login", label: "Iniciar Sesion" },
 ];
+*/
+const tabs = [
+  { to: "/", label: "Inicio", end: true },
+  {  label: "Evaluadores" },
+  {  label: "Resultados" },
+  {  label: "Medallero" },
+  { to: "/login", label: "Iniciar Sesion" },
+];
+
 
 export default function Navbar() {
   const base =
