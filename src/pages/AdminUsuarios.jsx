@@ -19,6 +19,7 @@ import {
 } from "../api/evaluadores.js";
 
 export default function AdminUsuarios() {
+  // pestaña activa del módulo usuarios (RESPONSABLE | EVALUADOR)
   const [tab, setTab] = useState("RESPONSABLE");
 
   // ÁREAS (por ahora mock, idealmente vendrá de /api/areas)
@@ -28,11 +29,12 @@ export default function AdminUsuarios() {
     { id: 3, nombre: "Civil" },
   ]);
 
-  // MEDALLAS (localStorage)
+  // MEDALLAS (persistencia local en localStorage)
   const STORAGE_KEY = "ohsansi_parametros_medallero";
   const [medallas, setMedallas] = useState({ oro: 0, plata: 0, bronce: 0 });
   const [guardado, setGuardado] = useState(false);
 
+  // Al montar, intenta cargar medallas guardadas en localStorage
   useEffect(() => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -44,35 +46,39 @@ export default function AdminUsuarios() {
           bronce: Number(parsed.bronce) || 0,
         });
       } catch {
-        /* noop */
+        /* noop: si falla el parse, ignora y deja valores por defecto */
       }
     }
   }, []);
 
+  // Handler para cambiar un campo de medallas (oro/plata/bronce)
   const onChangeMedalla = (campo) => (e) => {
     const val = Math.max(0, Number(e.target.value || 0));
     setMedallas((prev) => ({ ...prev, [campo]: val }));
-    setGuardado(false);
+    setGuardado(false); // marca como no guardado hasta que el usuario confirme
   };
 
+  // Guarda medallas en localStorage
   const guardarMedallas = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(medallas));
     setGuardado(true);
   };
 
+  // Restablece medallas y limpia localStorage
   const resetMedallas = () => {
     localStorage.removeItem(STORAGE_KEY);
     setMedallas({ oro: 0, plata: 0, bronce: 0 });
     setGuardado(false);
   };
 
-  // ESTADO DEL PROCESO (UI local)
+  // ESTADO DEL PROCESO (UI local) con persistencia
   const PROCESS_KEY = "ohsansi_estado_proceso";
-  const [proceso, setProceso] = useState({ en: false, fin: false });
-  const [dirtyProceso, setDirtyProceso] = useState(false);
-  const [savedProceso, setSavedProceso] = useState(false);
-  const lastSavedProceso = useRef({ en: false, fin: false });
+  const [proceso, setProceso] = useState({ en: false, fin: false }); // switches del estado
+  const [dirtyProceso, setDirtyProceso] = useState(false); // si hay cambios sin guardar
+  const [savedProceso, setSavedProceso] = useState(false); // si se guardó recientemente
+  const lastSavedProceso = useRef({ en: false, fin: false }); // cache del último guardado
 
+  // Marcar cambios de proceso y habilitar botón Guardar si hay diferencias
   const onChangeProceso = (campo) => (e) => {
     const value = e.target.checked;
     const nuevo = { ...proceso, [campo]: value };
@@ -86,6 +92,7 @@ export default function AdminUsuarios() {
     setSavedProceso(false);
   };
 
+  // Persistir el estado del proceso en localStorage
   const guardarProceso = () => {
     localStorage.setItem(PROCESS_KEY, JSON.stringify(proceso));
     lastSavedProceso.current = { ...proceso };
@@ -93,11 +100,11 @@ export default function AdminUsuarios() {
     setSavedProceso(true);
   };
 
-  // LISTAS DESDE BACKEND
+  // LISTAS DESDE BACKEND (estado de data de cada tab)
   const [responsables, setResponsables] = useState([]);
   const [evaluadores, setEvaluadores] = useState([]);
 
-  // MODAL USUARIO
+  // MODAL USUARIO (control de apertura, modo y fila seleccionada)
   const [showForm, setShowForm] = useState(false);
   const [mode, setMode] = useState("create"); // "create" | "edit"
   const [selected, setSelected] = useState(null);
@@ -106,18 +113,18 @@ export default function AdminUsuarios() {
   useEffect(() => {
     async function cargar() {
       if (tab === "RESPONSABLE") {
-       const data = await fetchResponsables(); // ya mapeado en la API
-       setResponsables(data); 
+        const data = await fetchResponsables(); // ya mapeado en la API
+        setResponsables(data);
       } else if (tab === "EVALUADOR") {
         const dataEval = await fetchEvaluadores(); // GET /api/evaluadores
         setEvaluadores(dataEval);
       }
     }
-
     cargar();
   }, [tab]);
 
-  // ✅ Adaptadores de forma UI ↔ Back
+  // ✅ Adaptadores de forma UI ↔ Back (RESPONSABLE)
+  // (Opcional) Útiles si tu API espera otros nombres de campos
   const mapUIToBackResponsable = (f) => ({
     nombres_evaluador: f.nombres,
     apellidos: f.apellidos,
@@ -142,17 +149,21 @@ export default function AdminUsuarios() {
   const handleSave = async (formDelModal) => {
     try {
       if (tab === "RESPONSABLE") {
-         console.log("🟡 Form recibido del modal:", formDelModal);
+        console.log("🟡 Form recibido del modal:", formDelModal);
 
         if (mode === "edit" && selected) {
+          // Actualiza registro existente en backend
           const updated = await updateResponsable(selected.id, formDelModal);
+          // Reemplaza en estado local la fila actualizada
           setResponsables((prev) => prev.map((x) => (x.id === selected.id ? ui : x)));
         } else {
+          // Crea nuevo registro en backend
           const created = await createResponsable(formDelModal);
+          // Agrega al final de la lista local
           setResponsables((prev) => [...prev, created]);
         }
       } else {
-        // EVALUADOR (ajusta si ya tienes mapeo para evaluador)
+        // EVALUADOR (payload mínimo; ajusta si ya tienes mapeo para evaluador)
         const payloadEval = {
           nombres: formDelModal.nombres,
           apellidos: formDelModal.apellidos,
@@ -168,6 +179,7 @@ export default function AdminUsuarios() {
         }
       }
 
+      // Cierra modal y limpia selección
       setShowForm(false);
       setSelected(null);
     } catch (e) {
@@ -176,10 +188,7 @@ export default function AdminUsuarios() {
     }
   };
 
-
-
-
-  // 2) cuál lista mostrar
+  // 2) cuál lista mostrar (depende de la pestaña elegida)
   const rows = tab === "RESPONSABLE" ? responsables : evaluadores;
 
   // 3) eliminar
@@ -195,28 +204,28 @@ export default function AdminUsuarios() {
       setEvaluadores((prev) => prev.filter((x) => x.id !== id));
     }
 
+    // Si estabas editando justo ese registro, cierra el modal
     if (selected && selected.id === id) {
       setShowForm(false);
       setSelected(null);
     }
   };
 
-  // 4) editar
+  // 4) editar: abre modal, cambia modo y carga la fila seleccionada
   const handleEdit = (row) => {
     setSelected(row);
     setMode("edit");
     setShowForm(true);
   };
 
-  // 5) crear
+  // 5) crear: abre modal en modo creación y sin selección previa
   const handleCreate = () => {
     setSelected(null);
     setMode("create");
     setShowForm(true);
   };
 
-
-  // RENDER
+  // RENDER principal
   return (
     <AdminLayout>
       <div className="flex items-center justify-between mb-2">
@@ -228,11 +237,13 @@ export default function AdminUsuarios() {
       {/* KPIs y estado */}
       <section className="space-y-4">
 
+        {/* KPI: número de usuarios (depende de la pestaña activa) */}
         <div className="panel">
           <label className="section">Número de Usuarios Registrados</label>
           <input disabled value={rows.length} className="kpi-input w-40" />
         </div>
 
+        {/* Panel de configuración de medallas con persistencia local */}
         <div className="panel">
           <p className="section">Cantidad de Medallas:</p>
           <div className="flex items-center gap-6 flex-wrap">
@@ -253,6 +264,7 @@ export default function AdminUsuarios() {
               </div>
             ))}
 
+            {/* Acciones de guardar/restablecer y estado de guardado */}
             <div className="ml-auto flex items-center gap-3">
               <button onClick={guardarMedallas} className="btn-dark">
                 Guardar Cambios
@@ -267,6 +279,7 @@ export default function AdminUsuarios() {
           </div>
         </div>
 
+        {/* Panel del estado del proceso con switches y persistencia */}
         <div className="panel bg-gray-100">
           <div className="flex items-center gap-8 flex-wrap">
             <span className="section">Estado del proceso:</span>
@@ -314,6 +327,7 @@ export default function AdminUsuarios() {
 
       {/* Tabla de usuarios */}
       <section className="mt-4 card">
+        {/* Selector de pestañas para alternar entre Responsables y Evaluadores */}
         <UsuariosTabs
           tabs={[
             { key: "RESPONSABLE", label: "Tabla de Responsables de área" },
@@ -323,6 +337,7 @@ export default function AdminUsuarios() {
           onChange={setTab}
         />
 
+        {/* Tabla con filas provenientes del backend (según pestaña) */}
         <div className="p-4">
           <UsuariosTable
             rows={rows}
@@ -331,6 +346,7 @@ export default function AdminUsuarios() {
           />
         </div>
 
+        {/* Acciones inferiores: historial y crear nuevo */}
         <div className="px-4 pb-4 flex justify-between">
           <button className="btn-light">Historial</button>
           <button className="btn-dark" onClick={handleCreate}>
@@ -339,6 +355,7 @@ export default function AdminUsuarios() {
         </div>
       </section>
 
+      {/* Modal del formulario de Usuario (creación/edición) */}
       {showForm && (
         <UsuarioForm
           key={mode + (selected?.id ?? "nuevo")}
@@ -357,3 +374,4 @@ export default function AdminUsuarios() {
     </AdminLayout>
   );
 }
+

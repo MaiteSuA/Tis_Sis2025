@@ -13,6 +13,7 @@ import Ejemplo2 from "../pages/ejemplo2.jsx";
 import ProtectedRoute from "./ProtectedRoute.jsx";
 import RegistrarNotasReplanteado from "../pages/Registrar-notas.jsx";
 import ImportarInscritos from "../pages/ImportarInscritos.jsx";
+import Temporal from "../pages/Temporal.jsx";
 
 export default function AppRouter() {
   return (
@@ -23,6 +24,9 @@ export default function AppRouter() {
       <Route path="/resultados" element={<Resultados />} />
       <Route path="/medallero" element={<Medallero />} />
       <Route path="/login" element={<Login />} />
+
+      {/* Rutas temporales para reportes y fase final */}
+      <Route path="/temporal/:slug" element={<Temporal />} />
 
       {/* ← Hacerla pública */}
       {/* Demos por rol */}
