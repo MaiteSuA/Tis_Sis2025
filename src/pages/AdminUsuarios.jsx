@@ -219,10 +219,15 @@ export default function AdminUsuarios() {
   // RENDER
   return (
     <AdminLayout>
-      <div className="text-sm text-gray-600 mb-2">Dashboard</div>
-
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm text-gray-600">Dashboard</span>
+        <span className="text-xs text-gray-500">
+          Gestión actual: <b>2025</b>
+        </span>
+      </div>
       {/* KPIs y estado */}
       <section className="space-y-4">
+
         <div className="panel">
           <label className="section">Número de Usuarios Registrados</label>
           <input disabled value={rows.length} className="kpi-input w-40" />
