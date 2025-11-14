@@ -1,7 +1,7 @@
 // Importa los hooks de React: useEffect (efectos secundarios) y useState (manejo de estado local)
 import { useEffect, useState } from "react";
 // Lista de roles posibles para el usuario
-const ROLES = ["RESPONSABLE", "EVALUADOR"];
+const ROLES = ["RESPONSABLE", "COORDINADOR"];
 // Componente principal del formulario de usuario
 export default function UsuarioForm({
   mode = "create",

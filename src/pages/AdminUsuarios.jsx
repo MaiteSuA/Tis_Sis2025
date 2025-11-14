@@ -12,21 +12,25 @@ import {
 } from "../api/responsables.js";
 
 import {
-  fetchEvaluadores,
-  createEvaluador,
-  updateEvaluador,
-  deleteEvaluador,
-} from "../api/evaluadores.js";
+  fetchCoordinadores,
+  createCoordinador,
+  updateCoordinador,
+  deleteCoordinador,
+} from "../api/coordinador.js";
 
 export default function AdminUsuarios() {
-  // pestaña activa del módulo usuarios (RESPONSABLE | EVALUADOR)
+  // pestaña activa del módulo usuarios (RESPONSABLE | COORDINADOR)
   const [tab, setTab] = useState("RESPONSABLE");
 
   // ÁREAS (por ahora mock, idealmente vendrá de /api/areas)
   const [areas] = useState([
-    { id: 1, nombre: "Sistemas" },
-    { id: 2, nombre: "Industrial" },
-    { id: 3, nombre: "Civil" },
+    { id: 1, nombre: "General" },
+    { id: 2, nombre: "Matematica" },
+    { id: 3, nombre: "Fisica" },
+    { id: 4, nombre: "Quimica" },
+    { id: 5, nombre: "Biologia" },
+    { id: 6, nombre: "Robotica" },
+    { id: 7, nombre: "Informatica" },
   ]);
 
   // MEDALLAS (persistencia local en localStorage)
@@ -34,7 +38,6 @@ export default function AdminUsuarios() {
   const [medallas, setMedallas] = useState({ oro: 0, plata: 0, bronce: 0 });
   const [guardado, setGuardado] = useState(false);
 
-  // Al montar, intenta cargar medallas guardadas en localStorage
   useEffect(() => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -46,39 +49,35 @@ export default function AdminUsuarios() {
           bronce: Number(parsed.bronce) || 0,
         });
       } catch {
-        /* noop: si falla el parse, ignora y deja valores por defecto */
+        /* noop */
       }
     }
   }, []);
 
-  // Handler para cambiar un campo de medallas (oro/plata/bronce)
   const onChangeMedalla = (campo) => (e) => {
     const val = Math.max(0, Number(e.target.value || 0));
     setMedallas((prev) => ({ ...prev, [campo]: val }));
-    setGuardado(false); // marca como no guardado hasta que el usuario confirme
+    setGuardado(false);
   };
 
-  // Guarda medallas en localStorage
   const guardarMedallas = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(medallas));
     setGuardado(true);
   };
 
-  // Restablece medallas y limpia localStorage
   const resetMedallas = () => {
     localStorage.removeItem(STORAGE_KEY);
     setMedallas({ oro: 0, plata: 0, bronce: 0 });
     setGuardado(false);
   };
 
-  // ESTADO DEL PROCESO (UI local) con persistencia
+  // ESTADO DEL PROCESO
   const PROCESS_KEY = "ohsansi_estado_proceso";
-  const [proceso, setProceso] = useState({ en: false, fin: false }); // switches del estado
-  const [dirtyProceso, setDirtyProceso] = useState(false); // si hay cambios sin guardar
-  const [savedProceso, setSavedProceso] = useState(false); // si se guardó recientemente
-  const lastSavedProceso = useRef({ en: false, fin: false }); // cache del último guardado
+  const [proceso, setProceso] = useState({ en: false, fin: false });
+  const [dirtyProceso, setDirtyProceso] = useState(false);
+  const [savedProceso, setSavedProceso] = useState(false);
+  const lastSavedProceso = useRef({ en: false, fin: false });
 
-  // Marcar cambios de proceso y habilitar botón Guardar si hay diferencias
   const onChangeProceso = (campo) => (e) => {
     const value = e.target.checked;
     const nuevo = { ...proceso, [campo]: value };
@@ -92,7 +91,6 @@ export default function AdminUsuarios() {
     setSavedProceso(false);
   };
 
-  // Persistir el estado del proceso en localStorage
   const guardarProceso = () => {
     localStorage.setItem(PROCESS_KEY, JSON.stringify(proceso));
     lastSavedProceso.current = { ...proceso };
@@ -100,132 +98,100 @@ export default function AdminUsuarios() {
     setSavedProceso(true);
   };
 
-  // LISTAS DESDE BACKEND (estado de data de cada tab)
+  // LISTAS DESDE BACKEND
   const [responsables, setResponsables] = useState([]);
-  const [evaluadores, setEvaluadores] = useState([]);
+ const [coordinadores, setCoordinadores] = useState([]);
 
-  // MODAL USUARIO (control de apertura, modo y fila seleccionada)
+  // MODAL
   const [showForm, setShowForm] = useState(false);
   const [mode, setMode] = useState("create"); // "create" | "edit"
   const [selected, setSelected] = useState(null);
 
-  // 1) cargar data del backend cuando cambia el tab
+  // cargar data del backend cuando cambia el tab
   useEffect(() => {
     async function cargar() {
       if (tab === "RESPONSABLE") {
-        const data = await fetchResponsables(); // ya mapeado en la API
+       const data = await fetchResponsables();
         setResponsables(data);
-      } else if (tab === "EVALUADOR") {
-        const dataEval = await fetchEvaluadores(); // GET /api/evaluadores
-        setEvaluadores(dataEval);
+      } else if (tab === "COORDINADOR") {
+      const dataCoord = await fetchCoordinadores();
+      setCoordinadores(dataCoord);   
       }
     }
     cargar();
   }, [tab]);
 
-  // ✅ Adaptadores de forma UI ↔ Back (RESPONSABLE)
-  // (Opcional) Útiles si tu API espera otros nombres de campos
-  const mapUIToBackResponsable = (f) => ({
-    nombres_evaluador: f.nombres,
-    apellidos: f.apellidos,
-    correo_electronico: f.correo,
-    usuario_responsable: `${(f.nombres?.[0] || "").toUpperCase()}${(f.apellidos?.[0] || "").toUpperCase()}`,
-    pass_responsable: "123456",          // o usa f.ci si lo tienes en el form
-    id_area: Number(f.areaId),
-  });
-
-  const mapBackToUIResponsable = (r) => ({
-    id: r.id ?? r.id_responsable,
-    nombres: r.nombres ?? r.nombres_evaluador,
-    apellidos: r.apellidos ?? "",
-    rol: "RESPONSABLE",
-    // area puede venir como string u objeto {id_area, nombre_area}
-    area: r.area?.nombre_area ?? r.area ?? "",
-    estado: true,
-    correo: r.correo ?? r.correo_electronico ?? "",
-  });
-
-  // ✅ Guardar (create/update) usando el form que llega del modal
+  // Guardar (create/update)
   const handleSave = async (formDelModal) => {
-    try {
-      if (tab === "RESPONSABLE") {
-        console.log("🟡 Form recibido del modal:", formDelModal);
-
-        if (mode === "edit" && selected) {
-          // Actualiza registro existente en backend
-          const updated = await updateResponsable(selected.id, formDelModal);
-          // Reemplaza en estado local la fila actualizada
-          setResponsables((prev) => prev.map((x) => (x.id === selected.id ? ui : x)));
-        } else {
-          // Crea nuevo registro en backend
-          const created = await createResponsable(formDelModal);
-          // Agrega al final de la lista local
-          setResponsables((prev) => [...prev, created]);
-        }
-      } else {
-        // EVALUADOR (payload mínimo; ajusta si ya tienes mapeo para evaluador)
-        const payloadEval = {
-          nombres: formDelModal.nombres,
-          apellidos: formDelModal.apellidos,
-          id_area: Number(formDelModal.areaId),
-        };
-
-        if (mode === "edit" && selected) {
-          const updatedEval = await updateEvaluador(selected.id, payloadEval);
-          setEvaluadores((prev) => prev.map((x) => (x.id === selected.id ? updatedEval : x)));
-        } else {
-          const createdEval = await createEvaluador(payloadEval);
-          setEvaluadores((prev) => [...prev, createdEval]);
-        }
-      }
-
-      // Cierra modal y limpia selección
-      setShowForm(false);
-      setSelected(null);
-    } catch (e) {
-      console.error("Error al guardar:", e);
-      alert("No se pudo guardar. Revisa la consola para más detalles.");
-    }
-  };
-
-  // 2) cuál lista mostrar (depende de la pestaña elegida)
-  const rows = tab === "RESPONSABLE" ? responsables : evaluadores;
-
-  // 3) eliminar
-  const handleDelete = async (row) => {
-    const id = row?.id;
-    if (!id) return;
-
+  try {
     if (tab === "RESPONSABLE") {
-      await deleteResponsable(id); // DELETE /api/responsables/:id
-      setResponsables((prev) => prev.filter((x) => x.id !== id));
-    } else {
-      await deleteEvaluador(id); // DELETE /api/evaluadores/:id
-      setEvaluadores((prev) => prev.filter((x) => x.id !== id));
+      // ... esta parte la dejas tal como ya la tienes ...
+    } else if (tab === "COORDINADOR") {
+      console.log("🟢 Form recibido del modal (COORDINADOR):", formDelModal);
+
+      if (mode === "edit" && selected) {
+        const updatedCoord = await updateCoordinador(
+          selected.id,
+          formDelModal
+        );
+        setCoordinadores((prev) =>
+          prev.map((x) => (x.id === selected.id ? updatedCoord : x))
+        );
+      } else {
+        const createdCoord = await createCoordinador(formDelModal);
+        setCoordinadores((prev) => [...prev, createdCoord]);
+      }
     }
 
-    // Si estabas editando justo ese registro, cierra el modal
+    setShowForm(false);
+    setSelected(null);
+  } catch (e) {
+    console.error("Error al guardar:", e);
+    alert("No se pudo guardar. Revisa la consola para más detalles.");
+  }
+};
+
+
+  // lista actual según pestaña
+  const rows = tab === "RESPONSABLE" ? responsables : coordinadores;
+
+  // eliminar
+  const handleDelete = async (row) => {
+  const id = row?.id;
+  if (!id) return;
+
+  try {
+    if (tab === "RESPONSABLE") {
+      await deleteResponsable(id);
+      setResponsables((prev) => prev.filter((x) => x.id !== id));
+    } else if (tab === "COORDINADOR") {
+      await deleteCoordinador(id);
+      setCoordinadores((prev) => prev.filter((x) => x.id !== id));
+    }
+
     if (selected && selected.id === id) {
       setShowForm(false);
       setSelected(null);
     }
-  };
+  } catch (e) {
+    console.error("Error al eliminar:", e);
+    alert("No se pudo eliminar el registro.");
+  }
+};
 
-  // 4) editar: abre modal, cambia modo y carga la fila seleccionada
+
   const handleEdit = (row) => {
     setSelected(row);
     setMode("edit");
     setShowForm(true);
   };
 
-  // 5) crear: abre modal en modo creación y sin selección previa
   const handleCreate = () => {
     setSelected(null);
     setMode("create");
     setShowForm(true);
   };
 
-  // RENDER principal
   return (
     <AdminLayout>
       <div className="flex items-center justify-between mb-2">
@@ -234,16 +200,14 @@ export default function AdminUsuarios() {
           Gestión actual: <b>2025</b>
         </span>
       </div>
+
       {/* KPIs y estado */}
       <section className="space-y-4">
-
-        {/* KPI: número de usuarios (depende de la pestaña activa) */}
         <div className="panel">
           <label className="section">Número de Usuarios Registrados</label>
           <input disabled value={rows.length} className="kpi-input w-40" />
         </div>
 
-        {/* Panel de configuración de medallas con persistencia local */}
         <div className="panel">
           <p className="section">Cantidad de Medallas:</p>
           <div className="flex items-center gap-6 flex-wrap">
@@ -264,7 +228,6 @@ export default function AdminUsuarios() {
               </div>
             ))}
 
-            {/* Acciones de guardar/restablecer y estado de guardado */}
             <div className="ml-auto flex items-center gap-3">
               <button onClick={guardarMedallas} className="btn-dark">
                 Guardar Cambios
@@ -279,7 +242,6 @@ export default function AdminUsuarios() {
           </div>
         </div>
 
-        {/* Panel del estado del proceso con switches y persistencia */}
         <div className="panel bg-gray-100">
           <div className="flex items-center gap-8 flex-wrap">
             <span className="section">Estado del proceso:</span>
@@ -327,17 +289,15 @@ export default function AdminUsuarios() {
 
       {/* Tabla de usuarios */}
       <section className="mt-4 card">
-        {/* Selector de pestañas para alternar entre Responsables y Evaluadores */}
         <UsuariosTabs
           tabs={[
             { key: "RESPONSABLE", label: "Tabla de Responsables de área" },
-            { key: "EVALUADOR", label: "Tabla de Evaluadores" },
+            { key: "COORDINADOR", label: "Tabla de Coordinadores" },
           ]}
           active={tab}
           onChange={setTab}
         />
 
-        {/* Tabla con filas provenientes del backend (según pestaña) */}
         <div className="p-4">
           <UsuariosTable
             rows={rows}
@@ -346,7 +306,6 @@ export default function AdminUsuarios() {
           />
         </div>
 
-        {/* Acciones inferiores: historial y crear nuevo */}
         <div className="px-4 pb-4 flex justify-between">
           <button className="btn-light">Historial</button>
           <button className="btn-dark" onClick={handleCreate}>
@@ -355,7 +314,6 @@ export default function AdminUsuarios() {
         </div>
       </section>
 
-      {/* Modal del formulario de Usuario (creación/edición) */}
       {showForm && (
         <UsuarioForm
           key={mode + (selected?.id ?? "nuevo")}
@@ -363,7 +321,7 @@ export default function AdminUsuarios() {
           title={mode === "edit" ? "Editar Usuario" : "Registro de Usuario"}
           areas={areas}
           initialData={selected}
-          defaultRol={tab} // esto rellena el <select Rol> en el modal
+          defaultRol={tab}
           onSubmit={handleSave}
           onCancel={() => {
             setShowForm(false);
@@ -374,4 +332,3 @@ export default function AdminUsuarios() {
     </AdminLayout>
   );
 }
-

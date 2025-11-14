@@ -23,7 +23,7 @@ function mapUIToBack(f) {
     apellidos: f.apellidos,
     correo_electronico: f.correo,
     usuario_responsable: ((f.nombres?.[0] || '') + (f.apellidos?.[0] || '')).toUpperCase(),
-    pass_responsable: f.ci || f.password || f.telefono || '123456',
+    pass_responsable: f.carnet || f.password || f.telefono || '123456',
     carnet: f.carnet,
     id_area: Number(f.areaId),
   };
