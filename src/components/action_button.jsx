@@ -25,6 +25,7 @@ const ActionButton = ({ type = "edit", label, onClick }) => {
     <button
       onClick={onClick}
       className={`inline-flex items-center gap-2 font-medium px-4 py-2 rounded-lg transition ${className}`}
+      type="button"
     >
       {icon}
       <span>{label}</span>

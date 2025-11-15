@@ -1,63 +1,172 @@
-import { useMemo, useState } from "react";
+// src/screens/RegistrarNotasReplanteado.jsx
+import { useEffect, useMemo, useState } from "react";
 import SearchBar from "../components/search_bar";
 import ExcelGrid from "../components/excel_grid";
 import ActionButton from "../components/action_button";
 import MetricCard from "../components/metric_card";
-import datos from "../data/datos_prueba.json";
 import Header from "../components/header";
 
+// En .env: VITE_API_URL=http://localhost:3000/api
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
+
 export default function RegistrarNotasReplanteado() {
-  // ----- estado demo -----
-  const [evaluaciones, setEvaluaciones] = useState(datos.clasificados);
-  const [historial, setHistorial] = useState(datos.historial);
+  const [evaluaciones, setEvaluaciones] = useState([]);
+  const [historial, setHistorial] = useState([]);
+
   const [busqEval, setBusqEval] = useState("");
   const [busqHist, setBusqHist] = useState("");
+
   const [mensajeGuardado, setMensajeGuardado] = useState("");
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState("");
 
-  // ----- metricas -----
+  // ============================
+  //   CARGA DE DATOS DESDE BACK
+  // ============================
+  const cargarDatos = async () => {
+    try {
+      setCargando(true);
+      setError("");
+
+      // Evaluaciones
+      const resEval = await fetch(`${API_BASE_URL}/evaluaciones`);
+      if (!resEval.ok) {
+        throw new Error(`Error al obtener evaluaciones: ${resEval.status}`);
+      }
+      const jsonEval = await resEval.json();
+      const dataEval = Array.isArray(jsonEval) ? jsonEval : jsonEval.data ?? [];
+      setEvaluaciones(dataEval);
+
+      // Historial
+      const resHist = await fetch(`${API_BASE_URL}/evaluaciones/historial`);
+      if (resHist.ok) {
+        const jsonHist = await resHist.json();
+        const dataHist = Array.isArray(jsonHist) ? jsonHist : jsonHist.data ?? [];
+        setHistorial(dataHist);
+      } else {
+        setHistorial([]);
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Error al cargar datos");
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarDatos();
+  }, []);
+
+  // ============================
+  //   MÉTRICAS
+  // ============================
   const totalAsignados = evaluaciones.length;
-  const totalPendientes = evaluaciones.filter(e => e.estado === "Pendiente").length;
-  const totalHechas = evaluaciones.filter(e => String(e.nota).trim() !== "").length;
+  const totalPendientes = evaluaciones.filter((e) => e.estado === "Pendiente").length;
+  const totalHechas = evaluaciones.filter((e) => String(e.nota).trim() !== "").length;
 
-  // ----- columnas -----
-  const columnsEval = useMemo(() => [
-    { header: "Competidor", field: "competidor", align: "left" },
-    { header: "Nota", field: "nota", align: "center", width: "w-24" },
-    { header: "Observación", field: "observacion", align: "left" },
-    { header: "Estado", field: "estado", align: "center", width: "w-40" },
-  ], []);
+  // ============================
+  //   COLUMNAS
+  // ============================
+  const columnsEval = useMemo(
+    () => [
+      { header: "Competidor", field: "competidor", align: "left" },
+      { header: "Nota", field: "nota", align: "center", width: "w-24" },
+      { header: "Observación", field: "observacion", align: "left" },
+      { header: "Estado", field: "estado", align: "center", width: "w-40" },
+    ],
+    []
+  );
 
-  const columnsHist = useMemo(() => [
-    { header: "Competidor", field: "competidor", align: "left" },
-    { header: "Nota Anterior", field: "notaAnterior", align: "center", width: "w-28" },
-    { header: "Nota Nueva", field: "notaNueva", align: "center", width: "w-28" },
-    { header: "Fecha", field: "fecha", align: "center", width: "w-32" },
-    { header: "Usuario", field: "usuario", align: "center", width: "w-28" },
-  ], []);
+  const columnsHist = useMemo(
+    () => [
+      { header: "Competidor", field: "competidor", align: "left" },
+      { header: "Nota Anterior", field: "notaAnterior", align: "center", width: "w-28" },
+      { header: "Nota Nueva", field: "notaNueva", align: "center", width: "w-28" },
+      { header: "Fecha", field: "fecha", align: "center", width: "w-32" },
+      { header: "Usuario", field: "usuario", align: "center", width: "w-28" },
+    ],
+    []
+  );
 
+  // ============================
+  //   DATOS FILTRADOS
+  // ============================
   const dataEval = useMemo(
-    () => evaluaciones.filter(
-      r => (r.competidor||"").toLowerCase().includes(busqEval.toLowerCase())
-        || (r.observacion||"").toLowerCase().includes(busqEval.toLowerCase())
-    ),
+    () =>
+      evaluaciones.filter(
+        (r) =>
+          (r.competidor || "")
+            .toLowerCase()
+            .includes(busqEval.toLowerCase()) ||
+          (r.observacion || "")
+            .toLowerCase()
+            .includes(busqEval.toLowerCase())
+      ),
     [evaluaciones, busqEval]
   );
 
   const dataHist = useMemo(
-    () => historial.filter(
-      r => (r.competidor||"").toLowerCase().includes(busqHist.toLowerCase())
-        || (r.usuario||"").toLowerCase().includes(busqHist.toLowerCase())
-    ),
+    () =>
+      historial.filter(
+        (r) =>
+          (r.competidor || "")
+            .toLowerCase()
+            .includes(busqHist.toLowerCase()) ||
+          (r.usuario || "")
+            .toLowerCase()
+            .includes(busqHist.toLowerCase())
+      ),
     [historial, busqHist]
   );
 
-  // ----- handlers minimos -----
+  // ============================
+  //   HANDLERS
+  // ============================
   const onCellChange = (id, field, value) =>
-    setEvaluaciones(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+    setEvaluaciones((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
+    );
 
+  const handleGuardarCambios = async (e) => {
+  if (e && e.preventDefault) e.preventDefault(); // evita comportamiento por defecto
+
+  try {
+    setMensajeGuardado("");
+    setError("");
+
+    const res = await fetch(`${API_BASE_URL}/evaluaciones`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(evaluaciones),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Error al guardar cambios: ${res.status}`);
+      }
+
+      const json = await res.json();
+      const message =
+        (json && (json.message || json.msg)) || "Cambios guardados correctamente";
+
+      setMensajeGuardado(message);
+      // luego de guardar, recargamos historial para ver los cambios nuevos
+      await cargarDatos();
+
+      setTimeout(() => setMensajeGuardado(""), 2000);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Error al guardar cambios");
+    }
+  };
+
+  // ============================
+  //   RENDER
+  // ============================
   return (
     <div className="min-h-screen bg-gray-100 pt-30 p-6">
       <Header />
+
       <div className="bg-gray-200 rounded-lg max-w-7xl mx-auto space-y-6 p-5">
         {/* Encabezado superior: Dashboard / Área / Nivel */}
         <div className="flex flex-wrap items-center justify-between gap-6 bg-gray-200 rounded-lg p-4 mb-4">
@@ -77,7 +186,28 @@ export default function RegistrarNotasReplanteado() {
           </div>
         </div>
 
-        {/* METRICAS: fila compacta con divisores */}
+        {/* Mensajes de estado */}
+        {(cargando || error || mensajeGuardado) && (
+          <div className="space-y-2">
+            {cargando && (
+              <div className="text-sm text-blue-700 bg-blue-100 border border-blue-200 rounded-md px-3 py-2">
+                Cargando datos…
+              </div>
+            )}
+            {error && (
+              <div className="text-sm text-red-700 bg-red-100 border border-red-200 rounded-md px-3 py-2">
+                {error}
+              </div>
+            )}
+            {mensajeGuardado && !error && (
+              <div className="text-sm text-green-700 bg-green-100 border border-green-200 rounded-md px-3 py-2">
+                {mensajeGuardado}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* MÉTRICAS */}
         <section className="bg-white rounded-xl border border-slate-200 shadow-sm">
           <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-200">
             <MetricCard label="Cantidad Asignados:" value={totalAsignados} />
@@ -88,7 +218,7 @@ export default function RegistrarNotasReplanteado() {
 
         {/* EVALUACIONES */}
         <section className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          {/* header de seccion */}
+          {/* header de sección */}
           <div className="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-slate-200 sticky top-0 bg-white z-10 rounded-t-xl">
             <h2 className="text-lg sm:text-xl font-bold text-black">
               Lista de Evaluaciones - Clasificatoria
@@ -107,13 +237,20 @@ export default function RegistrarNotasReplanteado() {
           </div>
 
           {/* acciones */}
-          <div className="flex justify-end gap-2 p-4 border-t border-slate-200 bg-gray-200 rounded-b-xl">
-            <ActionButton type="edit" label="Editar" />
-            <ActionButton type="save" label="Guardar cambios" onClick={()=>{
-              setMensajeGuardado("Guardado");
-              setTimeout(()=>setMensajeGuardado(""),1500);
-            }}/>
-            <ActionButton type="export" label="Exportar" />
+          <div className="flex flex-wrap items-center justify-between gap-2 p-4 border-t border-slate-200 bg-gray-200 rounded-b-xl">
+            <div className="text-xs text-slate-500">
+              {totalAsignados} registros · {totalPendientes} pendientes ·{" "}
+              {totalHechas} con nota
+            </div>
+            <div className="flex gap-2">
+              <ActionButton type="edit" label="Editar" />
+              <ActionButton
+                type="save"
+                label="Guardar cambios"
+                onClick={handleGuardarCambios}
+              />
+              <ActionButton type="export" label="Exportar" />
+            </div>
           </div>
         </section>
 
@@ -128,23 +265,33 @@ export default function RegistrarNotasReplanteado() {
               columns={columnsHist}
               data={dataHist}
               onCellChange={(id, f, v) =>
-                setHistorial(prev => prev.map(r => r.id===id?{...r,[f]:v}:r))
+                setHistorial((prev) =>
+                  prev.map((r) => (r.id === id ? { ...r, [f]: v } : r))
+                )
               }
-              onDeleteRow={(id)=>
-                setHistorial(prev => prev.length>1?prev.filter(r=>r.id!==id):prev)
+              onDeleteRow={(id) =>
+                setHistorial((prev) =>
+                  prev.length > 1 ? prev.filter((r) => r.id !== id) : prev
+                )
               }
-              onAddRow={()=>{
+              onAddRow={() => {
                 const hoy = new Date().toISOString().split("T")[0];
-                setHistorial(prev => [...prev, {
-                  id: Math.max(0,...prev.map(p=>p.id))+1,
-                  competidor:"", notaAnterior:"", notaNueva:"", fecha:hoy, usuario:""
-                }])
+                setHistorial((prev) => [
+                  ...prev,
+                  {
+                    id: Math.max(0, ...prev.map((p) => Number(p.id) || 0)) + 1,
+                    competidor: "",
+                    notaAnterior: "",
+                    notaNueva: "",
+                    fecha: hoy,
+                    usuario: "",
+                  },
+                ]);
               }}
               className="rounded-lg"
             />
           </div>
         </section>
-
       </div>
     </div>
   );
