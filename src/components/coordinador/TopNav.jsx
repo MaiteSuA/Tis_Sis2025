@@ -1,4 +1,4 @@
-import Brand from "./Brand";
+import Brand from "../Brand";
 import { useNavigate } from "react-router-dom";
 
 export default function TopNav() {
@@ -11,7 +11,7 @@ export default function TopNav() {
         <Brand />
 
         {/* Menú principal */}
-         <nav className="hidden md:flex items-center gap-2">
+        <nav className="hidden md:flex items-center gap-2">
           <button
             onClick={() => navigate("/")}
             className="px-3 py-1.5 text-sm rounded-lg bg-gray-900 text-white"
@@ -22,7 +22,10 @@ export default function TopNav() {
 
         {/* Botones verticales alineados al centro */}
         <div className="flex flex-col justify-center items-end gap-1 h-20">
-          <button className="btn text-sm px-3 py-1.5">
+          <button
+            className="btn text-sm px-3 py-1.5"
+            onClick={() => navigate("/coordinador/perfil")}
+          >
             Perfil Coordinador
           </button>
           <button

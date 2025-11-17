@@ -14,6 +14,7 @@ export default function DataTable({
   return (
     <div className="card overflow-hidden">
       <div className="overflow-x-auto">
+        <div className="border rounded-lg overflow-y-auto max-h-96">
         <table className="w-full text-sm">
           <thead className="bg-gray-50">
             <tr className="text-left">
@@ -56,6 +57,7 @@ export default function DataTable({
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

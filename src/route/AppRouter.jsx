@@ -12,8 +12,9 @@ import Ejemplo from "../pages/ejemplo.jsx";
 import Ejemplo2 from "../pages/ejemplo2.jsx";
 import ProtectedRoute from "./ProtectedRoute.jsx";
 import RegistrarNotasReplanteado from "../pages/Registrar-notas.jsx";
-import ImportarInscritos from "../pages/ImportarInscritos.jsx";
+import ImportarInscritos from "../pages/Coordinador/ImportarInscritos.jsx";
 import Temporal from "../pages/Temporal.jsx";
+import PerfilCoordinador from "../pages/Coordinador/PerfilCoordinador.jsx";
 
 export default function AppRouter() {
   return (
@@ -36,6 +37,7 @@ export default function AppRouter() {
       <Route path="/coordinador" element={<ImportarInscritos />} />
       <Route path="/evaluador" element={<RegistrarNotasReplanteado />} />
       <Route path="/responsable" element={<ResponsableArea />} />
+      <Route path="/coordinador/perfil" element={<PerfilCoordinador />} />
       {/* Protegidas por rol */}
       <Route element={<ProtectedRoute allow={["ADMIN"]} />}>
         {/* coloca aquí SOLO rutas que realmente requieran ADMIN */}
