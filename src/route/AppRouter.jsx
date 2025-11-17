@@ -15,6 +15,7 @@ import RegistrarNotasReplanteado from "../pages/Registrar-notas.jsx";
 import ImportarInscritos from "../pages/Coordinador/ImportarInscritos.jsx";
 import Temporal from "../pages/Temporal.jsx";
 import PerfilCoordinador from "../pages/Coordinador/PerfilCoordinador.jsx";
+import RegistroEvaluadores from "../pages/Coordinador/RegistroEvaluadores.jsx";
 
 export default function AppRouter() {
   return (
@@ -34,10 +35,21 @@ export default function AppRouter() {
       <Route path="/admin" element={<AdminUsuarios />} />
       <Route path="/admin/log" element={<AdminLog />} />
       <Route path="/admin/usuarios" element={<AdminUsuarios />} />
-      <Route path="/coordinador" element={<ImportarInscritos />} />
+      <Route
+        path="/coordinador"
+        element={<Navigate to="/coordinador/importar-inscritos" replace />}
+      />
+      <Route path="/coordinador/perfil" element={<PerfilCoordinador />} />
+      <Route
+        path="/coordinador/registro-evaluadores"
+        element={<RegistroEvaluadores />}
+      />
+      <Route
+        path="/coordinador/importar-inscritos"
+        element={<ImportarInscritos />}
+      />
       <Route path="/evaluador" element={<RegistrarNotasReplanteado />} />
       <Route path="/responsable" element={<ResponsableArea />} />
-      <Route path="/coordinador/perfil" element={<PerfilCoordinador />} />
       {/* Protegidas por rol */}
       <Route element={<ProtectedRoute allow={["ADMIN"]} />}>
         {/* coloca aquí SOLO rutas que realmente requieran ADMIN */}

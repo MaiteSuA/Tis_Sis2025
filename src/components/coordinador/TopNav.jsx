@@ -1,33 +1,68 @@
 import Brand from "../Brand";
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
 export default function TopNav() {
-  const navigate = useNavigate(); // inicializamos la función de navegación
+  const navigate = useNavigate();
+
+  const tabBase =
+    "px-3 py-1.5 text-sm rounded-lg transition font-medium no-underline";
+  const tabActive = "bg-gray-900 text-white shadow";
+  const tabInactive =
+    "text-gray-700 hover:bg-gray-100 hover:text-gray-900";
 
   return (
     <header className="bg-white border-b shadow-sm">
-      <div className="max-w-6xl mx-auto px-4 flex items-center justify-between h-20">
-        {/* Logo */}
+      <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-20">
+
+        {/* LOGO */}
         <Brand />
 
-        {/* Menú principal */}
+        {/* --- BOTONES DEL COORDINADOR --- */}
         <nav className="hidden md:flex items-center gap-2">
+
+          {/* PERFIL */}
+          <NavLink
+            to="/coordinador/perfil"
+            className={({ isActive }) =>
+              `${tabBase} ${isActive ? tabActive : tabInactive}`
+            }
+          >
+            Perfil Coordinador
+          </NavLink>
+
+          {/* REGISTRO DE EVALUADORES */}
+          <NavLink
+            to="/coordinador/registro-evaluadores"
+            className={({ isActive }) =>
+              `${tabBase} ${isActive ? tabActive : tabInactive}`
+            }
+          >
+            Registro de Evaluadores
+          </NavLink>
+
+          {/* IMPORTAR INSCRITOS */}
+          <NavLink
+            to="/coordinador/importar-inscritos"
+            className={({ isActive }) =>
+              `${tabBase} ${isActive ? tabActive : tabInactive}`
+            }
+          >
+            Importar Inscritos
+          </NavLink>
+        </nav>
+
+        {/* --- BOTONES DERECHA (INICIO / CERRAR SESIÓN) --- */}
+        <div className="flex flex-col items-end gap-1 h-20">
+
+          {/* INICIO */}
           <button
+            className="btn text-sm px-3 py-1.5"
             onClick={() => navigate("/")}
-            className="px-3 py-1.5 text-sm rounded-lg bg-gray-900 text-white"
           >
             Inicio
           </button>
-        </nav>
 
-        {/* Botones verticales alineados al centro */}
-        <div className="flex flex-col justify-center items-end gap-1 h-20">
-          <button
-            className="btn text-sm px-3 py-1.5"
-            onClick={() => navigate("/coordinador/perfil")}
-          >
-            Perfil Coordinador
-          </button>
+          {/* CERRAR SESIÓN */}
           <button
             className="btn text-sm px-3 py-1.5"
             onClick={() => navigate("/login")}
@@ -35,6 +70,7 @@ export default function TopNav() {
             Cerrar Sesión
           </button>
         </div>
+
       </div>
     </header>
   );
