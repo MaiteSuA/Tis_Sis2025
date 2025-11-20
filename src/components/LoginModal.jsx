@@ -4,18 +4,24 @@ import { useNavigate } from "react-router-dom";
 import { loginApi } from "../api/auth";
 
 const ROLE_ROUTES = {
-  ADMINISTRADOR: "/admin",
-  "COORDINADOR AREA": "/coordinador",
+  ADMIN: "/admin",
+  COORDINADOR: "/coordinador",
   EVALUADOR: "/evaluador",
-  "RESPONSABLE DE AREA": "/responsable",
+  RESPONSABLE: "/responsable",
 };
 
-export default function LoginModal({ open, onClose, onOpenRegister }) {
+export default function LoginModal({
+  open,
+  onClose,
+  onOpenRegister,
+  onOpenForgot, // 👈 importante para abrir el modal de recuperar contraseña
+}) {
   const [correo, setCorreo] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [loginSuccess, setLoginSuccess] = useState(false);
 
   const navigate = useNavigate();
 
@@ -27,58 +33,103 @@ export default function LoginModal({ open, onClose, onOpenRegister }) {
     setLoading(true);
 
     try {
+      // 👇 Esto debe coincidir con tu loginApi/backend
       const result = await loginApi({
-        username: correo,
+        correo,
         password,
-        role: "Administrador",
       });
 
-      console.log("✅ Login exclusivo ok:", result);
+      console.log("✅ Login ok:", result);
 
-      const rolBackend =
-        result?.user?.rol ||
-        result?.rol ||
-        result?.user?.ROL ||
-        result?.ROL ||
-        "";
+      if (!result.ok) {
+        throw new Error(result.error || "Credenciales incorrectas");
+      }
 
-      const rolNormalizado =
-        typeof rolBackend === "string" ? rolBackend.toUpperCase() : "";
+      // Guarda token si llega
+      if (result.token) {
+        localStorage.setItem("token", result.token);
+      }
 
-      const path = ROLE_ROUTES[rolNormalizado] || "/";
+      setLoginSuccess(true);
 
-      onClose();
-      navigate(path);
+      setTimeout(() => {
+        const rolBackend = result?.usuario?.rol || result?.rol || "";
+        const rolNormalizado =
+          typeof rolBackend === "string" ? rolBackend.toUpperCase() : "";
+
+        const path = ROLE_ROUTES[rolNormalizado] || "/";
+
+        setLoginSuccess(false);
+        onClose();
+        navigate(path);
+      }, 1500);
     } catch (err) {
-      console.error("❌ Error en login exclusivo:", err);
+      console.error("❌ Error en login:", err);
       setError(err.message || "Credenciales incorrectas");
     } finally {
       setLoading(false);
     }
   };
 
-  // Función para abrir el modal de registro
   const handleOpenRegister = () => {
-    onClose(); // Cierra el modal de login
-    if (onOpenRegister) {
-      onOpenRegister(); // Abre el modal de registro
-    }
+    onClose();
+    if (onOpenRegister) onOpenRegister();
   };
-
+/*
+  const handleOpenForgot = () => {
+    if (loading || loginSuccess) return;
+    onClose();
+    if (onOpenForgot) onOpenForgot();
+  };
+*/
+const handleOpenForgot = () => {
+  console.log("🎯 CLIC en Recuperar contraseña - Antes de cerrar LoginModal");
+  console.log("🎯 showLogin actual:", open); // debería ser true
+  
+  if (loading || loginSuccess) {
+    console.log("🚫 Bloqueado - loading:", loading, "loginSuccess:", loginSuccess);
+    return;
+  }
+  
+  console.log("🔄 Cerrando LoginModal y abriendo ForgotPasswordModal");
+  onClose(); // Esto cierra el LoginModal
+  
+  if (onOpenForgot) {
+    console.log("✅ EJECUTANDO onOpenForgot");
+    onOpenForgot(); // Esto debería abrir ForgotPasswordModal
+  } else {
+    console.log("❌ ERROR: onOpenForgot no está definido");
+  }
+};
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center px-4 z-50">
       <div className="bg-white w-full max-w-md rounded-3xl shadow-xl p-8 relative">
+        {/* Botón cerrar */}
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-600 text-2xl hover:text-gray-800"
+          disabled={loading || loginSuccess}
         >
           ✕
         </button>
 
+        {/* Overlay de éxito */}
+        {loginSuccess && (
+          <div className="absolute inset-0 bg-white bg-opacity-95 rounded-3xl flex flex-col items-center justify-center z-10">
+            <div className="text-center">
+              <div className="text-green-500 text-4xl mb-4">✓</div>
+              <p className="text-lg font-semibold text-gray-800">
+                Inicio de sesión
+              </p>
+              <p className="text-lg font-semibold text-green-600">Exitoso</p>
+              <p className="text-sm text-gray-600 mt-2">Redirigiendo...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Encabezado */}
         <div className="text-center mb-6">
-          <p className="text-lg font-semibold text-gray-700">
-            Bienvenido a
-          </p>
+          <p className="text-lg font-semibold text-gray-700">Bienvenido a</p>
           <p className="text-2xl font-extrabold">
             <span className="text-[rgb(126,123,117)]">Oh</span>
             <span className="text-[#adafb4]">SanSi</span>
@@ -88,6 +139,7 @@ export default function LoginModal({ open, onClose, onOpenRegister }) {
           </p>
         </div>
 
+        {/* Formulario */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Correo */}
           <div>
@@ -103,6 +155,7 @@ export default function LoginModal({ open, onClose, onOpenRegister }) {
                 value={correo}
                 onChange={(e) => setCorreo(e.target.value)}
                 required
+                disabled={loading || loginSuccess}
               />
             </div>
           </div>
@@ -121,12 +174,14 @@ export default function LoginModal({ open, onClose, onOpenRegister }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={loading || loginSuccess}
               />
               <button
                 type="button"
                 onClick={() => setShowPwd((s) => !s)}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-800 text-lg"
                 title={showPwd ? "Ocultar contraseña" : "Mostrar contraseña"}
+                disabled={loading || loginSuccess}
               >
                 👁️
               </button>
@@ -137,29 +192,35 @@ export default function LoginModal({ open, onClose, onOpenRegister }) {
             <p className="text-red-500 text-sm mt-1 text-center">{error}</p>
           )}
 
+          {/* Botón login */}
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || loginSuccess}
             className="w-full mt-2 bg-[#a19f99] hover:bg-[#c4bfba] text-white font-semibold py-2 rounded-full text-sm transition disabled:opacity-60"
           >
             {loading ? "Verificando..." : "Iniciar sesión"}
           </button>
 
+          {/* Recuperar contraseña */}
           <div className="text-center mt-3">
             <button
               type="button"
               className="text-xs text-[#1E3A8A] hover:underline"
+              onClick={handleOpenForgot}
+              disabled={loading || loginSuccess}
             >
               Recuperar contraseña
             </button>
           </div>
 
+          {/* Ir a registro */}
           <p className="text-center text-xs mt-2 text-gray-600">
             ¿No tienes una cuenta?{" "}
             <button
               type="button"
               className="text-[#1E3A8A] font-semibold hover:underline"
               onClick={handleOpenRegister}
+              disabled={loading || loginSuccess}
             >
               Registrarse
             </button>
