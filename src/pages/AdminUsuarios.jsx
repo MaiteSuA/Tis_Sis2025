@@ -3,6 +3,7 @@ import AdminLayout from "../components/AdminLayout.jsx";
 import UsuariosTabs from "../components/UsuariosTabs.jsx";
 import UsuariosTable from "../components/UsuariosTable.jsx";
 import UsuarioForm from "../components/UsuarioForm.jsx";
+import AreasModal from "../components/AreasModal.jsx";
 
 import {
   fetchResponsables,
@@ -22,8 +23,8 @@ export default function AdminUsuarios() {
   // pestaña activa del módulo usuarios (RESPONSABLE | COORDINADOR)
   const [tab, setTab] = useState("RESPONSABLE");
 
-  // ÁREAS (por ahora mock, idealmente vendrá de /api/areas)
-  const [areas] = useState([
+  // ÁREAS (solo en frontend, editable desde el modal)
+  const [areas, setAreas] = useState([
     { id: 1, nombre: "General" },
     { id: 2, nombre: "Matematica" },
     { id: 3, nombre: "Fisica" },
@@ -32,6 +33,7 @@ export default function AdminUsuarios() {
     { id: 6, nombre: "Robotica" },
     { id: 7, nombre: "Informatica" },
   ]);
+  const [showAreasModal, setShowAreasModal] = useState(false);
 
   // MEDALLAS (persistencia local en localStorage)
   const STORAGE_KEY = "ohsansi_parametros_medallero";
@@ -100,9 +102,9 @@ export default function AdminUsuarios() {
 
   // LISTAS DESDE BACKEND
   const [responsables, setResponsables] = useState([]);
- const [coordinadores, setCoordinadores] = useState([]);
+  const [coordinadores, setCoordinadores] = useState([]);
 
-  // MODAL
+  // MODAL usuario
   const [showForm, setShowForm] = useState(false);
   const [mode, setMode] = useState("create"); // "create" | "edit"
   const [selected, setSelected] = useState(null);
@@ -111,11 +113,11 @@ export default function AdminUsuarios() {
   useEffect(() => {
     async function cargar() {
       if (tab === "RESPONSABLE") {
-       const data = await fetchResponsables();
+        const data = await fetchResponsables();
         setResponsables(data);
       } else if (tab === "COORDINADOR") {
-      const dataCoord = await fetchCoordinadores();
-      setCoordinadores(dataCoord);   
+        const dataCoord = await fetchCoordinadores();
+        setCoordinadores(dataCoord);
       }
     }
     cargar();
@@ -123,62 +125,66 @@ export default function AdminUsuarios() {
 
   // Guardar (create/update)
   const handleSave = async (formDelModal) => {
-  try {
-    if (tab === "RESPONSABLE") {
-      // ... esta parte la dejas tal como ya la tienes ...
-    } else if (tab === "COORDINADOR") {
-      console.log("🟢 Form recibido del modal (COORDINADOR):", formDelModal);
-
-      if (mode === "edit" && selected) {
-        const updatedCoord = await updateCoordinador(
-          selected.id,
-          formDelModal
-        );
-        setCoordinadores((prev) =>
-          prev.map((x) => (x.id === selected.id ? updatedCoord : x))
-        );
-      } else {
-        const createdCoord = await createCoordinador(formDelModal);
-        setCoordinadores((prev) => [...prev, createdCoord]);
+    try {
+      if (tab === "RESPONSABLE") {
+        if (mode === "edit" && selected) {
+          const updated = await updateResponsable(selected.id, formDelModal);
+          setResponsables((prev) =>
+            prev.map((x) => (x.id === selected.id ? updated : x))
+          );
+        } else {
+          const created = await createResponsable(formDelModal);
+          setResponsables((prev) => [...prev, created]);
+        }
+      } else if (tab === "COORDINADOR") {
+        if (mode === "edit" && selected) {
+          const updatedCoord = await updateCoordinador(
+            selected.id,
+            formDelModal
+          );
+          setCoordinadores((prev) =>
+            prev.map((x) => (x.id === selected.id ? updatedCoord : x))
+          );
+        } else {
+          const createdCoord = await createCoordinador(formDelModal);
+          setCoordinadores((prev) => [...prev, createdCoord]);
+        }
       }
+
+      setShowForm(false);
+      setSelected(null);
+    } catch (e) {
+      console.error("Error al guardar:", e);
+      alert("No se pudo guardar. Revisa la consola para más detalles.");
     }
-
-    setShowForm(false);
-    setSelected(null);
-  } catch (e) {
-    console.error("Error al guardar:", e);
-    alert("No se pudo guardar. Revisa la consola para más detalles.");
-  }
-};
-
+  };
 
   // lista actual según pestaña
   const rows = tab === "RESPONSABLE" ? responsables : coordinadores;
 
   // eliminar
   const handleDelete = async (row) => {
-  const id = row?.id;
-  if (!id) return;
+    const id = row?.id;
+    if (!id) return;
 
-  try {
-    if (tab === "RESPONSABLE") {
-      await deleteResponsable(id);
-      setResponsables((prev) => prev.filter((x) => x.id !== id));
-    } else if (tab === "COORDINADOR") {
-      await deleteCoordinador(id);
-      setCoordinadores((prev) => prev.filter((x) => x.id !== id));
+    try {
+      if (tab === "RESPONSABLE") {
+        await deleteResponsable(id);
+        setResponsables((prev) => prev.filter((x) => x.id !== id));
+      } else if (tab === "COORDINADOR") {
+        await deleteCoordinador(id);
+        setCoordinadores((prev) => prev.filter((x) => x.id !== id));
+      }
+
+      if (selected && selected.id === id) {
+        setShowForm(false);
+        setSelected(null);
+      }
+    } catch (e) {
+      console.error("Error al eliminar:", e);
+      alert("No se pudo eliminar el registro.");
     }
-
-    if (selected && selected.id === id) {
-      setShowForm(false);
-      setSelected(null);
-    }
-  } catch (e) {
-    console.error("Error al eliminar:", e);
-    alert("No se pudo eliminar el registro.");
-  }
-};
-
+  };
 
   const handleEdit = (row) => {
     setSelected(row);
@@ -192,12 +198,29 @@ export default function AdminUsuarios() {
     setShowForm(true);
   };
 
+  // ---- Handlers para ÁREAS (solo UI, sin backend) ----
+  const handleCreateArea = (nombre) => {
+    setAreas((prev) => {
+      const nextId = (prev[prev.length - 1]?.id || 0) + 1;
+      return [...prev, { id: nextId, nombre }];
+    });
+  };
+
+  const handleUpdateArea = (id, nombre) => {
+    setAreas((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, nombre } : a))
+    );
+  };
+
+  const handleDeleteArea = (id) => {
+    setAreas((prev) => prev.filter((a) => a.id !== id));
+  };
+
   return (
     <AdminLayout>
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm text-gray-600">Dashboard</span>
-        <span className="text-xl font-bold text-gray-800 tracking-wide"> ADMINISTRADOR</span>
-
+        <span className="text-sm text-gray-700">ADMINITRADOR</span>
         <span className="text-xs text-gray-500">
           Gestión actual: <b>2025</b>
         </span>
@@ -205,9 +228,20 @@ export default function AdminUsuarios() {
 
       {/* KPIs y estado */}
       <section className="space-y-4">
-        <div className="panel">
-          <label className="section">Número de Usuarios Registrados</label>
-          <input disabled value={rows.length} className="kpi-input w-40" />
+        <div className="panel flex items-center gap-4">
+          <div>
+            <label className="section">Número de Usuarios Registrados</label>
+            <input disabled value={rows.length} className="kpi-input w-40" />
+          </div>
+
+          <div className="ml-auto">
+            <button
+              className="btn-light"
+              onClick={() => setShowAreasModal(true)}
+            >
+              Gestionar áreas
+            </button>
+          </div>
         </div>
 
         <div className="panel">
@@ -329,6 +363,16 @@ export default function AdminUsuarios() {
             setShowForm(false);
             setSelected(null);
           }}
+        />
+      )}
+
+      {showAreasModal && (
+        <AreasModal
+          areas={areas}
+          onClose={() => setShowAreasModal(false)}
+          onCreate={handleCreateArea}
+          onUpdate={handleUpdateArea}
+          onDelete={handleDeleteArea}
         />
       )}
     </AdminLayout>
