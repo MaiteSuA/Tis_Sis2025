@@ -15,7 +15,7 @@ import RegistrarNotasReplanteado from "../pages/Registrar-notas.jsx";
 import ImportarInscritos from "../pages/Coordinador/ImportarInscritos.jsx";
 import Temporal from "../pages/Temporal.jsx";
 import PerfilCoordinador from "../pages/Coordinador/PerfilCoordinador.jsx";
-import RegistroEvaluadores from "../pages/Coordinador/RegistroEvaluadores.jsx";
+import RegistroResponsablesArea from "../pages/Coordinador/RegistroResponsablesArea.jsx";
 
 export default function AppRouter() {
   return (
@@ -41,8 +41,8 @@ export default function AppRouter() {
       />
       <Route path="/coordinador/perfil" element={<PerfilCoordinador />} />
       <Route
-        path="/coordinador/registro-evaluadores"
-        element={<RegistroEvaluadores />}
+        path="/coordinador/registro-responsables"
+        element={<RegistroResponsablesArea />}
       />
       <Route
         path="/coordinador/importar-inscritos"

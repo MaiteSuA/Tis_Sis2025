@@ -3,7 +3,7 @@ import { useState } from "react";
 import TopNav from "../../components/coordinador/TopNav";
 import Sidebar from "../../components/coordinador/Sidebar";
 
-export default function RegistroEvaluadores() {
+export default function RegistroResponsablesArea() {
   // Estado del formulario
   const [form, setForm] = useState({
     nombre: "",
@@ -13,10 +13,15 @@ export default function RegistroEvaluadores() {
   });
 
   // Datos de muestra (se reemplazarán con backend después)
-  const [evaluadores, setEvaluadores] = useState([
+  const [responsables, setResponsables] = useState([
     { id: 1, nombre: "Ana Pérez", email: "ana@sansi.edu", area: "Matemática" },
     { id: 2, nombre: "Luis Soto", email: "luis@sansi.edu", area: "Física" },
-    { id: 3, nombre: "Diego Rivera", email: "diego@sansi.edu", area: "Biología" },
+    {
+      id: 3,
+      nombre: "Diego Rivera",
+      email: "diego@sansi.edu",
+      area: "Biología",
+    },
   ]);
 
   // Control simple del formulario
@@ -25,27 +30,27 @@ export default function RegistroEvaluadores() {
   }
 
   function limpiarFormulario() {
-    setForm({ nombre: "", email: "", telefono: "", area: ""});
+    setForm({ nombre: "", email: "", telefono: "", area: "" });
   }
 
-  function registrarEvaluador() {
+  function registrarResponsable() {
     if (!form.nombre || !form.email || !form.area) {
       alert("⚠️ Debes llenar al menos nombre, email y área.");
       return;
     }
 
     const nuevo = {
-      id: evaluadores.length + 1,
+      id: responsables.length + 1,
       nombre: form.nombre,
       email: form.email,
       telefono: form.telefono,
       area: form.area,
     };
 
-    setEvaluadores([...evaluadores, nuevo]);
+    setResponsables([...responsables, nuevo]);
     limpiarFormulario();
 
-    alert("✅ Evaluador registrado (solo front)");
+    alert("✅ Responsable registrado (solo front)");
   }
 
   return (
@@ -56,12 +61,14 @@ export default function RegistroEvaluadores() {
 
         <main className="flex-1 p-6">
           <h1 className="text-xl font-semibold text-gray-700 mb-4">
-            Registro de Evaluadores
+            Registro de Responsables de area
           </h1>
 
           {/* Card del formulario */}
           <div className="card p-6 mb-6 space-y-4">
-            <h2 className="font-semibold text-gray-700 mb-2">Datos del Evaluador</h2>
+            <h2 className="font-semibold text-gray-700 mb-2">
+              Datos del Responsable de Área
+            </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -71,7 +78,7 @@ export default function RegistroEvaluadores() {
                   name="nombre"
                   value={form.nombre}
                   onChange={handleChange}
-                  placeholder="Nombre del evaluador"
+                  placeholder="Nombre del responsable"
                 />
               </div>
 
@@ -114,12 +121,14 @@ export default function RegistroEvaluadores() {
                   <option value="Robótica">Robótica</option>
                 </select>
               </div>
-
             </div>
 
             <div className="flex gap-3">
-              <button className="btn btn-primary" onClick={registrarEvaluador}>
-                Registrar Evaluador
+              <button
+                className="btn btn-primary"
+                onClick={registrarResponsable}
+              >
+                Registrar Responsable de area
               </button>
               <button className="btn" onClick={limpiarFormulario}>
                 Limpiar
@@ -127,10 +136,10 @@ export default function RegistroEvaluadores() {
             </div>
           </div>
 
-          {/* Tabla de evaluadores */}
+          {/* Tabla de responsables de area */}
           <div className="card p-6">
             <h2 className="font-semibold text-gray-700 mb-4">
-              Evaluadores Registrados
+              Responsables de Area Registrados
             </h2>
 
             <div className="overflow-x-auto">
@@ -143,7 +152,7 @@ export default function RegistroEvaluadores() {
                   </tr>
                 </thead>
                 <tbody>
-                  {evaluadores.map((e) => (
+                  {responsables.map((e) => (
                     <tr key={e.id} className="border-b hover:bg-gray-50">
                       <td className="p-2">{e.nombre}</td>
                       <td className="p-2">{e.email}</td>

@@ -30,14 +30,14 @@ export default function TopNav() {
             Perfil Coordinador
           </NavLink>
 
-          {/* REGISTRO DE EVALUADORES */}
+          {/* "Registro de Responsables */}
           <NavLink
-            to="/coordinador/registro-evaluadores"
+            to="/coordinador/registro-responsables"
             className={({ isActive }) =>
               `${tabBase} ${isActive ? tabActive : tabInactive}`
             }
           >
-            Registro de Evaluadores
+            Registro de Responsables
           </NavLink>
 
           {/* IMPORTAR INSCRITOS */}
