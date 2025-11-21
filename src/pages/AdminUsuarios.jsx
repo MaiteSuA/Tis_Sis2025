@@ -196,6 +196,8 @@ export default function AdminUsuarios() {
     <AdminLayout>
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm text-gray-600">Dashboard</span>
+        <span className="text-xl font-bold text-gray-800 tracking-wide"> ADMINISTRADOR</span>
+
         <span className="text-xs text-gray-500">
           Gestión actual: <b>2025</b>
         </span>
