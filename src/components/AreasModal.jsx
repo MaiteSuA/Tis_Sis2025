@@ -108,7 +108,8 @@ export default function AreasModal({
                     </button>
                     <button
                       onClick={() => handleDelete(a.id)}
-                      className="px-3 py-1 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs"
+                      //className="px-3 py-1 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs"
+                      className="btn-dark px-3 py-1 rounded-md hover:bg-gray-800 transition-colors"
                     >
                       Eliminar
                     </button>
@@ -128,7 +129,7 @@ export default function AreasModal({
           />
           <button
             type="submit"
-            className="px-4 py-2 rounded-xl bg-black text-white text-sm"
+            className="btn-dark px-3 py-1 rounded-md hover:bg-gray-800 transition-colors"
           >
             Agregar
           </button>
