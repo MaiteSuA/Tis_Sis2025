@@ -23,7 +23,7 @@ export default function AdminUsuarios() {
   // pestaña activa del módulo usuarios (RESPONSABLE | COORDINADOR)
   const [tab, setTab] = useState("RESPONSABLE");
 
-  // ÁREAS (solo en frontend, editable desde el modal)
+  // ÁREAS (solo frontend, editable desde el modal)
   const [areas, setAreas] = useState([
     { id: 1, nombre: "General" },
     { id: 2, nombre: "Matematica" },
@@ -35,45 +35,72 @@ export default function AdminUsuarios() {
   ]);
   const [showAreasModal, setShowAreasModal] = useState(false);
 
-  // MEDALLAS (persistencia local en localStorage)
-  const STORAGE_KEY = "ohsansi_parametros_medallero";
-  const [medallas, setMedallas] = useState({ oro: 0, plata: 0, bronce: 0 });
-  const [guardado, setGuardado] = useState(false);
+  // ============================================================
+  // MEDALLAS POR ÁREA (localStorage)
+  // ============================================================
+  const STORAGE_MEDALLAS_AREA = "ohsansi_medallas_por_area";
+  // estructura: { [id_area]: { oro, plata, bronce } }
+  const [medallasArea, setMedallasArea] = useState({});
+  const [areaSeleccionada, setAreaSeleccionada] = useState(null);
+  const [guardadoArea, setGuardadoArea] = useState(false);
 
+  // cargar medallas por área al inicio
   useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_MEDALLAS_AREA);
     if (raw) {
       try {
         const parsed = JSON.parse(raw);
-        setMedallas({
-          oro: Number(parsed.oro) || 0,
-          plata: Number(parsed.plata) || 0,
-          bronce: Number(parsed.bronce) || 0,
-        });
+        setMedallasArea(parsed || {});
       } catch {
         /* noop */
       }
     }
   }, []);
 
-  const onChangeMedalla = (campo) => (e) => {
+  // seleccionar un área por defecto (la primera) si aún no hay
+  useEffect(() => {
+    if (!areaSeleccionada && areas.length > 0) {
+      setAreaSeleccionada(areas[0].id);
+    }
+  }, [areas, areaSeleccionada]);
+
+  const handleSelectArea = (e) => {
+    setAreaSeleccionada(Number(e.target.value));
+    setGuardadoArea(false);
+  };
+
+  const onChangeMedallaArea = (campo) => (e) => {
     const val = Math.max(0, Number(e.target.value || 0));
-    setMedallas((prev) => ({ ...prev, [campo]: val }));
-    setGuardado(false);
+    setMedallasArea((prev) => {
+      const id = areaSeleccionada;
+      if (!id) return prev;
+      const actual = prev[id] || { oro: 0, plata: 0, bronce: 0 };
+      return {
+        ...prev,
+        [id]: { ...actual, [campo]: val },
+      };
+    });
+    setGuardadoArea(false);
   };
 
-  const guardarMedallas = () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(medallas));
-    setGuardado(true);
+  const guardarMedallasArea = () => {
+    localStorage.setItem(STORAGE_MEDALLAS_AREA, JSON.stringify(medallasArea));
+    setGuardadoArea(true);
   };
 
-  const resetMedallas = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setMedallas({ oro: 0, plata: 0, bronce: 0 });
-    setGuardado(false);
+  const resetMedallasArea = () => {
+    if (!areaSeleccionada) return;
+    setMedallasArea((prev) => {
+      const copia = { ...prev };
+      delete copia[areaSeleccionada];
+      return copia;
+    });
+    setGuardadoArea(false);
   };
 
+  // ============================================================
   // ESTADO DEL PROCESO
+  // ============================================================
   const PROCESS_KEY = "ohsansi_estado_proceso";
   const [proceso, setProceso] = useState({ en: false, fin: false });
   const [dirtyProceso, setDirtyProceso] = useState(false);
@@ -100,7 +127,9 @@ export default function AdminUsuarios() {
     setSavedProceso(true);
   };
 
+  // ============================================================
   // LISTAS DESDE BACKEND
+  // ============================================================
   const [responsables, setResponsables] = useState([]);
   const [coordinadores, setCoordinadores] = useState([]);
 
@@ -207,20 +236,23 @@ export default function AdminUsuarios() {
   };
 
   const handleUpdateArea = (id, nombre) => {
-    setAreas((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, nombre } : a))
-    );
+    setAreas((prev) => prev.map((a) => (a.id === id ? { ...a, nombre } : a)));
   };
 
   const handleDeleteArea = (id) => {
     setAreas((prev) => prev.filter((a) => a.id !== id));
   };
 
+  // ============================================================
+  // RENDER
+  // ============================================================
   return (
     <AdminLayout>
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm text-gray-600">Dashboard</span>
-        <span className="text-sm text-gray-700">ADMINITRADOR</span>
+        <span className="text-lg font-bold text-gray-800">
+          ADMINISTRADOR
+        </span>
         <span className="text-xs text-gray-500">
           Gestión actual: <b>2025</b>
         </span>
@@ -228,6 +260,7 @@ export default function AdminUsuarios() {
 
       {/* KPIs y estado */}
       <section className="space-y-4">
+        {/* Número de usuarios + botón áreas */}
         <div className="panel flex items-center gap-4">
           <div>
             <label className="section">Número de Usuarios Registrados</label>
@@ -244,40 +277,99 @@ export default function AdminUsuarios() {
           </div>
         </div>
 
+        {/* Medallas POR ÁREA */}
         <div className="panel">
-          <p className="section">Cantidad de Medallas:</p>
-          <div className="flex items-center gap-6 flex-wrap">
-            {[
-              ["Oro", "oro"],
-              ["Plata", "plata"],
-              ["Bronce", "bronce"],
-            ].map(([label, key]) => (
-              <div key={key} className="flex items-center gap-2">
-                <span className="text-gray-700 w-14">{label}:</span>
-                <input
-                  type="number"
-                  min={0}
-                  value={medallas[key]}
-                  onChange={onChangeMedalla(key)}
-                  className="kpi-input"
-                />
-              </div>
-            ))}
+          <p className="section">Relación de Medallas por Área</p>
 
-            <div className="ml-auto flex items-center gap-3">
-              <button onClick={guardarMedallas} className="btn-dark">
-                Guardar Cambios
-              </button>
-              <button onClick={resetMedallas} className="btn-light">
-                Restablecer
-              </button>
-              {guardado && (
-                <span className="text-green-600 text-sm">✓ Guardado</span>
-              )}
+          <div className="flex flex-wrap items-center gap-4">
+            {/* selector de área */}
+            <div className="flex items-center gap-2">
+              <span className="text-gray-700 text-sm">Área:</span>
+              <select
+                value={areaSeleccionada ?? ""}
+                onChange={handleSelectArea}
+                className="kpi-input min-w-[160px]"
+              >
+                {areas.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nombre}
+                  </option>
+                ))}
+              </select>
             </div>
+
+            {/* inputs oro/plata/bronce para el área seleccionada */}
+            {(() => {
+              const m =
+                medallasArea[areaSeleccionada] || {
+                  oro: 0,
+                  plata: 0,
+                  bronce: 0,
+                };
+
+              return (
+                <div className="flex items-center gap-6 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-700 w-14">Oro:</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={m.oro}
+                      onChange={onChangeMedallaArea("oro")}
+                      className="kpi-input w-20"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-700 w-14">Plata:</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={m.plata}
+                      onChange={onChangeMedallaArea("plata")}
+                      className="kpi-input w-20"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-700 w-14">Bronce:</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={m.bronce}
+                      onChange={onChangeMedallaArea("bronce")}
+                      className="kpi-input w-20"
+                    />
+                  </div>
+
+                  <div className="ml-auto flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={guardarMedallasArea}
+                      className="btn-dark px-4 py-2 rounded-xl hover:bg-gray-800 transition-colors text-sm"
+                    >
+                      Guardar por área
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetMedallasArea}
+                      className="btn-light px-4 py-2 rounded-xl text-sm"
+                    >
+                      Restablecer área
+                    </button>
+                    {guardadoArea && (
+                      <span className="text-green-600 text-sm">
+                        ✓ Guardado
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
 
+        {/* Estado del proceso */}
         <div className="panel bg-gray-100">
           <div className="flex items-center gap-8 flex-wrap">
             <span className="section">Estado del proceso:</span>
@@ -313,11 +405,11 @@ export default function AdminUsuarios() {
                 Guardar Cambios
               </button>
 
-              {savedProceso && (
-                <span className="text-green-600 text-sm whitespace-nowrap">
-                  ✓ Guardado
-                </span>
-              )}
+                {savedProceso && (
+                  <span className="text-green-600 text-sm whitespace-nowrap">
+                    ✓ Guardado
+                  </span>
+                )}
             </div>
           </div>
         </div>
