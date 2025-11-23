@@ -41,13 +41,13 @@ export default function Navbar() {
           </div>
 
           <nav className="ml-auto flex items-center gap-4">
-            <button
+            {/* <button
               type="button"
               onClick={() => setShowRegister(true)}
               className={`${base} ${inactive}`}
             >
               Registrarse
-            </button>
+            </button> */}
 
             <button
               type="button"

@@ -53,11 +53,21 @@ export default function LoginModal({
       setLoginSuccess(true);
 
       setTimeout(() => {
-        const rolBackend = result?.usuario?.rol || result?.rol || "";
-        const rolNormalizado =
-          typeof rolBackend === "string" ? rolBackend.toUpperCase() : "";
+        const token = result.token;
 
-        const path = ROLE_ROUTES[rolNormalizado] || "/";
+        const decoded = JSON.parse(atob(token.split(".")[1]));
+
+        const MAPA_ROLES = {
+          Administrador: "ADMIN",
+          "Coordinador Area": "COORDINADOR",
+          "Responsable de Area": "RESPONSABLE",
+          Evaluador: "EVALUADOR",
+        };
+
+        const rolBackend = decoded.role;
+        const rolFront = MAPA_ROLES[rolBackend] || "";
+
+        const path = ROLE_ROUTES[rolFront] || "/";
 
         setLoginSuccess(false);
         onClose();
@@ -75,32 +85,37 @@ export default function LoginModal({
     onClose();
     if (onOpenRegister) onOpenRegister();
   };
-/*
+  /*
   const handleOpenForgot = () => {
     if (loading || loginSuccess) return;
     onClose();
     if (onOpenForgot) onOpenForgot();
   };
 */
-const handleOpenForgot = () => {
-  console.log("🎯 CLIC en Recuperar contraseña - Antes de cerrar LoginModal");
-  console.log("🎯 showLogin actual:", open); // debería ser true
-  
-  if (loading || loginSuccess) {
-    console.log("🚫 Bloqueado - loading:", loading, "loginSuccess:", loginSuccess);
-    return;
-  }
-  
-  console.log("🔄 Cerrando LoginModal y abriendo ForgotPasswordModal");
-  onClose(); // Esto cierra el LoginModal
-  
-  if (onOpenForgot) {
-    console.log("✅ EJECUTANDO onOpenForgot");
-    onOpenForgot(); // Esto debería abrir ForgotPasswordModal
-  } else {
-    console.log("❌ ERROR: onOpenForgot no está definido");
-  }
-};
+  const handleOpenForgot = () => {
+    console.log("🎯 CLIC en Recuperar contraseña - Antes de cerrar LoginModal");
+    console.log("🎯 showLogin actual:", open); // debería ser true
+
+    if (loading || loginSuccess) {
+      console.log(
+        "🚫 Bloqueado - loading:",
+        loading,
+        "loginSuccess:",
+        loginSuccess
+      );
+      return;
+    }
+
+    console.log("🔄 Cerrando LoginModal y abriendo ForgotPasswordModal");
+    onClose(); // Esto cierra el LoginModal
+
+    if (onOpenForgot) {
+      console.log("✅ EJECUTANDO onOpenForgot");
+      onOpenForgot(); // Esto debería abrir ForgotPasswordModal
+    } else {
+      console.log("❌ ERROR: onOpenForgot no está definido");
+    }
+  };
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center px-4 z-50">
       <div className="bg-white w-full max-w-md rounded-3xl shadow-xl p-8 relative">

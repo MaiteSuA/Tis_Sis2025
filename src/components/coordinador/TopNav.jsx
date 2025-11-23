@@ -4,6 +4,12 @@ import { NavLink, useNavigate } from "react-router-dom";
 export default function TopNav() {
   const navigate = useNavigate();
 
+  function handleLogout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/");
+  }
+
   const tabBase =
     "px-3 py-1.5 text-sm rounded-lg transition font-medium no-underline";
   const tabActive = "bg-gray-900 text-white shadow";
@@ -65,7 +71,7 @@ export default function TopNav() {
           {/* CERRAR SESIÓN */}
           <button
             className="btn text-sm px-3 py-1.5"
-            onClick={() => navigate("/login")}
+            onClick={handleLogout}
           >
             Cerrar Sesión
           </button>

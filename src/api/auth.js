@@ -1,24 +1,30 @@
 //  src/api/auth.js
+const BASE_URL = "http://localhost:3000/api";
 
 export async function loginApi({ correo, password }) {
-  const res = await fetch("http://localhost:3000/api/login", {
+  const res = await fetch(`${BASE_URL}/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ correo, password }),
+    body: JSON.stringify({
+      // el backend espera "username", nosotros usamos el correo como username
+      username: correo,
+      password,
+      // si quieres puedes mandar un role opcional, pero el backend ya no lo necesita
+      // role: "Administrador",
+    }),
   });
 
   const data = await res.json();
 
-  // Validaciones
   if (!res.ok || !data.ok) {
     throw new Error(data.error || "Login failed");
   }
 
-  // Guardar token y usuario
+  // OJO: el backend devuelve { ok, token, user }, no "usuario"
   localStorage.setItem("token", data.token);
-  localStorage.setItem("usuario", JSON.stringify(data.usuario));
+  localStorage.setItem("usuario", JSON.stringify(data.user));
 
   return data;
 }
@@ -54,7 +60,6 @@ export async function registerApi({
   return data; // { ok: true, usuario }
 }
 // src/api/auth.js
-const BASE_URL = "http://localhost:3000/api";
 
 export async function sendResetCodeApi({ correo }) {
   const res = await fetch(`${BASE_URL}/password/forgot`, {
