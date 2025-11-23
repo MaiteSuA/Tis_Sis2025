@@ -1,34 +1,43 @@
-import React from "react";
-import logo from "../assets/ohSansi-Logo.png"; // Ajusta la ruta a tu logo
+// Importa el componente NavLink para manejar rutas (enlaces) con React Router
 import { NavLink } from "react-router-dom";
+import logo from "../assets/logo.jpg";
 
-const Header = () => {
+// Definición de las pestañas o enlaces del navbar
+const tabs = [
+  { to: "/", label: "Cerrar Sesion", end: true },
+];
+
+export default function Navbar() {
+  // Clases base y estilos para los botones del navbar
+  const base =
+    "px-3 py-1 rounded-md text-sm transition border font-medium no-underline";
+  const active =
+    "bg-gray-200 border-gray-300 text-gray-800 shadow-inner"; 
+  const inactive =
+    "border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-100"; 
+
   return (
-    <header className="bg-gray-300 text-black p-4 shadow-md fixed top-0 left-0 w-full z-50">
-      <div className="max-w-6xl mx-auto flex justify-between items-center">
-        {/* Logo */}
-        <img src={logo} alt="Oh Sansi Logo" className="h-18" />
+    // Header fijo en la parte superior
+    <header className="w-screen bg-white border-b sticky top-0 z-50">
+      <div className="w-full h-16 flex items-center px-8">
+        <div className="flex items-center gap-3">
+          <img src= "/src/assets/logo.jpg"/>
+          <span className="font-bold text-xl text-gray-800"></span>
+        </div>
 
-        {/* Navegación */}
-        <nav
-          role="navigation"
-          aria-label="Secciones"
-          className="rounded-full border border-gray-300 bg-white px-2 py-1 shadow-sm inline-flex items-center gap-1"
-        >
+        <nav className="ml-auto flex items-center gap-4">
+          {tabs.map((t) => (
           <NavLink
-            to="/"
-            end
-            className={({ isActive }) =>
-              `px-3 py-1.5 rounded-full text-sm hover:bg-gray-50 ${
-                isActive ? "bg-gray-200" : "bg-white"
-              }`              }
-          >
-            Cerrar Sesion
-          </NavLink>
+            key={t.to}
+            to={t.to}
+            end={t.end}
+            className={({ isActive }) =>`${base} ${isActive ? active : inactive} !text-gray-700 hover:!text-gray-900`}
+            >
+            {t.label}
+          </NavLink>))}
         </nav>
       </div>
     </header>
   );
-};
+}
 
-export default Header
