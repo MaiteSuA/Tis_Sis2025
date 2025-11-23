@@ -41,14 +41,16 @@ export default function Navbar() {
           </div>
 
           <nav className="ml-auto flex items-center gap-4">
+            {/*
             <button
               type="button"
               onClick={() => setShowRegister(true)}
+              
               className={`${base} ${inactive}`}
             >
               Registrarse
             </button>
-
+*/}
             <button
               type="button"
               onClick={() => setShowLogin(true)}
@@ -59,13 +61,13 @@ export default function Navbar() {
           </nav>
         </div>
       </header>
-
+{/*}
       <RegisterModal
         open={showRegister}
         onClose={() => setShowRegister(false)}
         onOpenLogin={handleOpenLogin}
       />
-
+*/}
       {/* 👈 AGREGA onOpenForgot AQUÍ */}
       <LoginModal
         open={showLogin}
