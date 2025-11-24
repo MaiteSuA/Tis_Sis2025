@@ -7,6 +7,8 @@ export default function ResetPasswordModal({ open, correo, onClose, onSuccess })
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   if (!open) return null;
 
@@ -44,6 +46,14 @@ export default function ResetPasswordModal({ open, correo, onClose, onSuccess })
     }
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center px-4 z-50">
       <div className="bg-white w-full max-w-md rounded-3xl shadow-xl p-8 relative">
@@ -67,7 +77,7 @@ export default function ResetPasswordModal({ open, correo, onClose, onSuccess })
             <div className="border rounded-md px-3 py-2 flex items-center">
               🔑
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 className="w-full ml-2 outline-none"
                 placeholder="Nueva contraseña"
                 value={pwd}
@@ -75,6 +85,14 @@ export default function ResetPasswordModal({ open, correo, onClose, onSuccess })
                 required
                 disabled={loading}
               />
+              <button
+                type="button"
+                onClick={togglePasswordVisibility}
+                className="text-gray-500 hover:text-gray-700 ml-2"
+                disabled={loading}
+              >
+                {showPassword ? "🙈" : "👁️"}
+              </button>
             </div>
           </div>
 
@@ -83,7 +101,7 @@ export default function ResetPasswordModal({ open, correo, onClose, onSuccess })
             <div className="border rounded-md px-3 py-2 flex items-center">
               🔒
               <input
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
                 className="w-full ml-2 outline-none"
                 placeholder="Confirmar contraseña"
                 value={confirm}
@@ -91,6 +109,14 @@ export default function ResetPasswordModal({ open, correo, onClose, onSuccess })
                 required
                 disabled={loading}
               />
+              <button
+                type="button"
+                onClick={toggleConfirmPasswordVisibility}
+                className="text-gray-500 hover:text-gray-700 ml-2"
+                disabled={loading}
+              >
+                {showConfirmPassword ? "🙈" : "👁️"}
+              </button>
             </div>
           </div>
 

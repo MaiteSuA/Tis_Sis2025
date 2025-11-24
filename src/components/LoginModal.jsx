@@ -14,7 +14,7 @@ export default function LoginModal({
   open,
   onClose,
   onOpenRegister,
-  onOpenForgot, // 👈 importante para abrir el modal de recuperar contraseña
+  onOpenForgot,
 }) {
   const [correo, setCorreo] = useState("");
   const [password, setPassword] = useState("");
@@ -22,6 +22,7 @@ export default function LoginModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [loginSuccess, setLoginSuccess] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
 
   const navigate = useNavigate();
 
@@ -33,7 +34,6 @@ export default function LoginModal({
     setLoading(true);
 
     try {
-      // 👇 Esto debe coincidir con tu loginApi/backend
       const result = await loginApi({
         correo,
         password,
@@ -42,93 +42,102 @@ export default function LoginModal({
       console.log("✅ Login ok:", result);
 
       if (!result.ok) {
-        throw new Error(result.error || "Credenciales incorrectas");
+        // 👇 INCREMENTAR ANTES de verificar el límite
+        const newAttempts = failedAttempts + 1;
+        setFailedAttempts(newAttempts);
+        
+        // 👇 Verificar después de incrementar
+        if (newAttempts >= 3) {
+          setError(
+            <span>
+              Has superado el número de intentos permitidos.{" "}
+              <button
+                type="button"
+                className="text-blue-600 underline font-semibold hover:text-blue-800"
+                onClick={handleOpenForgot}
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            </span>
+          );
+        } else {
+          throw new Error(result.error || "Credenciales incorrectas");
+        }
+      } else {
+        // 👇 Resetear si es exitoso
+        setFailedAttempts(0);
+        
+        if (result.token) {
+          localStorage.setItem("token", result.token);
+        }
+
+        setLoginSuccess(true);
+
+        setTimeout(() => {
+          const token = result.token;
+          const decoded = JSON.parse(atob(token.split(".")[1]));
+
+          const MAPA_ROLES = {
+            Administrador: "ADMIN",
+            "Coordinador Area": "COORDINADOR",
+            "Responsable de Area": "RESPONSABLE",
+            Evaluador: "EVALUADOR",
+          };
+
+          const rolBackend = decoded.role;
+          const rolFront = MAPA_ROLES[rolBackend] || "";
+
+          const path = ROLE_ROUTES[rolFront] || "/";
+
+          setLoginSuccess(false);
+          onClose();
+          navigate(path);
+        }, 1500);
       }
-
-      // Guarda token si llega
-      if (result.token) {
-        localStorage.setItem("token", result.token);
-      }
-
-      setLoginSuccess(true);
-
-      setTimeout(() => {
-        const token = result.token;
-
-        const decoded = JSON.parse(atob(token.split(".")[1]));
-
-        const MAPA_ROLES = {
-          Administrador: "ADMIN",
-          "Coordinador Area": "COORDINADOR",
-          "Responsable de Area": "RESPONSABLE",
-          Evaluador: "EVALUADOR",
-        };
-
-        const rolBackend = decoded.role;
-        const rolFront = MAPA_ROLES[rolBackend] || "";
-
-        const path = ROLE_ROUTES[rolFront] || "/";
-
-        setLoginSuccess(false);
-        onClose();
-        navigate(path);
-      }, 1500);
     } catch (err) {
       console.error("❌ Error en login:", err);
-      setError(err.message || "Credenciales incorrectas");
+      
+      // 👇 Solo mostrar error normal si no hemos alcanzado el límite
+      if (failedAttempts < 3) {
+        setError(err.message || "Credenciales incorrectas");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOpenRegister = () => {
-    onClose();
-    if (onOpenRegister) onOpenRegister();
-  };
-  /*
-  const handleOpenForgot = () => {
-    if (loading || loginSuccess) return;
-    onClose();
-    if (onOpenForgot) onOpenForgot();
-  };
-*/
   const handleOpenForgot = () => {
     console.log("🎯 CLIC en Recuperar contraseña - Antes de cerrar LoginModal");
-    console.log("🎯 showLogin actual:", open); // debería ser true
-
+    
     if (loading || loginSuccess) {
-      console.log(
-        "🚫 Bloqueado - loading:",
-        loading,
-        "loginSuccess:",
-        loginSuccess
-      );
       return;
     }
 
     console.log("🔄 Cerrando LoginModal y abriendo ForgotPasswordModal");
-    onClose(); // Esto cierra el LoginModal
+    onClose();
+    setFailedAttempts(0); // 👈 Resetear intentos al ir a recuperar
 
     if (onOpenForgot) {
-      console.log("✅ EJECUTANDO onOpenForgot");
-      onOpenForgot(); // Esto debería abrir ForgotPasswordModal
-    } else {
-      console.log("❌ ERROR: onOpenForgot no está definido");
+      onOpenForgot();
     }
   };
+
+  const handleClose = () => {
+    setFailedAttempts(0);
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center px-4 z-50">
       <div className="bg-white w-full max-w-md rounded-3xl shadow-xl p-8 relative">
-        {/* Botón cerrar */}
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-3 right-3 text-gray-600 text-2xl hover:text-gray-800"
           disabled={loading || loginSuccess}
         >
           ✕
         </button>
 
-        {/* Overlay de éxito */}
         {loginSuccess && (
           <div className="absolute inset-0 bg-white bg-opacity-95 rounded-3xl flex flex-col items-center justify-center z-10">
             <div className="text-center">
@@ -142,7 +151,6 @@ export default function LoginModal({
           </div>
         )}
 
-        {/* Encabezado */}
         <div className="text-center mb-6">
           <p className="text-lg font-semibold text-gray-700">Bienvenido a</p>
           <p className="text-2xl font-extrabold">
@@ -154,9 +162,7 @@ export default function LoginModal({
           </p>
         </div>
 
-        {/* Formulario */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Correo */}
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">
               Correo
@@ -175,7 +181,6 @@ export default function LoginModal({
             </div>
           </div>
 
-          {/* Contraseña */}
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">
               Contraseña
@@ -204,10 +209,16 @@ export default function LoginModal({
           </div>
 
           {error && (
-            <p className="text-red-500 text-sm mt-1 text-center">{error}</p>
+            <div className="text-red-500 text-sm mt-1 text-center">
+              {error}
+            </div>
           )}
 
-          {/* Botón login */}
+          {/* 👇 Para debug - puedes ver los intentos en tiempo real */}
+          {/* <div className="text-xs text-gray-500 text-center">
+            Intentos fallidos: {failedAttempts}
+          </div> */}
+
           <button
             type="submit"
             disabled={loading || loginSuccess}
@@ -216,7 +227,6 @@ export default function LoginModal({
             {loading ? "Verificando..." : "Iniciar sesión"}
           </button>
 
-          {/* Recuperar contraseña */}
           <div className="text-center mt-3">
             <button
               type="button"
@@ -227,19 +237,6 @@ export default function LoginModal({
               Recuperar contraseña
             </button>
           </div>
-
-          {/* Ir a registro */}
-          <p className="text-center text-xs mt-2 text-gray-600">
-            ¿No tienes una cuenta?{" "}
-            <button
-              type="button"
-              className="text-[#1E3A8A] font-semibold hover:underline"
-              onClick={handleOpenRegister}
-              disabled={loading || loginSuccess}
-            >
-              Registrarse
-            </button>
-          </p>
         </form>
       </div>
     </div>

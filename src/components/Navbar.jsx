@@ -1,31 +1,43 @@
-// components/Navbar.jsx - VERSIÓN COMPLETA
+// components/Navbar.jsx
 import { useState } from "react";
 import logo from "../assets/logo.jpg";
+
 import RegisterModal from "./RegisterModal";
 import LoginModal from "./LoginModal";
-import ForgotPasswordModal from "./ForgotPasswordModal"; // 👈 AGREGA ESTE IMPORT
+import ForgotPasswordModal from "./ForgotPasswordModal";
+import VerifyCodeModal from "./VerifyCodeModal";
+import ResetPasswordModal from "./ResetPasswordModal";
 
 export default function Navbar() {
   const [showRegister, setShowRegister] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
-  const [showForgot, setShowForgot] = useState(false); // 👈 AGREGA ESTE ESTADO
+  const [showForgot, setShowForgot] = useState(false);
+  const [showVerify, setShowVerify] = useState(false);
+  const [showReset, setShowReset] = useState(false);
 
-  const base = "px-3 py-1 rounded-md text-sm transition border font-medium no-underline";
-  const inactive = "border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-100";
+  // guardamos el correo que se está recuperando
+  const [correoRecuperacion, setCorreoRecuperacion] = useState("");
 
-  // Función para abrir registro desde login
+  const base =
+    "px-3 py-1 rounded-md text-sm transition border font-medium no-underline";
+  const inactive =
+    "border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-100";
+
+  // --- Navegación entre modales ---
+
+  // Abrir registro desde login
   const handleOpenRegister = () => {
     setShowLogin(false);
     setShowRegister(true);
   };
 
-  // Función para abrir login desde registro
+  // Abrir login desde registro
   const handleOpenLogin = () => {
     setShowRegister(false);
     setShowLogin(true);
   };
 
-  // 👈 AGREGA ESTA FUNCIÓN
+  // Abrir recuperar contraseña desde login
   const handleOpenForgot = () => {
     console.log("🔄 Abriendo recuperar contraseña desde Navbar");
     setShowLogin(false);
@@ -41,13 +53,16 @@ export default function Navbar() {
           </div>
 
           <nav className="ml-auto flex items-center gap-4">
-            {/* <button
+            {/* Si quieres habilitar registro público, descomenta esto */}
+            {/*
+            <button
               type="button"
               onClick={() => setShowRegister(true)}
               className={`${base} ${inactive}`}
             >
               Registrarse
-            </button> */}
+            </button>
+            */}
 
             <button
               type="button"
@@ -60,27 +75,55 @@ export default function Navbar() {
         </div>
       </header>
 
+      {/* MODAL: Registro */}
       <RegisterModal
         open={showRegister}
         onClose={() => setShowRegister(false)}
         onOpenLogin={handleOpenLogin}
       />
 
-      {/* 👈 AGREGA onOpenForgot AQUÍ */}
+      {/* MODAL: Login (con onOpenForgot) */}
       <LoginModal
         open={showLogin}
         onClose={() => setShowLogin(false)}
         onOpenRegister={handleOpenRegister}
-        onOpenForgot={handleOpenForgot} // ✅ ESTA ES LA QUE FALTABA
+        onOpenForgot={handleOpenForgot}
       />
 
-      {/* 👈 AGREGA ESTE MODAL */}
+      {/* MODAL 1: Forgot password (ingresa correo) */}
       <ForgotPasswordModal
         open={showForgot}
         onClose={() => setShowForgot(false)}
         onSuccess={(email) => {
           console.log("✅ Email para recuperación:", email);
-          // Aquí puedes manejar lo que pasa después
+          // guardamos el correo y pasamos al siguiente paso
+          setCorreoRecuperacion(email);
+          setShowForgot(false);
+          setShowVerify(true);
+        }}
+      />
+
+      {/* MODAL 2: Verificar código de 6 dígitos */}
+      <VerifyCodeModal
+        open={showVerify}
+        correo={correoRecuperacion}
+        onClose={() => setShowVerify(false)}
+        onVerified={() => {
+          // código correcto → pasamos al reset
+          setShowVerify(false);
+          setShowReset(true);
+        }}
+      />
+
+      {/* MODAL 3: Resetear contraseña */}
+      <ResetPasswordModal
+        open={showReset}
+        correo={correoRecuperacion}
+        onClose={() => setShowReset(false)}
+        onSuccess={() => {
+          // contraseña cambiada → cerrar reset y abrir login
+          setShowReset(false);
+          setShowLogin(true);
         }}
       />
     </>
