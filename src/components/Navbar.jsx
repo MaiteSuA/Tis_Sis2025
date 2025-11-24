@@ -53,10 +53,7 @@ export default function Navbar() {
           </div>
 
           <nav className="ml-auto flex items-center gap-4">
-<<<<<<< HEAD
-=======
             {/* Si quieres habilitar registro público, descomenta esto */}
->>>>>>> Pru/prueba
             {/*
             <button
               type="button"
@@ -66,12 +63,8 @@ export default function Navbar() {
             >
               Registrarse
             </button>
-<<<<<<< HEAD
-*/}
-=======
             */}
 
->>>>>>> Pru/prueba
             <button
               type="button"
               onClick={() => setShowLogin(true)}
@@ -82,24 +75,15 @@ export default function Navbar() {
           </nav>
         </div>
       </header>
-<<<<<<< HEAD
-{/*}
-=======
 
       {/* MODAL: Registro */}
->>>>>>> Pru/prueba
       <RegisterModal
         open={showRegister}
         onClose={() => setShowRegister(false)}
         onOpenLogin={handleOpenLogin}
       />
-<<<<<<< HEAD
-*/}
-      {/* 👈 AGREGA onOpenForgot AQUÍ */}
-=======
 
       {/* MODAL: Login (con onOpenForgot) */}
->>>>>>> Pru/prueba
       <LoginModal
         open={showLogin}
         onClose={() => setShowLogin(false)}
