@@ -57,7 +57,7 @@ export default function AdminLayout({ children }) {
                 }`
               }
             >
-              Inicio
+              Cerrar Secion
             </NavLink>
 
             {/* Enlace hacia la vista de usuarios / dashboard */}
@@ -70,7 +70,7 @@ export default function AdminLayout({ children }) {
                 }`
               }
             >
-              Dashboard
+              inicio
             </NavLink>
 
             {/* Enlace hacia la vista del log */}
@@ -87,23 +87,8 @@ export default function AdminLayout({ children }) {
           </nav>
         </div>
 
-        {/* Fila 2: botón Cerrar Sesión debajo de la barra */}
-        <div className="max-w-6xl mx-auto px-4 pb-1 flex justify-end">
-          <button
-            onClick={handleLogout}
-            className="
-              px-4 py-2  
-              rounded-full text-sm
-              bg-white text-gray-700
-              border border-gray-300
-              shadow-sm
-              hover:bg-gray-50
-              transition
-            "
-          >
-            Cerrar Sesión
-          </button>
-        </div>
+        {/* 🔥 FILA 2 ELIMINADA: botón de cerrar sesión */}
+        {/* (Aquí estaba el contenedor del botón, pero lo quitaste a pedido del usuario) */}
       </header>
 
       {/* CONTENIDO PRINCIPAL */}
@@ -118,4 +103,3 @@ export default function AdminLayout({ children }) {
     </div>
   );
 }
-
