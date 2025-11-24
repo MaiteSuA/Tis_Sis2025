@@ -12,10 +12,12 @@ import Ejemplo from "../pages/ejemplo.jsx";
 import Ejemplo2 from "../pages/ejemplo2.jsx";
 import ProtectedRoute from "./ProtectedRoute.jsx";
 import RegistrarNotasReplanteado from "../pages/Registrar-notas.jsx";
-import ImportarInscritos from "../pages/ImportarInscritos.jsx";
+import ImportarInscritos from "../pages/Coordinador/ImportarInscritos.jsx";
 import Temporal from "../pages/Temporal.jsx";
+import PerfilCoordinador from "../pages/Coordinador/PerfilCoordinador.jsx";
+import RegistroResponsablesArea from "../pages/Coordinador/RegistroResponsablesArea.jsx";
 import InicioExclusivo from "../components/InicioExclusivo.jsx";
-
+import LoginModal from "../components/LoginModal.jsx";
 
 export default function AppRouter() {
   return (
@@ -27,6 +29,7 @@ export default function AppRouter() {
       <Route path="/medallero" element={<Medallero />} />
       <Route path="/login" element={<Login />} />
       <Route path="/inicio-exclusivo" element={<InicioExclusivo />} />
+      <Route path="/LoginModal" element={<LoginModal/>} />
 
 
       {/* Rutas temporales para reportes y fase final */}
@@ -37,7 +40,19 @@ export default function AppRouter() {
       <Route path="/admin" element={<AdminUsuarios />} />
       <Route path="/admin/log" element={<AdminLog />} />
       <Route path="/admin/usuarios" element={<AdminUsuarios />} />
-      <Route path="/coordinador" element={<ImportarInscritos />} />
+      <Route
+        path="/coordinador"
+        element={<Navigate to="/coordinador/importar-inscritos" replace />}
+      />
+      <Route path="/coordinador/perfil" element={<PerfilCoordinador />} />
+      <Route
+        path="/coordinador/registro-responsables"
+        element={<RegistroResponsablesArea />}
+      />
+      <Route
+        path="/coordinador/importar-inscritos"
+        element={<ImportarInscritos />}
+      />
       <Route path="/evaluador" element={<RegistrarNotasReplanteado />} />
       <Route path="/responsable" element={<ResponsableArea />} />
       {/* Protegidas por rol */}

@@ -1,29 +1,38 @@
-//  src/api/auth.js
+// 📂 src/api/auth.js
 
+const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
+
+/* =========================
+ *  LOGIN
+ * =======================*/
 export async function loginApi({ correo, password }) {
-  const res = await fetch("http://localhost:3000/api/login", {
+  const res = await fetch(`${BASE_URL}/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ correo, password }),
+    body: JSON.stringify({
+      username: correo, // backend espera "username"
+      password,
+    }),
   });
 
   const data = await res.json();
 
-  // Validaciones
   if (!res.ok || !data.ok) {
     throw new Error(data.error || "Login failed");
   }
 
-  // Guardar token y usuario
+  // guarda usuario + token
   localStorage.setItem("token", data.token);
-  localStorage.setItem("usuario", JSON.stringify(data.usuario));
+  localStorage.setItem("usuario", JSON.stringify(data.user));
 
-  return data;
+  return data; // { ok, token, user }
 }
-// src/api/auth.js
 
+/* =========================
+ *  REGISTRO
+ * =======================*/
 export async function registerApi({
   nombre,
   apellido,
@@ -32,9 +41,9 @@ export async function registerApi({
   telefono,
   fechaNacimiento, // "YYYY-MM-DD"
 }) {
-  const res = await fetch('http://localhost:3000/api/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const res = await fetch(`${BASE_URL}/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       nombre,
       apellido,
@@ -48,14 +57,15 @@ export async function registerApi({
   const data = await res.json();
 
   if (!res.ok || !data.ok) {
-    throw new Error(data.error || 'Error al registrarse');
+    throw new Error(data.error || "Error al registrarse");
   }
 
   return data; // { ok: true, usuario }
 }
-// src/api/auth.js
-const BASE_URL = "http://localhost:3000/api";
 
+/* =========================
+ *  ENVIAR CÓDIGO RESET
+ * =======================*/
 export async function sendResetCodeApi({ correo }) {
   const res = await fetch(`${BASE_URL}/password/forgot`, {
     method: "POST",
@@ -69,6 +79,43 @@ export async function sendResetCodeApi({ correo }) {
     throw new Error(data.error || "Error enviando código");
   }
 
-  return data;
+  return data; // { ok: true }
 }
 
+/* =========================
+ *  VERIFICAR CÓDIGO RESET
+ * =======================*/
+export async function verifyResetCodeApi({ correo, code }) {
+  const res = await fetch(`${BASE_URL}/password/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ correo, code }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || "Código inválido");
+  }
+
+  return data; // { ok: true }
+}
+
+/* =========================
+ *  CAMBIAR CONTRASEÑA
+ * =======================*/
+export async function resetPasswordApi({ correo, password }) {
+  const res = await fetch(`${BASE_URL}/password/reset`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ correo, password }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || "Error al cambiar contraseña");
+  }
+
+  return data; // { ok: true }
+}

@@ -1,6 +1,11 @@
+import { useState } from "react";
 import Navbar from "../components/Navbar";
 import Carousel from "../components/Carousel";
-
+import LoginModal from "../components/LoginModal";
+import RegisterModal from "../components/RegisterModal";
+import ForgotPasswordModal from "../components/ForgotPasswordModal";
+import VerifyCodeModal from "../components/VerifyCodeModal";
+import ResetPasswordModal from "../components/ResetPasswordModal";
 
 const news = [
   { title: "Convocatoria Oficial 2025 publicada",
@@ -15,6 +20,32 @@ const news = [
 ];
 
 export default function Home() {
+  const [showLogin, setShowLogin] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [showVerify, setShowVerify] = useState(false);
+  const [showReset, setShowReset] = useState(false);
+  const [correoRecuperacion, setCorreoRecuperacion] = useState("");
+
+  // Funciones para navegación entre modales
+  const handleOpenLogin = () => {
+    setShowLogin(true);
+  };
+
+  const handleOpenRegister = () => {
+    setShowLogin(false);
+    setShowRegister(true);
+  };
+
+  const handleOpenForgot = () => {
+    setShowLogin(false);
+    setShowForgot(true);
+  };
+
+  const handleCloseLogin = () => {
+    setShowLogin(false);
+  };
+
   return (
     <div className="min-h-screen w-screen bg-white overflow-x-hidden">
       <Navbar />
@@ -23,8 +54,8 @@ export default function Home() {
       <section className="w-screen min-h-screen bg-gray-200 flex flex-col items-center justify-center text-center px-6">
         <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-8">
           Sistema de <br className="hidden md:block" />
-          Evaluacion <br className="hidden md:block" />
-          Olimpiadas OhSansi
+          Evaluación <br className="hidden md:block" />
+          "Olimpiadas OhSansi"
         </h1>
 
         {/* Carrusel centrado debajo del título */}
@@ -32,18 +63,65 @@ export default function Home() {
           <Carousel items={news} />
         </div>
 
-        {/* Botón “Empezar” */}
-        <a
-          href="/login"
-          className="px-8 py-2 rounded-md !bg-gray-700 hover:!bg-gray-800 !text-white font-semibold shadow-md transition !opacity-100 relative z-10"
+        {/* Botón "Empezar" ACTUALIZADO */}
+        <button
+          onClick={handleOpenLogin}
+          className="px-8 py-2 rounded-md bg-gray-700 hover:bg-gray-800 text-white font-semibold shadow-md transition opacity-100 relative z-10"
         >
           Empezar
-        </a>
+        </button>
       </section>
 
       <footer className="w-screen bg-gray-100 py-6 text-center text-sm text-gray-500">
         © 2025 OhSanSi — Todos los derechos reservados.
       </footer>
+
+      {/* MODALES */}
+      <LoginModal
+        open={showLogin}
+        onClose={handleCloseLogin}
+        onOpenRegister={handleOpenRegister}
+        onOpenForgot={handleOpenForgot}
+      />
+
+      <RegisterModal
+        open={showRegister}
+        onClose={() => setShowRegister(false)}
+        onOpenLogin={() => {
+          setShowRegister(false);
+          setShowLogin(true);
+        }}
+      />
+
+      <ForgotPasswordModal
+        open={showForgot}
+        onClose={() => setShowForgot(false)}
+        onSuccess={(email) => {
+          setCorreoRecuperacion(email);
+          setShowForgot(false);
+          setShowVerify(true);
+        }}
+      />
+
+      <VerifyCodeModal
+        open={showVerify}
+        correo={correoRecuperacion}
+        onClose={() => setShowVerify(false)}
+        onVerified={() => {
+          setShowVerify(false);
+          setShowReset(true);
+        }}
+      />
+
+      <ResetPasswordModal
+        open={showReset}
+        correo={correoRecuperacion}
+        onClose={() => setShowReset(false)}
+        onSuccess={() => {
+          setShowReset(false);
+          setShowLogin(true);
+        }}
+      />
     </div>
   );
 }

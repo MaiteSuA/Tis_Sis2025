@@ -1,21 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import TopNav from "../components/TopNav";
-import Sidebar from "../components/Sidebar";
-import StatsStrip from "../components/StatsStrip";
-import ImportCsvCard from "../components/ImportCsvCard";
-import DataTable from "../components/DataTable";
-import FilterBar from "../components/FilterBar";
-import { importInscritosCsv, getDashboardStats } from "../services/api";
+import TopNav from "../../components/coordinador/TopNav";
+import Sidebar from "../../components/coordinador/Sidebar";
+import StatsStrip from "../../components/coordinador/StatsStrip";
+import ImportCsvCard from "../../components/coordinador/ImportCsvCard";
+import DataTable from "../../components/coordinador/DataTable";
+import FilterBar from "../../components/coordinador/FilterBar";
+import { importInscritosCsv, getDashboardStats } from "../../services/api";
 import Papa from "papaparse";
-import AssignEvaluatorBar from "../components/AssignEvaluatorBar";
+import AssignEvaluatorBar from "../../components/coordinador/AssignEvaluatorBar";
 
 /**
  * Pantalla de Coordinador para:
  * - Previsualizar un CSV localmente (sin tocar la BD)
  * - Filtrar por Área y Nivel
  * - Seleccionar filas con checkboxes
- * - (Más adelante) Enviar filas filtradas/seleccionadas a un evaluador
  */
 
 export default function ImportarInscritos() {
