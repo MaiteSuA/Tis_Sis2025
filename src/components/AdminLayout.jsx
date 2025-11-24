@@ -82,7 +82,7 @@ export default function AdminLayout({ children }) {
                 }`
               }
             >
-              Log
+              
             </NavLink>
           </nav>
         </div>
