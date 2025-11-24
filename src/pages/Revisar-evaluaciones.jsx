@@ -10,7 +10,7 @@ import {
   getEvaluadores,
   updateEvaluador,
   deleteEvaluador,
-} from "../services/evaluadores";
+} from "../api/evaluadores.js";
 
 const RevisarEvaluaciones = () => {
   const [competidores, setCompetidores] = useState([]);
@@ -110,7 +110,12 @@ const RevisarEvaluaciones = () => {
   useEffect(() => {
     const fetchAreas = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/areas`);
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/areas`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
         const data = await res.json();
 
         if (data.ok && Array.isArray(data.data)) {
