@@ -9,6 +9,34 @@ import Header from "../components/header";
 // En .env: VITE_API_URL=http://localhost:3000/api
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
 
+/** Obtiene un nombre de usuario probable desde localStorage */
+function readUserNameFromLocalStorage() {
+  const candidateKeys = ["userName", "username", "usuario", "user", "auth", "currentUser"];
+  for (const key of candidateKeys) {
+    const raw = localStorage.getItem(key);
+    if (!raw) continue;
+
+    // Si es una cadena simple (no JSON) la usamos directo
+    const looksLikeJSON = raw.trim().startsWith("{") || raw.trim().startsWith("[");
+    if (!looksLikeJSON && raw.trim()) return raw.replace(/"/g, "").trim();
+
+    // Si es JSON, intentamos parsear y encontrar un nombre
+    try {
+      const obj = JSON.parse(raw);
+      const name =
+        obj?.name ||
+        obj?.nombre ||
+        obj?.usuario ||
+        [obj?.firstName, obj?.lastName].filter(Boolean).join(" ") ||
+        [obj?.nombres, obj?.apellidos].filter(Boolean).join(" ");
+      if (name && String(name).trim()) return String(name).trim();
+    } catch {
+      // ignorar parse error y continuar
+    }
+  }
+  return null;
+}
+
 export default function RegistrarNotasReplanteado() {
   const [evaluaciones, setEvaluaciones] = useState([]);
   const [historial, setHistorial] = useState([]);
@@ -19,6 +47,9 @@ export default function RegistrarNotasReplanteado() {
   const [mensajeGuardado, setMensajeGuardado] = useState("");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
+
+  // Nombre del evaluador (usuario logueado)
+  const [nombreEvaluador, setNombreEvaluador] = useState(readUserNameFromLocalStorage());
 
   // ============================
   //   CARGA DE DATOS DESDE BACK
@@ -58,6 +89,31 @@ export default function RegistrarNotasReplanteado() {
     cargarDatos();
   }, []);
 
+  // Intento opcional: si no hay nombre en localStorage, consultar /auth/me con token
+  useEffect(() => {
+    const tryFetchMe = async () => {
+      if (nombreEvaluador) return; // ya tenemos algo
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const me = await res.json();
+          const name =[me?.nombre, me?.apellidos].filter(Boolean).join(" ").trim();
+
+          if (name && String(name).trim()) setNombreEvaluador(String(name).trim());
+        }
+      } catch {
+        // Silencioso: si falla, simplemente dejamos el fallback
+      }
+    };
+    tryFetchMe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [API_BASE_URL]);
+
   // ============================
   //   MÉTRICAS
   // ============================
@@ -96,12 +152,8 @@ export default function RegistrarNotasReplanteado() {
     () =>
       evaluaciones.filter(
         (r) =>
-          (r.competidor || "")
-            .toLowerCase()
-            .includes(busqEval.toLowerCase()) ||
-          (r.observacion || "")
-            .toLowerCase()
-            .includes(busqEval.toLowerCase())
+          (r.competidor || "").toLowerCase().includes(busqEval.toLowerCase()) ||
+          (r.observacion || "").toLowerCase().includes(busqEval.toLowerCase())
       ),
     [evaluaciones, busqEval]
   );
@@ -110,12 +162,8 @@ export default function RegistrarNotasReplanteado() {
     () =>
       historial.filter(
         (r) =>
-          (r.competidor || "")
-            .toLowerCase()
-            .includes(busqHist.toLowerCase()) ||
-          (r.usuario || "")
-            .toLowerCase()
-            .includes(busqHist.toLowerCase())
+          (r.competidor || "").toLowerCase().includes(busqHist.toLowerCase()) ||
+          (r.usuario || "").toLowerCase().includes(busqHist.toLowerCase())
       ),
     [historial, busqHist]
   );
@@ -124,18 +172,16 @@ export default function RegistrarNotasReplanteado() {
   //   HANDLERS
   // ============================
   const onCellChange = (id, field, value) =>
-    setEvaluaciones((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
-    );
+    setEvaluaciones((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
 
   const handleGuardarCambios = async (e) => {
-  if (e && e.preventDefault) e.preventDefault(); // evita comportamiento por defecto
+    if (e && e.preventDefault) e.preventDefault(); // evita comportamiento por defecto
 
-  try {
-    setMensajeGuardado("");
-    setError("");
+    try {
+      setMensajeGuardado("");
+      setError("");
 
-    const res = await fetch(`${API_BASE_URL}/evaluaciones`, {
+      const res = await fetch(`${API_BASE_URL}/evaluaciones`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(evaluaciones),
@@ -146,8 +192,7 @@ export default function RegistrarNotasReplanteado() {
       }
 
       const json = await res.json();
-      const message =
-        (json && (json.message || json.msg)) || "Cambios guardados correctamente";
+      const message = (json && (json.message || json.msg)) || "Cambios guardados correctamente";
 
       setMensajeGuardado(message);
       // luego de guardar, recargamos historial para ver los cambios nuevos
@@ -168,6 +213,26 @@ export default function RegistrarNotasReplanteado() {
       <Header />
 
       <div className="bg-gray-200 rounded-lg max-w-7xl mx-auto space-y-6 p-5">
+        {/* BLOQUE: Información del evaluador con nombre + apellidos */}
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold select-none">
+            {(nombreEvaluador?.split(" ")[0]?.[0] || "E").toUpperCase()}
+          </div>
+
+          <div>
+            <div className="text-sm text-slate-500 leading-tight">Evaluador</div>
+            <div className="text-base sm:text-lg font-semibold text-slate-800">
+              {nombreEvaluador || "Sin nombre"}
+            </div>
+          </div>
+        </div>
+
+        <div className="text-xs sm:text-sm text-slate-500">
+          Sesión activa · {new Date().toLocaleDateString()}
+        </div>
+      </div>
+
         {/* Encabezado superior: Dashboard / Área / Nivel */}
         <div className="flex flex-wrap items-center justify-between gap-6 bg-gray-200 rounded-lg p-4 mb-4">
           <div className="flex items-center gap-2">
@@ -239,16 +304,11 @@ export default function RegistrarNotasReplanteado() {
           {/* acciones */}
           <div className="flex flex-wrap items-center justify-between gap-2 p-4 border-t border-slate-200 bg-gray-200 rounded-b-xl">
             <div className="text-xs text-slate-500">
-              {totalAsignados} registros · {totalPendientes} pendientes ·{" "}
-              {totalHechas} con nota
+              {totalAsignados} registros · {totalPendientes} pendientes · {totalHechas} con nota
             </div>
             <div className="flex gap-2">
               <ActionButton type="edit" label="Editar" />
-              <ActionButton
-                type="save"
-                label="Guardar cambios"
-                onClick={handleGuardarCambios}
-              />
+              <ActionButton type="save" label="Guardar cambios" onClick={handleGuardarCambios} />
               <ActionButton type="export" label="Exportar" />
             </div>
           </div>
@@ -265,14 +325,10 @@ export default function RegistrarNotasReplanteado() {
               columns={columnsHist}
               data={dataHist}
               onCellChange={(id, f, v) =>
-                setHistorial((prev) =>
-                  prev.map((r) => (r.id === id ? { ...r, [f]: v } : r))
-                )
+                setHistorial((prev) => prev.map((r) => (r.id === id ? { ...r, [f]: v } : r)))
               }
               onDeleteRow={(id) =>
-                setHistorial((prev) =>
-                  prev.length > 1 ? prev.filter((r) => r.id !== id) : prev
-                )
+                setHistorial((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev))
               }
               onAddRow={() => {
                 const hoy = new Date().toISOString().split("T")[0];
