@@ -75,25 +75,10 @@ const RevisarEvaluaciones = () => {
       if (mode === "create") {
         saved = await createEvaluador(payload);
 
-        // NORMALIZAR 
-        const formateado = {
-          id: saved.id_evaluador,
-          nombres: saved.nombre_evaluador,
-          apellidos: saved.apellidos_evaluador,
-          area: saved.area_nombre
-        };
-
         setEvaluadores((prev) => [...prev, saved]);
       } else {
         saved = await updateEvaluador(selected.id, payload);
-
-        const formateado = {
-    id: saved.id_evaluador,
-    nombres: saved.nombre_evaluador,
-    apellidos: saved.apellidos_evaluador,
-    area: saved.area_nombre
-  };
-
+        
         setEvaluadores((prev) =>
           prev.map((e) => (e.id === selected.id ? saved : e))
         );
