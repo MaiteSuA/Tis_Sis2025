@@ -6,10 +6,10 @@ import { saveAs } from "file-saver";
 
 // Servicios
 import {
-  createEvaluador,
+  createEvaluadorCompleto,
   getEvaluadores,
-  updateEvaluador,
-  deleteEvaluador,
+  updateEvaluadorCompleto,
+  deleteEvaluadorCompleto,
 } from "../api/evaluadores.js";
 
 const RevisarEvaluaciones = () => {
@@ -26,6 +26,48 @@ const RevisarEvaluaciones = () => {
   const [loadingAreas, setLoadingAreas] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const [toast, setToast] = useState("");
+
+  const [user, setUser] = useState(null);
+
+  // ====================== TOAST ======================
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 3000);
+  };
+
+  // ====================== LOGIN ======================
+  useEffect(() => {
+  const fetchUser = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      // console.log("Token en frontend:", token);
+      if (!token) return;
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/responsables/me`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("No se pudo obtener el usuario");
+
+      const data = await res.json();
+      
+      if (data.ok) {
+        console.log(data);
+
+        setUser(data.data); // ✅ así guardas directamente { nombres, apellidos, correo, area, estado, rol }
+      }
+    } catch (error) {
+      console.error("Error al obtener usuario:", error);
+    }
+  };
+
+  fetchUser();
+}, []);
+
 
   // ====================== CARGAR EVALUADORES ======================
   useEffect(() => {
@@ -52,44 +94,67 @@ const RevisarEvaluaciones = () => {
   // ====================== ELIMINAR ======================
   const handleDelete = async (id) => {
     if (!confirm("¿Seguro que deseas eliminar este evaluador?")) return;
-
     try {
-      await deleteEvaluador(id);
-      setEvaluadores((prev) => prev.filter((e) => e.id !== id));
+      const evaluador = evaluadores.find((e) => e.id === id);
+
+      // 1 Eliminar evaluador
+      await deleteEvaluadorCompleto(evaluador.id);
+
+      setEvaluadores(prev => prev.filter(e => e.id !== id));
+      showToast("Evaluador eliminado ✔");
     } catch (err) {
-      alert("No se pudo eliminar.");
+      alert("No se pudo eliminar: " + err.message);
     }
   };
 
   // ====================== GUARDAR ======================
-  const handleSave = async (formData) => {
-    try {
-      const payload = {
-        nombre_evaluado: formData.nombres,
-        apellidos_evaluador: formData.apellidos,
-        id_area: Number(formData.areaId),
-      };
+const handleSave = async (formData) => {
+  try {
+    const payload = {
+      nombre_evaluado: formData.nombres,
+      apellidos_evaluador: formData.apellidos,
+      correo: formData.correo,
+      telefono: formData.telefono,
+      id_area: Number(formData.areaId),
+    };
 
-      let saved;
+    if (mode === "create") {
+      // 1️⃣ Crear evaluador + usuario en una sola llamada
+      const saved = await createEvaluadorCompleto(payload);
 
-      if (mode === "create") {
-        saved = await createEvaluador(payload);
+      // 2️⃣ Actualizar el estado del front
+      setEvaluadores(prev => [
+        ...prev,
+        {
+          ...saved,
+          area: areas.find(a => a.id === Number(formData.areaId))?.nombre
+        }
+      ]);
 
-        setEvaluadores((prev) => [...prev, saved]);
-      } else {
-        saved = await updateEvaluador(selected.id, payload);
-        
-        setEvaluadores((prev) =>
-          prev.map((e) => (e.id === selected.id ? saved : e))
-        );
-      }
+      showToast("Evaluador registrado ✔");
+    } else {
+      // 1️⃣ Actualizar evaluador + usuario
+      const saved = await updateEvaluadorCompleto(selected.id, payload);
+      
 
-      setShowForm(false);
-      setSelected(null);
-    } catch (err) {
-      alert("Error: " + err.message);
+      // 2️⃣ Actualizar el estado del front
+      setEvaluadores(prev =>
+        prev.map(e => e.id === selected.id
+          ? { ...saved, area: areas.find(a => a.id === Number(formData.areaId))?.nombre }
+          : e
+        )
+      );
+
+      showToast("Evaluador actualizado ✔");
     }
-  };
+
+    // 3️⃣ Cerrar modal
+    setShowForm(false);
+    setSelected(null);
+  } catch (err) {
+    alert("Error: " + err.message);
+  }
+};
 
   // ====================== CARGAR ÁREAS ======================
   useEffect(() => {
@@ -120,36 +185,20 @@ const RevisarEvaluaciones = () => {
     fetchAreas();
   }, []);
 
-  // ====================== CREAR ======================
-  const handleCreate = () => {
-    setSelected(null);
-    setMode("create");
-    setShowForm(true);
-  };
-
   // ====================== CARGAR COMPETIDORES ======================
   useEffect(() => {
     const fetchCompetidores = async () => {
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/evaluaciones`
-        );
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/evaluaciones`);
         const result = await response.json();
-
         if (!response.ok) throw new Error("Error al obtener los datos");
-
-        if (result.ok) {
-          setCompetidores(result.data);
-        } else {
-          throw new Error("Error en la respuesta del servidor");
-        }
+        if (result.ok) setCompetidores(result.data);
       } catch (err) {
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-
     fetchCompetidores();
   }, []);
 
@@ -185,12 +234,13 @@ const RevisarEvaluaciones = () => {
     showToast("Excel descargado correctamente ✔");
   };
 
-  const [toast, setToast] = useState("");
-  const showToast = (msg) => {
-    setToast(msg);
-    setTimeout(() => setToast(""), 3000);
+  
+  // ====================== CREAR ======================
+  const handleCreate = () => {
+    setSelected(null);
+    setMode("create");
+    setShowForm(true);
   };
-
 
   return (
     <div className="bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen">
@@ -200,8 +250,23 @@ const RevisarEvaluaciones = () => {
         <div className="!bg-white p-6 rounded-2xl shadow-lg mb-6">
           <div className="flex flex-wrap justify-between items-center mb-6">
             <div>
-              <h2 className="text-2xl font-bold">Área: Química</h2>
-              <p className="text-gray-500">Estado: Pendiente de Cierre</p>
+              <h2 className="text-2xl font-bold">RESPONSABLE DE ÁREA</h2>
+              <div className="flex flex-wrap justify-between items-center mb-6">
+                <div>
+                  <p className="text-gray-700">
+                    Nombre: {user ? `${user.nombres} ${user.apellidos}` : "Cargando..."}
+                  </p>
+                  <p className="text-gray-700">
+                    Correo: {user ? user.correo : "Cargando..."}
+                  </p>
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold">
+                Área: {user ? user.area : "Cargando..."} 
+              </h2>
+              <p className="text-gray-500">
+                Estado: {user ? user.estado : "Cargando..."}
+                </p>
             </div>
           </div>
 
@@ -226,14 +291,82 @@ const RevisarEvaluaciones = () => {
                 <li>Se han revisado observaciones</li>
               </ul>
 
-              <button className="mt-3 !bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+              <button className="mt-3 !bg-gray-800 text-white px-4 py-2 rounded-lg hover:!bg-gray-700">
                 Concluir Fase
               </button>
             </div>
           </div>
 
+          
+          {/* EVALUADORES */}
+          <h3 className="text-lg font-bold mt-10 mb-3">
+            Evaluadores Registrados
+          </h3>
+
+          <div className="overflow-x-auto">
+            <table className="w-full bg-white border-collapse shadow rounded-lg">
+              <thead className="!bg-gray-300 text-gray-800">
+                <tr>
+                  <th className="p-3 text-left">ID</th>
+                  <th className="p-3 text-left">Nombres</th>
+                  <th className="p-3 text-left">Apellidos</th>
+                  <th className="p-3 text-left">Rol</th>
+                  <th className="p-3 text-left">Área</th>
+                  <th className="p-3 text-center">Acciones</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {!loadingEvals &&
+                  evaluadores.map((e) => (
+                    <tr key={e.id} className="border-t hover:!bg-gray-200">
+                      <td className="p-3">{e.id}</td>
+                      <td className="p-3">{e.nombres}</td>
+                      <td className="p-3">{e.apellidos}</td>
+                      <td className="p-3">EVALUADOR</td>
+                      <td className="p-3">{e.area}</td>
+                      <td className="p-3 text-center">
+                        <button
+                          className="px-3 py-1 mr-2 !bg-gray-600 text-white rounded hover:!bg-gray-500"
+                          onClick={() => handleEdit(e)}
+                        >
+                          Editar
+                        </button>
+
+                        <button
+                          className="px-3 py-1 !bg-gray-800 text-white rounded hover:!bg-gray-700"
+                          onClick={() => handleDelete(e.id)}
+                        >
+                          Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* BOTONES */}
+          <div className="flex flex-wrap justify-end mt-6">
+          
+            <button
+              className="!bg-gray-800 text-white px-4 py-2 rounded-lg hover:!bg-gray-700"
+              onClick={handleCreate}
+            >
+              Registrar Evaluador
+            </button>
+          </div>
+
+          {toast && (
+            <div
+              className="fixed bottom-6 right-6 bg-black text-white px-4 py-2 rounded-lg shadow-lg animate-fadeIn"
+            >
+              {toast}
+            </div>
+          )}
+
           {/* Tabla Clasificatoria */}
-          <h3 className="text-lg font-bold mb-3">Resultados Clasificatoria</h3>
+          <h3 className="text-lg font-bold mb-3 ">Resultados Clasificatoria</h3>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse bg-white shadow rounded-lg">
               <thead className="!bg-gray-200 text-gray-700">
@@ -259,89 +392,22 @@ const RevisarEvaluaciones = () => {
           </div>
 
           {/* Botones debajo de tabla clasificatoria */}
-          <div className="flex flex-wrap justify-between mt-6 mb-10">
+          <div className="flex flex-wrap justify-end mt-6 mb-10">
             <div className="flex gap-2">
               <button
                 onClick={exportExcel}
-                className="!bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+                className="!bg-gray-800 text-white px-4 py-2 rounded-lg hover:!bg-gray-700"
               >
                 Exportar Excel
               </button>
 
               <button
-                className="!bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+                className="!bg-gray-800 text-white px-4 py-2 rounded-lg hover:!bg-gray-700"
               >
                 Autorizar Publicación
               </button>
             </div>
           </div>
-
-          {/* EVALUADORES */}
-          <h3 className="text-lg font-bold mt-10 mb-3">
-            Evaluadores Registrados
-          </h3>
-
-          <div className="overflow-x-auto">
-            <table className="w-full bg-white border-collapse shadow rounded-lg">
-              <thead className="!bg-gray-200 text-gray-700">
-                <tr>
-                  <th className="p-3 text-left">ID</th>
-                  <th className="p-3 text-left">Nombres</th>
-                  <th className="p-3 text-left">Apellidos</th>
-                  <th className="p-3 text-left">Rol</th>
-                  <th className="p-3 text-left">Área</th>
-                  <th className="p-3 text-center">Acciones</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {!loadingEvals &&
-                  evaluadores.map((e) => (
-                    <tr key={e.id} className="border-t hover:bg-gray-50">
-                      <td className="p-3">{e.id}</td>
-                      <td className="p-3">{e.nombres}</td>
-                      <td className="p-3">{e.apellidos}</td>
-                      <td className="p-3">EVALUADOR</td>
-                      <td className="p-3">{e.area}</td>
-                      <td className="p-3 text-center">
-                        <button
-                          className="px-3 py-1 mr-2 bg-blue-600 text-white rounded"
-                          onClick={() => handleEdit(e)}
-                        >
-                          Editar
-                        </button>
-
-                        <button
-                          className="px-3 py-1 bg-red-600 text-white rounded"
-                          onClick={() => handleDelete(e.id)}
-                        >
-                          Eliminar
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* BOTONES */}
-          <div className="flex flex-wrap justify-between mt-6">
-          
-            <button
-              className="!bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
-              onClick={handleCreate}
-            >
-              Registrar Evaluador
-            </button>
-          </div>
-
-          {toast && (
-            <div
-              className="fixed bottom-6 right-6 bg-black text-white px-4 py-2 rounded-lg shadow-lg animate-fadeIn"
-            >
-              {toast}
-            </div>
-          )}
 
 
           {/* MODAL */}
