@@ -22,10 +22,10 @@ function mapUIToBack(f) {
     nombres_evaluador: f.nombres,
     apellidos: f.apellidos,
     correo_electronico: f.correo,
-    usuario_responsable: ((f.nombres?.[0] || '') + (f.apellidos?.[0] || '')).toUpperCase(),
-    pass_responsable: f.carnet || f.password || f.telefono || '123456',
-    carnet: f.carnet,
+    carnet: f.carnet || '', // 👈 para pasar la validación del backend
+    password: f.password || f.carnet || f.telefono || '123456', // para crear el usuario
     id_area: Number(f.areaId),
+    rol: 'RESPONSABLE',
   };
 }
 

@@ -4,7 +4,7 @@ import UsuariosTabs from "../components/UsuariosTabs.jsx";
 import UsuariosTable from "../components/UsuariosTable.jsx";
 import UsuarioForm from "../components/UsuarioForm.jsx";
 import AreasModal from "../components/AreasModal.jsx";
-
+import Swal from 'sweetalert2';
 import {
   fetchResponsables,
   createResponsable,
@@ -152,74 +152,150 @@ export default function AdminUsuarios() {
     cargar();
   }, [tab]);
 
-  // Guardar (create/update)
-  const handleSave = async (formDelModal) => {
-    try {
+ // guardar (crear / editar)
+const handleSave = async (form) => {
+  try {
+    if (isEditing) {
+      // editar responsable
       if (tab === "RESPONSABLE") {
-        if (mode === "edit" && selected) {
-          const updated = await updateResponsable(selected.id, formDelModal);
-          setResponsables((prev) =>
-            prev.map((x) => (x.id === selected.id ? updated : x))
-          );
-        } else {
-          const created = await createResponsable(formDelModal);
-          setResponsables((prev) => [...prev, created]);
-        }
+        await updateResponsable(editingId, form);
+        // aquí podrías recargar desde el back o actualizar el estado local
+        await cargarResponsables?.(); // si tienes esta función
       } else if (tab === "COORDINADOR") {
-        if (mode === "edit" && selected) {
-          const updatedCoord = await updateCoordinador(
-            selected.id,
-            formDelModal
-          );
-          setCoordinadores((prev) =>
-            prev.map((x) => (x.id === selected.id ? updatedCoord : x))
-          );
-        } else {
-          const createdCoord = await createCoordinador(formDelModal);
-          setCoordinadores((prev) => [...prev, createdCoord]);
-        }
+        await updateCoordinador(editingId, form);
+        await cargarCoordinadores?.();
       }
 
-      setShowForm(false);
-      setSelected(null);
-    } catch (e) {
-      console.error("Error al guardar:", e);
-      alert("No se pudo guardar. Revisa la consola para más detalles.");
+      await Swal.fire({
+        title: 'Actualizado',
+        text: 'Los datos se guardaron correctamente.',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+    } else {
+      // crear responsable / coordinador
+      if (tab === "RESPONSABLE") {
+        await createResponsable(form);
+        await cargarResponsables?.();
+      } else if (tab === "COORDINADOR") {
+        await createCoordinador(form);
+        await cargarCoordinadores?.();
+      }
+
+      await Swal.fire({
+        title: 'Creado',
+        text: 'El registro fue creado correctamente.',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false,
+      });
     }
-  };
+
+    // cerrar formulario / limpiar selección
+    setShowForm(false);
+    setSelected(null);
+    // setIsEditing(false); // si tienes este estado
+
+  } catch (e) {
+    console.error("Error al guardar:", e);
+    Swal.fire({
+      title: 'Error',
+      text: 'Ocurrió un error al guardar el registro.',
+      icon: 'error',
+    });
+  }
+};
 
   // lista actual según pestaña
   const rows = tab === "RESPONSABLE" ? responsables : coordinadores;
 
   // eliminar
-  const handleDelete = async (row) => {
-    const id = row?.id;
-    if (!id) return;
+ // eliminar
+const handleDelete = async (row) => {
+  const id = row?.id;
+  if (!id) return;
 
-    try {
-      if (tab === "RESPONSABLE") {
-        await deleteResponsable(id);
-        setResponsables((prev) => prev.filter((x) => x.id !== id));
-      } else if (tab === "COORDINADOR") {
-        await deleteCoordinador(id);
-        setCoordinadores((prev) => prev.filter((x) => x.id !== id));
-      }
+  try {
+    // Confirmación
+    const result = await Swal.fire({
+      title: '¿Eliminar registro?',
+      text: 'Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true,
+    });
 
-      if (selected && selected.id === id) {
-        setShowForm(false);
-        setSelected(null);
-      }
-    } catch (e) {
-      console.error("Error al eliminar:", e);
-      alert("No se pudo eliminar el registro.");
+    if (!result.isConfirmed) {
+      return; // el usuario canceló
     }
-  };
 
-  const handleEdit = (row) => {
-    setSelected(row);
-    setMode("edit");
-    setShowForm(true);
-  };
+    //  Eliminar según la pestaña
+    if (tab === "RESPONSABLE") {
+      await deleteResponsable(id);
+      setResponsables((prev) => prev.filter((x) => x.id !== id));
+
+      await Swal.fire({
+        title: 'Eliminado',
+        text: 'El responsable fue eliminado correctamente.',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+    } else if (tab === "COORDINADOR") {
+      await deleteCoordinador(id);
+      setCoordinadores((prev) => prev.filter((x) => x.id !== id));
+
+      await Swal.fire({
+        title: 'Eliminado',
+        text: 'El coordinador fue eliminado correctamente.',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    }
+
+    // limpiar formulario si estaba seleccionado
+    if (selected && selected.id === id) {
+      setShowForm(false);
+      setSelected(null);
+    }
+
+  } catch (e) {
+    console.error("Error al eliminar:", e);
+    Swal.fire({
+      title: 'Error',
+      text: 'No se pudo eliminar el registro.',
+      icon: 'error',
+    });
+  }
+};
+
+const handleEdit = (row) => {
+  if (!row) {
+    return Swal.fire({
+      title: "Error",
+      text: "No se seleccionó ningún registro para editar.",
+      icon: "error",
+    });
+  }
+
+  Swal.fire({
+    title: "Modo edición",
+    text: `Estás editando a ${row.nombres} ${row.apellidos}`,
+    icon: "info",
+    timer: 1200,
+    showConfirmButton: false,
+  });
+
+  setSelected(row);
+  setMode("edit");
+  setShowForm(true);
+};
 
   const handleCreate = () => {
     setSelected(null);
