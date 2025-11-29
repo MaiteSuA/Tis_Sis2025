@@ -18,6 +18,7 @@ import PerfilCoordinador from "../pages/Coordinador/PerfilCoordinador.jsx";
 import RegistroResponsablesArea from "../pages/Coordinador/RegistroResponsablesArea.jsx";
 import InicioExclusivo from "../components/InicioExclusivo.jsx";
 import LoginModal from "../components/LoginModal.jsx";
+import GestionarInscritos from "../pages/Coordinador/GestionarInscritos.jsx";
 
 export default function AppRouter() {
   return (
@@ -29,8 +30,7 @@ export default function AppRouter() {
       <Route path="/medallero" element={<Medallero />} />
       <Route path="/login" element={<Login />} />
       <Route path="/inicio-exclusivo" element={<InicioExclusivo />} />
-      <Route path="/LoginModal" element={<LoginModal/>} />
-
+      <Route path="/LoginModal" element={<LoginModal />} />
 
       {/* Rutas temporales para reportes y fase final */}
       <Route path="/temporal/:slug" element={<Temporal />} />
@@ -53,6 +53,12 @@ export default function AppRouter() {
         path="/coordinador/importar-inscritos"
         element={<ImportarInscritos />}
       />
+
+      <Route
+        path="/coordinador/gestionar-inscritos"
+        element={<GestionarInscritos />}
+      />
+
       <Route path="/evaluador" element={<RegistrarNotasReplanteado />} />
       <Route path="/responsable" element={<ResponsableArea />} />
       {/* Protegidas por rol */}

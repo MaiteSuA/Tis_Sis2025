@@ -1,58 +1,97 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import TopNav from "../../components/coordinador/TopNav";
 import Sidebar from "../../components/coordinador/Sidebar";
+import {
+  getPerfilCoordinador,
+  updatePerfilCoordinador,
+} from "../../services/api";
 
-/**
- * Perfil del Coordinador (solo front, versión simplificada)
- * - Solo datos básicos: nombre, email, teléfono, CI
- * - Guarda localmente en localStorage
- */
 export default function PerfilCoordinador() {
-  const [form, setForm] = useState(() => {
-    const saved = localStorage.getItem("perfilCoordinador");
-    const base = {
-      nombre: "Coordinador Demo",
-      email: "coordinador@ohsansi.edu",
-      telefono: "",
-      documento: "",
-    };
-    if (!saved) return base;
-    try {
-      const parsed = JSON.parse(saved);
-      // si había campos viejos (area, depto, prefs, avatar), los ignoramos
-      return { ...base, ...parsed };
-    } catch {
-      return base;
-    }
+  const [form, setForm] = useState({
+    nombre: "",
+    apellido: "",
+    correo: "",
+    telefono: "",
+    carnet: "",
   });
-
+  const [original, setOriginal] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
-  function update(k, v) {
-    setForm((f) => ({ ...f, [k]: v }));
-  }
+  // Cargar perfil desde el backend al entrar
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await getPerfilCoordinador();
+        setForm({
+          nombre: data.nombre ?? "",
+          apellido: data.apellido ?? "",
+          correo: data.correo ?? "",
+          telefono: data.telefono ?? "",
+          carnet: data.carnet ?? "",
+        });
+        setOriginal(data);
+      } catch (err) {
+        console.error(err);
+        setMsg(err.message || "Error al cargar el perfil");
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
 
-  function handleGuardar() {
-    localStorage.setItem("perfilCoordinador", JSON.stringify(form));
-    setMsg("✅ Perfil guardado localmente.");
-    setTimeout(() => setMsg(""), 3000);
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setForm((f) => ({ ...f, [name]: value }));
   }
 
   function handleCancelar() {
-    const saved = localStorage.getItem("perfilCoordinador");
-    if (saved) {
-      setForm(JSON.parse(saved));
-      setMsg("↩️ Cambios descartados.");
-      setTimeout(() => setMsg(""), 2000);
+    if (!original) return;
+    setForm({
+      nombre: original.nombre ?? "",
+      apellido: original.apellido ?? "",
+      correo: original.correo ?? "",
+      telefono: original.telefono ?? "",
+      carnet: original.carnet ?? "",
+    });
+    setMsg("↩️ Cambios descartados.");
+    setTimeout(() => setMsg(""), 2000);
+  }
+
+  async function handleGuardar(e) {
+    e.preventDefault();
+    setSaving(true);
+    setMsg("");
+    try {
+      const updated = await updatePerfilCoordinador(form);
+      setOriginal(updated);
+      setMsg("✅ Perfil actualizado correctamente.");
+    } catch (err) {
+      console.error(err);
+      setMsg(err.message || "Error al guardar los cambios");
+    } finally {
+      setSaving(false);
+      setTimeout(() => setMsg(""), 3000);
     }
   }
 
-  // 🔒 Esta función queda para la sección de seguridad (comentada en JSX)
-  /* function handleFakePasswordChange(e) {
-    e.preventDefault();
-    setMsg("🔒 (Demo) Contraseña actualizada localmente.");
-    setTimeout(() => setMsg(""), 3000);
-  }  */
+  if (loading) {
+    return (
+      <div className="container-app">
+        <TopNav />
+        <div className="flex">
+          <Sidebar />
+          <main className="flex-1">
+            <div className="w-full max-w-6xl mx-auto px-4 py-6">
+              Cargando perfil...
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container-app">
@@ -71,43 +110,52 @@ export default function PerfilCoordinador() {
               </div>
             )}
 
-            {/* Datos básicos */}
             <section className="card">
               <div className="px-4 py-3 border-b">
                 <p className="font-semibold">Datos personales</p>
               </div>
-              <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <form
+                className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4"
+                onSubmit={handleGuardar}
+              >
                 <div className="md:col-span-3">
-                  <label className="text-sm text-gray-600">
-                    Nombre
-                  </label>
+                  <label className="text-sm text-gray-600">Nombre</label>
                   <input
                     className="input"
+                    name="nombre"
                     value={form.nombre}
-                    onChange={(e) => update("nombre", e.target.value)}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div className="md:col-span-3">
+                  <label className="text-sm text-gray-600">Apellidos</label>
+                  <input
+                    className="input"
+                    name="apellido"
+                    value={form.apellido}
+                    onChange={handleChange}
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm text-gray-600">
-                    Email
-                  </label>
+                  <label className="text-sm text-gray-600">Email</label>
                   <input
                     className="input"
                     type="email"
-                    value={form.email}
-                    onChange={(e) => update("email", e.target.value)}
+                    name="correo"
+                    value={form.correo}
+                    onChange={handleChange}
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm text-gray-600">
-                    Teléfono
-                  </label>
+                  <label className="text-sm text-gray-600">Teléfono</label>
                   <input
                     className="input"
+                    name="telefono"
                     value={form.telefono}
-                    onChange={(e) => update("telefono", e.target.value)}
+                    onChange={handleChange}
                   />
                 </div>
 
@@ -117,60 +165,35 @@ export default function PerfilCoordinador() {
                   </label>
                   <input
                     className="input"
-                    value={form.documento}
-                    onChange={(e) => update("documento", e.target.value)}
+                    name="carnet"
+                    value={form.carnet}
+                    onChange={handleChange}
                   />
                 </div>
 
-                <div className="md:col-span-3 flex items-center gap-3">
-                  <button className="btn" onClick={handleCancelar}>
+                <div className="md:col-span-3 flex items-center gap-3 mt-2">
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={handleCancelar}
+                    disabled={saving}
+                  >
                     Descartar cambios
                   </button>
-                  <button className="btn btn-primary" onClick={handleGuardar}>
-                    Guardar cambios
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            {/* 🔒 Seguridad (comentada, no se muestra en la UI)
-            <section className="card">
-              <div className="px-4 py-3 border-b">
-                <p className="font-semibold">Seguridad</p>
-              </div>
-              <form
-                className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4"
-                onSubmit={handleFakePasswordChange}
-              >
-                <input
-                  className="input"
-                  type="password"
-                  placeholder="Contraseña actual"
-                  required
-                />
-                <input
-                  className="input"
-                  type="password"
-                  placeholder="Nueva contraseña"
-                  required
-                />
-                <input
-                  className="input"
-                  type="password"
-                  placeholder="Repite nueva contraseña"
-                  required
-                />
-                <div className="md:col-span-3">
-                  <button className="btn btn-primary" type="submit">
-                    Actualizar contraseña (demo)
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={saving}
+                  >
+                    {saving ? "Guardando..." : "Guardar cambios"}
                   </button>
                 </div>
               </form>
             </section>
-            */}
           </div>
         </main>
       </div>
     </div>
   );
 }
+ 
