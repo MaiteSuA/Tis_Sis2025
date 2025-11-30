@@ -4,7 +4,9 @@ import UsuariosTabs from "../components/UsuariosTabs.jsx";
 import UsuariosTable from "../components/UsuariosTable.jsx";
 import UsuarioForm from "../components/UsuarioForm.jsx";
 import AreasModal from "../components/AreasModal.jsx";
-import Swal from 'sweetalert2';
+import MedallasModal from "../components/MedallasModal.jsx";
+import Swal from "sweetalert2";
+
 import {
   fetchResponsables,
   createResponsable,
@@ -30,33 +32,36 @@ export default function AdminUsuarios() {
   // pestaña activa del módulo usuarios (RESPONSABLE | COORDINADOR)
   const [tab, setTab] = useState("RESPONSABLE");
 
- // ÁREAS (ahora vienen de la BD, pero las guardamos como { id, nombre } para no romper nada)
-const [areas, setAreas] = useState([]);
+  // ÁREAS (ahora vienen de la BD, pero las guardamos como { id, nombre } para no romper nada)
+  const [areas, setAreas] = useState([]);
+  const [showAreasModal, setShowAreasModal] = useState(false);
 
-const [showAreasModal, setShowAreasModal] = useState(false);
-useEffect(() => {
-  const cargarAreas = async () => {
-    try {
-      const data = await fetchAreas(); // viene [{ id_area, nombre_area, ... }]
-      const adaptadas = data.map((a) => ({
-        id: Number(a.id_area),
-        nombre: a.nombre_area,
-      }));
-      setAreas(adaptadas);
-    } catch (e) {
-      console.error("Error cargando áreas:", e);
-    }
-  };
-  cargarAreas();
-}, []);
+  useEffect(() => {
+    const cargarAreas = async () => {
+      try {
+        const data = await fetchAreas(); // viene [{ id_area, nombre_area, ... }]
+        const adaptadas = data.map((a) => ({
+          id: Number(a.id_area),
+          nombre: a.nombre_area,
+        }));
+        setAreas(adaptadas);
+      } catch (e) {
+        console.error("Error cargando áreas:", e);
+      }
+    };
+    cargarAreas();
+  }, []);
+
   // ============================================================
   // MEDALLAS POR ÁREA (localStorage)
   // ============================================================
   const STORAGE_MEDALLAS_AREA = "ohsansi_medallas_por_area";
-  // estructura: { [id_area]: { oro, plata, bronce } }
+  // estructura: { [id_area]: { cantidades:{oro,plata,bronce}, puntajes:{oro,plata,bronce} } }
   const [medallasArea, setMedallasArea] = useState({});
-  const [areaSeleccionada, setAreaSeleccionada] = useState(null);
-  const [guardadoArea, setGuardadoArea] = useState(false);
+  const [showMedallasModal, setShowMedallasModal] = useState(false);
+
+  // área seleccionada para la VISUALIZACIÓN del panel "Relación de Medallas por Área"
+  const [areaVistaId, setAreaVistaId] = useState(null);
 
   // cargar medallas por área al inicio
   useEffect(() => {
@@ -71,45 +76,17 @@ useEffect(() => {
     }
   }, []);
 
-  // seleccionar un área por defecto (la primera) si aún no hay
+  // si aún no hay área seleccionada para la vista, tomar la primera disponible
   useEffect(() => {
-    if (!areaSeleccionada && areas.length > 0) {
-      setAreaSeleccionada(areas[0].id);
+    if (!areaVistaId && areas.length > 0) {
+      setAreaVistaId(areas[0].id);
     }
-  }, [areas, areaSeleccionada]);
+  }, [areas, areaVistaId]);
 
-  const handleSelectArea = (e) => {
-    setAreaSeleccionada(Number(e.target.value));
-    setGuardadoArea(false);
-  };
-
-  const onChangeMedallaArea = (campo) => (e) => {
-    const val = Math.max(0, Number(e.target.value || 0));
-    setMedallasArea((prev) => {
-      const id = areaSeleccionada;
-      if (!id) return prev;
-      const actual = prev[id] || { oro: 0, plata: 0, bronce: 0 };
-      return {
-        ...prev,
-        [id]: { ...actual, [campo]: val },
-      };
-    });
-    setGuardadoArea(false);
-  };
-
-  const guardarMedallasArea = () => {
-    localStorage.setItem(STORAGE_MEDALLAS_AREA, JSON.stringify(medallasArea));
-    setGuardadoArea(true);
-  };
-
-  const resetMedallasArea = () => {
-    if (!areaSeleccionada) return;
-    setMedallasArea((prev) => {
-      const copia = { ...prev };
-      delete copia[areaSeleccionada];
-      return copia;
-    });
-    setGuardadoArea(false);
+  const handleSaveMedallasArea = (nuevoObjeto) => {
+    setMedallasArea(nuevoObjeto);
+    localStorage.setItem(STORAGE_MEDALLAS_AREA, JSON.stringify(nuevoObjeto));
+    setShowMedallasModal(false);
   };
 
   // ============================================================
@@ -166,165 +143,160 @@ useEffect(() => {
     cargar();
   }, [tab]);
 
- // guardar (crear / editar)
-const handleSave = async (form) => {
-  try {
-    const isEditing = mode === "edit";      // 👈 usamos tu estado mode
-    const editingId = selected?.id ?? null; // id del usuario seleccionado (si lo hay)
+  // guardar (crear / editar)
+  const handleSave = async (form) => {
+    try {
+      const isEditing = mode === "edit";
+      const editingId = selected?.id ?? null;
 
-    if (isEditing && !editingId) {
-      await Swal.fire({
+      if (isEditing && !editingId) {
+        await Swal.fire({
+          title: "Error",
+          text: "No se encontró el registro a editar.",
+          icon: "error",
+        });
+        return;
+      }
+
+      if (isEditing) {
+        // 📝 EDITAR
+        if (tab === "RESPONSABLE") {
+          await updateResponsable(editingId, form);
+          const actualizados = await fetchResponsables();
+          setResponsables(actualizados);
+        } else if (tab === "COORDINADOR") {
+          await updateCoordinador(editingId, form);
+          const actualizados = await fetchCoordinadores();
+          setCoordinadores(actualizados);
+        }
+
+        await Swal.fire({
+          title: "Actualizado",
+          text: "Los datos se guardaron correctamente.",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } else {
+        // ✨ CREAR
+        if (tab === "RESPONSABLE") {
+          await createResponsable(form);
+          const actualizados = await fetchResponsables();
+          setResponsables(actualizados);
+        } else if (tab === "COORDINADOR") {
+          await createCoordinador(form);
+          const actualizados = await fetchCoordinadores();
+          setCoordinadores(actualizados);
+        }
+
+        await Swal.fire({
+          title: "Creado",
+          text: "El registro fue creado correctamente.",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      }
+
+      // cerrar formulario / limpiar selección
+      setShowForm(false);
+      setSelected(null);
+      setMode("create");
+    } catch (e) {
+      console.error("Error al guardar:", e);
+      Swal.fire({
         title: "Error",
-        text: "No se encontró el registro a editar.",
+        text: "Ocurrió un error al guardar el registro.",
         icon: "error",
       });
-      return;
     }
-
-    if (isEditing) {
-      // 📝 EDITAR
-      if (tab === "RESPONSABLE") {
-        await updateResponsable(editingId, form);
-        // refrescar lista en memoria
-        const actualizados = await fetchResponsables();
-        setResponsables(actualizados);
-      } else if (tab === "COORDINADOR") {
-        await updateCoordinador(editingId, form);
-        const actualizados = await fetchCoordinadores();
-        setCoordinadores(actualizados);
-      }
-
-      await Swal.fire({
-        title: "Actualizado",
-        text: "Los datos se guardaron correctamente.",
-        icon: "success",
-        timer: 1500,
-        showConfirmButton: false,
-      });
-
-    } else {
-      // ✨ CREAR
-      if (tab === "RESPONSABLE") {
-        await createResponsable(form);
-        const actualizados = await fetchResponsables();
-        setResponsables(actualizados);
-      } else if (tab === "COORDINADOR") {
-        await createCoordinador(form);
-        const actualizados = await fetchCoordinadores();
-        setCoordinadores(actualizados);
-      }
-
-      await Swal.fire({
-        title: "Creado",
-        text: "El registro fue creado correctamente.",
-        icon: "success",
-        timer: 1500,
-        showConfirmButton: false,
-      });
-    }
-
-    // cerrar formulario / limpiar selección
-    setShowForm(false);
-    setSelected(null);
-    setMode("create");
-
-  } catch (e) {
-    console.error("Error al guardar:", e);
-    Swal.fire({
-      title: "Error",
-      text: "Ocurrió un error al guardar el registro.",
-      icon: "error",
-    });
-  }
-};
+  };
 
   // lista actual según pestaña
   const rows = tab === "RESPONSABLE" ? responsables : coordinadores;
 
- // eliminar
-const handleDelete = async (row) => {
-  const id = row?.id;
-  if (!id) return;
+  // eliminar
+  const handleDelete = async (row) => {
+    const id = row?.id;
+    if (!id) return;
 
-  try {
-    // Confirmación
-    const result = await Swal.fire({
-      title: '¿Eliminar registro?',
-      text: 'Esta acción no se puede deshacer.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar',
-      reverseButtons: true,
-    });
-
-    if (!result.isConfirmed) {
-      return; // el usuario canceló
-    }
-
-    //  Eliminar según la pestaña
-    if (tab === "RESPONSABLE") {
-      await deleteResponsable(id);
-      setResponsables((prev) => prev.filter((x) => x.id !== id));
-
-      await Swal.fire({
-        title: 'Eliminado',
-        text: 'El responsable fue eliminado correctamente.',
-        icon: 'success',
-        timer: 1500,
-        showConfirmButton: false,
+    try {
+      // Confirmación
+      const result = await Swal.fire({
+        title: "¿Eliminar registro?",
+        text: "Esta acción no se puede deshacer.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar",
+        reverseButtons: true,
       });
 
-    } else if (tab === "COORDINADOR") {
-      await deleteCoordinador(id);
-      setCoordinadores((prev) => prev.filter((x) => x.id !== id));
+      if (!result.isConfirmed) {
+        return; // el usuario canceló
+      }
 
-      await Swal.fire({
-        title: 'Eliminado',
-        text: 'El coordinador fue eliminado correctamente.',
-        icon: 'success',
-        timer: 1500,
-        showConfirmButton: false,
+      //  Eliminar según la pestaña
+      if (tab === "RESPONSABLE") {
+        await deleteResponsable(id);
+        setResponsables((prev) => prev.filter((x) => x.id !== id));
+
+        await Swal.fire({
+          title: "Eliminado",
+          text: "El responsable fue eliminado correctamente.",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } else if (tab === "COORDINADOR") {
+        await deleteCoordinador(id);
+        setCoordinadores((prev) => prev.filter((x) => x.id !== id));
+
+        await Swal.fire({
+          title: "Eliminado",
+          text: "El coordinador fue eliminado correctamente.",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      }
+
+      // limpiar formulario si estaba seleccionado
+      if (selected && selected.id === id) {
+        setShowForm(false);
+        setSelected(null);
+      }
+    } catch (e) {
+      console.error("Error al eliminar:", e);
+      Swal.fire({
+        title: "Error",
+        text: "No se pudo eliminar el registro.",
+        icon: "error",
+      });
+    }
+  };
+
+  const handleEdit = (row) => {
+    if (!row) {
+      return Swal.fire({
+        title: "Error",
+        text: "No se seleccionó ningún registro para editar.",
+        icon: "error",
       });
     }
 
-    // limpiar formulario si estaba seleccionado
-    if (selected && selected.id === id) {
-      setShowForm(false);
-      setSelected(null);
-    }
-
-  } catch (e) {
-    console.error("Error al eliminar:", e);
     Swal.fire({
-      title: 'Error',
-      text: 'No se pudo eliminar el registro.',
-      icon: 'error',
+      title: "Modo edición",
+      text: `Estás editando a ${row.nombres} ${row.apellidos}`,
+      icon: "info",
+      timer: 1200,
+      showConfirmButton: false,
     });
-  }
-};
 
-const handleEdit = (row) => {
-  if (!row) {
-    return Swal.fire({
-      title: "Error",
-      text: "No se seleccionó ningún registro para editar.",
-      icon: "error",
-    });
-  }
-
-  Swal.fire({
-    title: "Modo edición",
-    text: `Estás editando a ${row.nombres} ${row.apellidos}`,
-    icon: "info",
-    timer: 1200,
-    showConfirmButton: false,
-  });
-
-  setSelected(row);
-  setMode("edit");
-  setShowForm(true);
-};
+    setSelected(row);
+    setMode("edit");
+    setShowForm(true);
+  };
 
   const handleCreate = () => {
     setSelected(null);
@@ -332,62 +304,68 @@ const handleEdit = (row) => {
     setShowForm(true);
   };
 
- // ---- Handlers para ÁREAS (con backend) ----
-const handleCreateArea = async (nombre) => {
-  try {
-    const creada = await apiCreateArea(nombre); // POST /api/areas
-    const nueva = {
-      id: Number(creada.id_area),
-      nombre: creada.nombre_area,
-    };
-    setAreas((prev) => [...prev, nueva]);
-  } catch (e) {
-    console.error("Error creando área:", e);
-    Swal.fire({
-      title: "Error",
-      text: "No se pudo crear el área.",
-      icon: "error",
-    });
-  }
-};
+  // ---- Handlers para ÁREAS (con backend) ----
+  const handleCreateArea = async (nombre) => {
+    try {
+      const creada = await apiCreateArea(nombre); // POST /api/areas
+      const nueva = {
+        id: Number(creada.id_area),
+        nombre: creada.nombre_area,
+      };
+      setAreas((prev) => [...prev, nueva]);
+    } catch (e) {
+      console.error("Error creando área:", e);
+      Swal.fire({
+        title: "Error",
+        text: "No se pudo crear el área.",
+        icon: "error",
+      });
+    }
+  };
 
-const handleUpdateArea = async (id, nombre) => {
-  try {
-    const actualizada = await apiUpdateArea(id, nombre); // PUT /api/areas/:id
-    const adaptada = {
-      id: Number(actualizada.id_area),
-      nombre: actualizada.nombre_area,
-    };
-    setAreas((prev) =>
-      prev.map((a) => (a.id === id ? adaptada : a))
-    );
-  } catch (e) {
-    console.error("Error actualizando área:", e);
-    Swal.fire({
-      title: "Error",
-      text: "No se pudo renombrar el área.",
-      icon: "error",
-    });
-  }
-};
+  const handleUpdateArea = async (id, nombre) => {
+    try {
+      const actualizada = await apiUpdateArea(id, nombre); // PUT /api/areas/:id
+      const adaptada = {
+        id: Number(actualizada.id_area),
+        nombre: actualizada.nombre_area,
+      };
+      setAreas((prev) => prev.map((a) => (a.id === id ? adaptada : a)));
+    } catch (e) {
+      console.error("Error actualizando área:", e);
+      Swal.fire({
+        title: "Error",
+        text: "No se pudo renombrar el área.",
+        icon: "error",
+      });
+    }
+  };
 
-const handleDeleteArea = async (id) => {
-  try {
-    await apiDeleteArea(id); // DELETE /api/areas/:id
-    setAreas((prev) => prev.filter((a) => a.id !== id));
-  } catch (e) {
-    console.error("Error eliminando área:", e);
-    Swal.fire({
-      title: "Error",
-      text: "No se pudo eliminar el área.",
-      icon: "error",
-    });
-  }
-};
+  const handleDeleteArea = async (id) => {
+    try {
+      await apiDeleteArea(id); // DELETE /api/areas/:id
+      setAreas((prev) => prev.filter((a) => a.id !== id));
+    } catch (e) {
+      console.error("Error eliminando área:", e);
+      Swal.fire({
+        title: "Error",
+        text: "No se pudo eliminar el área.",
+        icon: "error",
+      });
+    }
+  };
 
   // ============================================================
   // RENDER
   // ============================================================
+  // datos de cantidades para el área seleccionada (solo VISUALIZACIÓN)
+  const cantidadesVista =
+    (areaVistaId && medallasArea[areaVistaId]?.cantidades) || {
+      oro: 0,
+      plata: 0,
+      bronce: 0,
+    };
+
   return (
     <AdminLayout>
       <div className="flex items-center justify-between mb-2">
@@ -402,14 +380,20 @@ const handleDeleteArea = async (id) => {
 
       {/* KPIs y estado */}
       <section className="space-y-4">
-        {/* Número de usuarios + botón áreas */}
+        {/* Número de usuarios + botones de configuración */}
         <div className="panel flex items-center gap-4">
           <div>
             <label className="section">Número de Usuarios Registrados</label>
             <input disabled value={rows.length} className="kpi-input w-40" />
           </div>
 
-          <div className="ml-auto">
+          <div className="ml-auto flex gap-2">
+            <button
+              className="btn-light"
+              onClick={() => setShowMedallasModal(true)}
+            >
+              Parametrizar medallas
+            </button>
             <button
               className="btn-light"
               onClick={() => setShowAreasModal(true)}
@@ -419,7 +403,7 @@ const handleDeleteArea = async (id) => {
           </div>
         </div>
 
-        {/* Medallas POR ÁREA */}
+        {/* Relación de Medallas por Área (SOLO VISUALIZACIÓN) */}
         <div className="panel">
           <p className="section">Relación de Medallas por Área</p>
 
@@ -428,8 +412,8 @@ const handleDeleteArea = async (id) => {
             <div className="flex items-center gap-2">
               <span className="text-gray-700 text-sm">Área:</span>
               <select
-                value={areaSeleccionada ?? ""}
-                onChange={handleSelectArea}
+                value={areaVistaId ?? ""}
+                onChange={(e) => setAreaVistaId(Number(e.target.value))}
                 className="kpi-input min-w-[160px]"
               >
                 {areas.map((a) => (
@@ -440,74 +424,38 @@ const handleDeleteArea = async (id) => {
               </select>
             </div>
 
-            {/* inputs oro/plata/bronce para el área seleccionada */}
-            {(() => {
-              const m =
-                medallasArea[areaSeleccionada] || {
-                  oro: 0,
-                  plata: 0,
-                  bronce: 0,
-                };
+            {/* valores solo lectura */}
+            <div className="flex items-center gap-6 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-700 w-14">Oro:</span>
+                <input
+                  type="number"
+                  disabled
+                  value={cantidadesVista.oro}
+                  className="kpi-input w-20 bg-gray-100 cursor-default"
+                />
+              </div>
 
-              return (
-                <div className="flex items-center gap-6 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-700 w-14">Oro:</span>
-                    <input
-                      type="number"
-                      min={0}
-                      value={m.oro}
-                      onChange={onChangeMedallaArea("oro")}
-                      className="kpi-input w-20"
-                    />
-                  </div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-700 w-14">Plata:</span>
+                <input
+                  type="number"
+                  disabled
+                  value={cantidadesVista.plata}
+                  className="kpi-input w-20 bg-gray-100 cursor-default"
+                />
+              </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-700 w-14">Plata:</span>
-                    <input
-                      type="number"
-                      min={0}
-                      value={m.plata}
-                      onChange={onChangeMedallaArea("plata")}
-                      className="kpi-input w-20"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-700 w-14">Bronce:</span>
-                    <input
-                      type="number"
-                      min={0}
-                      value={m.bronce}
-                      onChange={onChangeMedallaArea("bronce")}
-                      className="kpi-input w-20"
-                    />
-                  </div>
-
-                  <div className="ml-auto flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={guardarMedallasArea}
-                      className="btn-dark px-4 py-2 rounded-xl hover:bg-gray-800 transition-colors text-sm"
-                    >
-                      Guardar por área
-                    </button>
-                    <button
-                      type="button"
-                      onClick={resetMedallasArea}
-                      className="btn-light px-4 py-2 rounded-xl text-sm"
-                    >
-                      Restablecer área
-                    </button>
-                    {guardadoArea && (
-                      <span className="text-green-600 text-sm">
-                        ✓ Guardado
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
+              <div className="flex items-center gap-2">
+                <span className="text-gray-700 w-14">Bronce:</span>
+                <input
+                  type="number"
+                  disabled
+                  value={cantidadesVista.bronce}
+                  className="kpi-input w-20 bg-gray-100 cursor-default"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -547,11 +495,11 @@ const handleDeleteArea = async (id) => {
                 Guardar Cambios
               </button>
 
-                {savedProceso && (
-                  <span className="text-green-600 text-sm whitespace-nowrap">
-                    ✓ Guardado
-                  </span>
-                )}
+              {savedProceso && (
+                <span className="text-green-600 text-sm whitespace-nowrap">
+                  ✓ Guardado
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -607,6 +555,15 @@ const handleDeleteArea = async (id) => {
           onCreate={handleCreateArea}
           onUpdate={handleUpdateArea}
           onDelete={handleDeleteArea}
+        />
+      )}
+
+      {showMedallasModal && (
+        <MedallasModal
+          areas={areas}
+          data={medallasArea}
+          onSave={handleSaveMedallasArea}
+          onClose={() => setShowMedallasModal(false)}
         />
       )}
     </AdminLayout>
