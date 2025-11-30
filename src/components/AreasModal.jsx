@@ -11,9 +11,13 @@ export default function AreasModal({
   const [editId, setEditId] = useState(null);
   const [editNombre, setEditNombre] = useState("");
 
+  // Soporta tanto { id, nombre } como { id_area, nombre_area }
+  const getId = (a) => a.id_area ?? a.id;
+  const getNombre = (a) => a.nombre_area ?? a.nombre;
+
   const startEdit = (area) => {
-    setEditId(area.id);
-    setEditNombre(area.nombre);
+    setEditId(getId(area));
+    setEditNombre(getNombre(area) || "");
   };
 
   const cancelEdit = () => {
@@ -64,60 +68,64 @@ export default function AreasModal({
             </p>
           )}
 
-          {areas.map((a) => (
-            <div
-              key={a.id}
-              className="flex items-center justify-between gap-2 bg-gray-50 rounded-xl px-3 py-2"
-            >
-              {editId === a.id ? (
-                <form
-                  onSubmit={handleUpdate}
-                  className="flex items-center gap-2 flex-1"
-                >
-                  <input
-                    className="flex-1 px-2 py-1 rounded-lg border text-sm"
-                    value={editNombre}
-                    onChange={(e) => setEditNombre(e.target.value)}
-                    autoFocus
-                  />
-                  <button
-                    type="submit"
-                    className="px-3 py-1 rounded-lg bg-black text-white text-xs"
+          {areas.map((a) => {
+            const id = getId(a);
+            const nombre = getNombre(a);
+
+            return (
+              <div
+                key={id}
+                className="flex items-center justify-between gap-2 bg-gray-50 rounded-xl px-3 py-2"
+              >
+                {editId === id ? (
+                  <form
+                    onSubmit={handleUpdate}
+                    className="flex items-center gap-2 flex-1"
                   >
-                    Guardar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={cancelEdit}
-                    className="px-3 py-1 rounded-lg bg-gray-200 text-xs"
-                  >
-                    Cancelar
-                  </button>
-                </form>
-              ) : (
-                <>
-                  <span className="text-sm text-gray-800 flex-1">
-                    {a.nombre}
-                  </span>
-                  <div className="flex gap-2">
+                    <input
+                      className="flex-1 px-2 py-1 rounded-lg border text-sm"
+                      value={editNombre}
+                      onChange={(e) => setEditNombre(e.target.value)}
+                      autoFocus
+                    />
                     <button
-                      onClick={() => startEdit(a)}
-                      className="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300 text-xs"
+                      type="submit"
+                      className="px-3 py-1 rounded-lg bg-black text-white text-xs"
                     >
-                      Renombrar
+                      Guardar
                     </button>
                     <button
-                      onClick={() => handleDelete(a.id)}
-                      //className="px-3 py-1 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs"
-                      className="btn-dark px-3 py-1 rounded-md hover:bg-gray-800 transition-colors"
+                      type="button"
+                      onClick={cancelEdit}
+                      className="px-3 py-1 rounded-lg bg-gray-200 text-xs"
                     >
-                      Eliminar
+                      Cancelar
                     </button>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
+                  </form>
+                ) : (
+                  <>
+                    <span className="text-sm text-gray-800 flex-1">
+                      {nombre}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => startEdit(a)}
+                        className="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300 text-xs"
+                      >
+                        Renombrar
+                      </button>
+                      <button
+                        onClick={() => handleDelete(id)}
+                        className="btn-dark px-3 py-1 rounded-md hover:bg-gray-800 transition-colors"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         <form onSubmit={handleCreate} className="flex items-center gap-2 pt-2">
