@@ -6,36 +6,7 @@ import ActionButton from "../components/action_button";
 import MetricCard from "../components/metric_card";
 import Header from "../components/header";
 
-// En .env: VITE_API_URL=http://localhost:3000/api
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
-
-/** Obtiene un nombre de usuario probable desde localStorage */
-function readUserNameFromLocalStorage() {
-  const candidateKeys = ["userName", "username", "usuario", "user", "auth", "currentUser"];
-  for (const key of candidateKeys) {
-    const raw = localStorage.getItem(key);
-    if (!raw) continue;
-
-    // Si es una cadena simple (no JSON) la usamos directo
-    const looksLikeJSON = raw.trim().startsWith("{") || raw.trim().startsWith("[");
-    if (!looksLikeJSON && raw.trim()) return raw.replace(/"/g, "").trim();
-
-    // Si es JSON, intentamos parsear y encontrar un nombre
-    try {
-      const obj = JSON.parse(raw);
-      const name =
-        obj?.name ||
-        obj?.nombre ||
-        obj?.usuario ||
-        [obj?.firstName, obj?.lastName].filter(Boolean).join(" ") ||
-        [obj?.nombres, obj?.apellidos].filter(Boolean).join(" ");
-      if (name && String(name).trim()) return String(name).trim();
-    } catch {
-      // ignorar parse error y continuar
-    }
-  }
-  return null;
-}
 
 export default function RegistrarNotasReplanteado() {
   const [evaluaciones, setEvaluaciones] = useState([]);
@@ -48,8 +19,77 @@ export default function RegistrarNotasReplanteado() {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
 
-  // Nombre del evaluador (usuario logueado)
-  const [nombreEvaluador, setNombreEvaluador] = useState(readUserNameFromLocalStorage());
+  // ============================
+  //   NOMBRE DEL EVALUADOR
+  // ============================
+  const [nombreEvaluador, setNombreEvaluador] = useState("");
+
+  useEffect(() => {
+    const cargarNombreEvaluador = async () => {
+      try {
+        // Primero intentar desde localStorage
+        const usuarioStr = localStorage.getItem("usuario");
+        console.log("📝 localStorage 'usuario':", usuarioStr);
+        
+        if (usuarioStr) {
+          const usuario = JSON.parse(usuarioStr);
+          console.log("👤 Usuario parseado:", usuario);
+          
+          const nombre = usuario.nombre ?? "";
+          const apellidos = usuario.apellidos ?? usuario.apellido ?? "";
+          const full = `${nombre} ${apellidos}`.trim();
+          
+          if (full) {
+            console.log("✅ Nombre desde localStorage:", full);
+            setNombreEvaluador(full);
+            return;
+          }
+        }
+
+        // Si no hay datos válidos en localStorage, obtener desde API
+        console.log("🔄 Obteniendo usuario desde API...");
+        const token = localStorage.getItem("token");
+        
+        if (!token) {
+          console.warn("⚠️ No hay token, usando nombre por defecto");
+          setNombreEvaluador("Evaluador");
+          return;
+        }
+
+        const res = await fetch(`${API_BASE_URL}/auth/me`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ok && data.usuario) {
+            const nombre = data.usuario.nombre ?? "";
+            const apellidos = data.usuario.apellidos ?? data.usuario.apellido ?? "";
+            const full = `${nombre} ${apellidos}`.trim();
+            
+            console.log("✅ Nombre desde API:", full);
+            setNombreEvaluador(full || "Evaluador");
+            
+            // Actualizar localStorage
+            localStorage.setItem("usuario", JSON.stringify(data.usuario));
+          } else {
+            setNombreEvaluador("Evaluador");
+          }
+        } else {
+          console.warn("⚠️ Error al obtener usuario desde API");
+          setNombreEvaluador("Evaluador");
+        }
+
+      } catch (err) {
+        console.error("❌ Error al cargar nombre del evaluador:", err);
+        setNombreEvaluador("Evaluador");
+      }
+    };
+
+    cargarNombreEvaluador();
+  }, []);
 
   // ============================
   //   CARGA DE DATOS DESDE BACK
@@ -89,37 +129,12 @@ export default function RegistrarNotasReplanteado() {
     cargarDatos();
   }, []);
 
-  // Intento opcional: si no hay nombre en localStorage, consultar /auth/me con token
-  useEffect(() => {
-    const tryFetchMe = async () => {
-      if (nombreEvaluador) return; // ya tenemos algo
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      try {
-        const res = await fetch(`${API_BASE_URL}/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const me = await res.json();
-          const name =[me?.nombre, me?.apellidos].filter(Boolean).join(" ").trim();
-
-          if (name && String(name).trim()) setNombreEvaluador(String(name).trim());
-        }
-      } catch {
-        // Silencioso: si falla, simplemente dejamos el fallback
-      }
-    };
-    tryFetchMe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [API_BASE_URL]);
-
   // ============================
   //   MÉTRICAS
   // ============================
   const totalAsignados = evaluaciones.length;
   const totalPendientes = evaluaciones.filter((e) => e.estado === "Pendiente").length;
-  const totalHechas = evaluaciones.filter((e) => String(e.nota).trim() !== "").length;
+  const totalHechas = evaluaciones.filter((e) => String(e.nota ?? "").trim() !== "").length;
 
   // ============================
   //   COLUMNAS
@@ -152,8 +167,12 @@ export default function RegistrarNotasReplanteado() {
     () =>
       evaluaciones.filter(
         (r) =>
-          (r.competidor || "").toLowerCase().includes(busqEval.toLowerCase()) ||
-          (r.observacion || "").toLowerCase().includes(busqEval.toLowerCase())
+          (r.competidor || "")
+            .toLowerCase()
+            .includes(busqEval.toLowerCase()) ||
+          (r.observacion || "")
+            .toLowerCase()
+            .includes(busqEval.toLowerCase())
       ),
     [evaluaciones, busqEval]
   );
@@ -162,8 +181,12 @@ export default function RegistrarNotasReplanteado() {
     () =>
       historial.filter(
         (r) =>
-          (r.competidor || "").toLowerCase().includes(busqHist.toLowerCase()) ||
-          (r.usuario || "").toLowerCase().includes(busqHist.toLowerCase())
+          (r.competidor || "")
+            .toLowerCase()
+            .includes(busqHist.toLowerCase()) ||
+          (r.usuario || "")
+            .toLowerCase()
+            .includes(busqHist.toLowerCase())
       ),
     [historial, busqHist]
   );
@@ -172,11 +195,12 @@ export default function RegistrarNotasReplanteado() {
   //   HANDLERS
   // ============================
   const onCellChange = (id, field, value) =>
-    setEvaluaciones((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
+    setEvaluaciones((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
+    );
 
   const handleGuardarCambios = async (e) => {
-    if (e && e.preventDefault) e.preventDefault(); // evita comportamiento por defecto
-
+    if (e && e.preventDefault) e.preventDefault();
     try {
       setMensajeGuardado("");
       setError("");
@@ -192,10 +216,10 @@ export default function RegistrarNotasReplanteado() {
       }
 
       const json = await res.json();
-      const message = (json && (json.message || json.msg)) || "Cambios guardados correctamente";
+      const message =
+        (json && (json.message || json.msg)) || "Cambios guardados correctamente";
 
       setMensajeGuardado(message);
-      // luego de guardar, recargamos historial para ver los cambios nuevos
       await cargarDatos();
 
       setTimeout(() => setMensajeGuardado(""), 2000);
@@ -208,30 +232,31 @@ export default function RegistrarNotasReplanteado() {
   // ============================
   //   RENDER
   // ============================
+  const nombreSeguro = typeof nombreEvaluador === "string" ? nombreEvaluador : "";
+  const avatarLetter = (nombreSeguro.trim()[0] || "E").toUpperCase();
+
   return (
     <div className="min-h-screen bg-gray-100 pt-30 p-6">
       <Header />
 
       <div className="bg-gray-200 rounded-lg max-w-7xl mx-auto space-y-6 p-5">
-        {/* BLOQUE: Información del evaluador con nombre + apellidos */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold select-none">
-            {(nombreEvaluador?.split(" ")[0]?.[0] || "E").toUpperCase()}
-          </div>
-
-          <div>
-            <div className="text-sm text-slate-500 leading-tight">Evaluador</div>
-            <div className="text-base sm:text-lg font-semibold text-slate-800">
-              {nombreEvaluador || "Sin nombre"}
+        {/* Bloque de usuario */}
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold select-none">
+              {avatarLetter}
+            </div>
+            <div>
+              <div className="text-sm text-slate-500 leading-tight">Evaluador</div>
+              <div className="text-base sm:text-lg font-semibold text-slate-800">
+                {nombreSeguro || "Evaluador"}
+              </div>
             </div>
           </div>
+          <div className="text-xs sm:text-sm text-slate-500">
+            Sesión activa · {new Date().toLocaleDateString()}
+          </div>
         </div>
-
-        <div className="text-xs sm:text-sm text-slate-500">
-          Sesión activa · {new Date().toLocaleDateString()}
-        </div>
-      </div>
 
         {/* Encabezado superior: Dashboard / Área / Nivel */}
         <div className="flex flex-wrap items-center justify-between gap-6 bg-gray-200 rounded-lg p-4 mb-4">
@@ -283,7 +308,6 @@ export default function RegistrarNotasReplanteado() {
 
         {/* EVALUACIONES */}
         <section className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          {/* header de sección */}
           <div className="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-slate-200 sticky top-0 bg-white z-10 rounded-t-xl">
             <h2 className="text-lg sm:text-xl font-bold text-black">
               Lista de Evaluaciones - Clasificatoria
@@ -291,7 +315,6 @@ export default function RegistrarNotasReplanteado() {
             <SearchBar value={busqEval} onChange={setBusqEval} />
           </div>
 
-          {/* tabla */}
           <div className="max-h-[210px] overflow-y-auto overscroll-contain p-4">
             <ExcelGrid
               columns={columnsEval}
@@ -301,14 +324,18 @@ export default function RegistrarNotasReplanteado() {
             />
           </div>
 
-          {/* acciones */}
           <div className="flex flex-wrap items-center justify-between gap-2 p-4 border-t border-slate-200 bg-gray-200 rounded-b-xl">
             <div className="text-xs text-slate-500">
-              {totalAsignados} registros · {totalPendientes} pendientes · {totalHechas} con nota
+              {totalAsignados} registros · {totalPendientes} pendientes ·{" "}
+              {totalHechas} con nota
             </div>
             <div className="flex gap-2">
               <ActionButton type="edit" label="Editar" />
-              <ActionButton type="save" label="Guardar cambios" onClick={handleGuardarCambios} />
+              <ActionButton
+                type="save"
+                label="Guardar cambios"
+                onClick={handleGuardarCambios}
+              />
               <ActionButton type="export" label="Exportar" />
             </div>
           </div>
@@ -325,10 +352,14 @@ export default function RegistrarNotasReplanteado() {
               columns={columnsHist}
               data={dataHist}
               onCellChange={(id, f, v) =>
-                setHistorial((prev) => prev.map((r) => (r.id === id ? { ...r, [f]: v } : r)))
+                setHistorial((prev) =>
+                  prev.map((r) => (r.id === id ? { ...r, [f]: v } : r))
+                )
               }
               onDeleteRow={(id) =>
-                setHistorial((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== id) : prev))
+                setHistorial((prev) =>
+                  prev.length > 1 ? prev.filter((r) => r.id !== id) : prev
+                )
               }
               onAddRow={() => {
                 const hoy = new Date().toISOString().split("T")[0];
