@@ -95,46 +95,61 @@ export default function RegistrarNotasReplanteado() {
   //   CARGA DE DATOS DESDE BACK
   // ============================
   const cargarDatos = async () => {
-    try {
-      setCargando(true);
-      setError("");
+  try {
+    setCargando(true);
+    setError("");
 
-      // Evaluaciones
-      const resEval = await fetch(`${API_BASE_URL}/evaluaciones`);
-      if (!resEval.ok) {
-        throw new Error(`Error al obtener evaluaciones: ${resEval.status}`);
-      }
-      const jsonEval = await resEval.json();
-      const dataEval = Array.isArray(jsonEval) ? jsonEval : jsonEval.data ?? [];
-      setEvaluaciones(dataEval);
+    // 🔐 Tomamos el token del localStorage
+    const token = localStorage.getItem("token");
+    const authHeaders = token
+      ? { Authorization: `Bearer ${token}` }
+      : {};
 
-      // Historial
-      const resHist = await fetch(`${API_BASE_URL}/evaluaciones/historial`);
-      if (resHist.ok) {
-        const jsonHist = await resHist.json();
-        const dataHist = Array.isArray(jsonHist) ? jsonHist : jsonHist.data ?? [];
-        setHistorial(dataHist);
-      } else {
-        setHistorial([]);
-      }
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Error al cargar datos");
-    } finally {
-      setCargando(false);
+    // 📥 Evaluaciones
+    const resEval = await fetch(`${API_BASE_URL}/evaluaciones`, {
+      headers: authHeaders,
+    });
+    if (!resEval.ok) {
+      throw new Error(`Error al obtener evaluaciones: ${resEval.status}`);
     }
-  };
+    const jsonEval = await resEval.json();
+    const dataEval = Array.isArray(jsonEval) ? jsonEval : jsonEval.data ?? [];
+    setEvaluaciones(dataEval);
+
+    // 📥 Historial
+    const resHist = await fetch(`${API_BASE_URL}/evaluaciones/historial`, {
+      headers: authHeaders,
+    });
+    if (resHist.ok) {
+      const jsonHist = await resHist.json();
+      const dataHist = Array.isArray(jsonHist) ? jsonHist : jsonHist.data ?? [];
+      setHistorial(dataHist);
+    } else {
+      setHistorial([]);
+    }
+  } catch (err) {
+    console.error(err);
+    setError(err.message || "Error al cargar datos");
+  } finally {
+    setCargando(false);
+  }
+};
+
 
   useEffect(() => {
     cargarDatos();
   }, []);
 
-  // ============================
-  //   MÉTRICAS
-  // ============================
-  const totalAsignados = evaluaciones.length;
-  const totalPendientes = evaluaciones.filter((e) => e.estado === "Pendiente").length;
-  const totalHechas = evaluaciones.filter((e) => String(e.nota ?? "").trim() !== "").length;
+// ============================
+//   MÉTRICAS
+// ============================
+    const totalAsignados = evaluaciones.length;
+
+    const totalHechas = evaluaciones.filter(
+      (e) => String(e.nota ?? "").trim() !== ""
+    ).length;
+
+    const totalPendientes = totalAsignados - totalHechas;
 
   // ============================
   //   COLUMNAS
@@ -164,8 +179,17 @@ export default function RegistrarNotasReplanteado() {
   //   DATOS FILTRADOS
   // ============================
   const dataEval = useMemo(
-    () =>
-      evaluaciones.filter(
+  () =>
+    evaluaciones
+      .map((r) => {
+        const tieneNota = String(r.nota ?? "").trim() !== "";
+        return {
+          ...r,
+          // 👉 estado siempre calculado desde la nota
+          estado: tieneNota ? "Calificado" : "Pendiente",
+        };
+      })
+      .filter(
         (r) =>
           (r.competidor || "")
             .toLowerCase()
@@ -173,9 +197,10 @@ export default function RegistrarNotasReplanteado() {
           (r.observacion || "")
             .toLowerCase()
             .includes(busqEval.toLowerCase())
-      ),
-    [evaluaciones, busqEval]
-  );
+        ),
+       [evaluaciones, busqEval]
+    );
+
 
   const dataHist = useMemo(
     () =>
@@ -191,13 +216,26 @@ export default function RegistrarNotasReplanteado() {
     [historial, busqHist]
   );
 
-  // ============================
-  //   HANDLERS
-  // ============================
-  const onCellChange = (id, field, value) =>
-    setEvaluaciones((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, [field]: value } : r))
-    );
+// ============================
+//   HANDLERS
+// ============================
+const onCellChange = (id, field, value) =>
+  setEvaluaciones((prev) =>
+    prev.map((r) => {
+      if (r.id !== id) return r;
+
+      const updated = { ...r, [field]: value };
+
+      // Si cambia la nota, recalculamos el estado
+      if (field === "nota") {
+        const tieneNota = String(value ?? "").trim() !== "";
+        updated.estado = tieneNota ? "Calificado" : "Pendiente";
+      }
+
+      return updated;
+    })
+  );
+
 
   const handleGuardarCambios = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
@@ -205,12 +243,17 @@ export default function RegistrarNotasReplanteado() {
       setMensajeGuardado("");
       setError("");
 
+      const token = localStorage.getItem("token");
+      const headers = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
       const res = await fetch(`${API_BASE_URL}/evaluaciones`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(evaluaciones),
       });
-
       if (!res.ok) {
         throw new Error(`Error al guardar cambios: ${res.status}`);
       }
