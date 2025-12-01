@@ -2,8 +2,9 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "../pages/Home.jsx";
 import Login from "../pages/Login.jsx";
 import Evaluadores from "../pages/Evaluadores.jsx";
-import Resultados from "../pages/Resultados.jsx";
+
 import Medallero from "../pages/Medallero.jsx";
+import Clasificados from "../pages/Clasificados.jsx";
 import Forbidden from "../pages/Forbidden.jsx";
 import AdminUsuarios from "../pages/AdminUsuarios.jsx";
 import AdminLog from "../pages/AdminLog.jsx";
@@ -18,6 +19,13 @@ import PerfilCoordinador from "../pages/Coordinador/PerfilCoordinador.jsx";
 import RegistroResponsablesArea from "../pages/Coordinador/RegistroResponsablesArea.jsx";
 import InicioExclusivo from "../components/InicioExclusivo.jsx";
 import LoginModal from "../components/LoginModal.jsx";
+import ResponsableDocumentosClasificados from "../pages/ResponsableDocumentosClasificados.jsx";
+import ResponsableMedallero from "../pages/ResponsableMedallero.jsx";
+//import Medallero from "./pages/Medallero.jsx";
+//import Clasificados from "./pages/Clasificados.jsx";
+
+// ...
+
 
 export default function AppRouter() {
   return (
@@ -25,7 +33,7 @@ export default function AppRouter() {
       {/* Públicas */}
       <Route path="/" element={<Home />} />
       <Route path="/evaluadores" element={<Evaluadores />} />
-      <Route path="/resultados" element={<Resultados />} />
+      <Route path="/clasificados" element={<Clasificados />} />
       <Route path="/medallero" element={<Medallero />} />
       <Route path="/login" element={<Login />} />
       <Route path="/inicio-exclusivo" element={<InicioExclusivo />} />
@@ -53,6 +61,15 @@ export default function AppRouter() {
         path="/coordinador/importar-inscritos"
         element={<ImportarInscritos />}
       />
+      <Route
+  path="/ResponsableDocumentosClasificados"
+  element={<ResponsableDocumentosClasificados />}
+/>
+      <Route
+  path="/ResponsableMedallero"
+  element={<ResponsableMedallero/>}
+/>
+
       <Route path="/evaluador" element={<RegistrarNotasReplanteado />} />
       <Route path="/responsable" element={<ResponsableArea />} />
       {/* Protegidas por rol */}
