@@ -1,11 +1,12 @@
-// src/pages/Medallero.jsx
+// src/pages/Clasificados.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-// AJUSTA esta URL a tu backend real
-const API_MEDALLERO = "http://localhost:3000/api/publico/medallero";
+// Endpoint público que devolverá TODOS los documentos publicados
+// AJUSTA esta URL a tu backend real:
+const API_CLASIFICADOS = "http://localhost:3000/api/publico/clasificados";//andreas cambias aca tu api que le pongasss
 
-export default function Medallero() {
+export default function Clasificados() {
   const navigate = useNavigate();
 
   const [docs, setDocs] = useState([]);
@@ -19,9 +20,9 @@ export default function Medallero() {
         setLoading(true);
         setError("");
 
-        const resp = await fetch(API_MEDALLERO);
+        const resp = await fetch(API_CLASIFICADOS);
         if (!resp.ok) {
-          throw new Error("No se pudo obtener el medallero");
+          throw new Error("No se pudo obtener los clasificados");
         }
 
         const data = await resp.json();
@@ -32,7 +33,7 @@ export default function Medallero() {
       } catch (e) {
         console.error(e);
         setError(
-          e.message || "Ocurrió un error al cargar los documentos del medallero."
+          e.message || "Ocurrió un error al cargar los documentos de clasificados."
         );
         setDocs([]);
         setSelectedIndex(-1);
@@ -45,6 +46,7 @@ export default function Medallero() {
   const hayDocumentos = docs.length > 0;
   const current = hayDocumentos && selectedIndex >= 0 ? docs[selectedIndex] : null;
 
+  // helper para saber si el tipo es imagen o pdf
   const esPdf = (doc) =>
     doc?.tipo_archivo === "application/pdf" ||
     doc?.nombre_archivo?.toLowerCase().endsWith(".pdf");
@@ -57,6 +59,7 @@ export default function Medallero() {
 
   const handleDescargar = () => {
     if (!current) return;
+    // abre en nueva pestaña (el navegador se encargará de descargar / mostrar)
     window.open(current.url_archivo, "_blank");
   };
 
@@ -64,18 +67,16 @@ export default function Medallero() {
     <div className="min-h-screen bg-gray-100 flex flex-col">
       <main className="flex-1 max-w-6xl mx-auto py-8 px-4">
         <h1 className="text-2xl md:text-3xl font-bold mb-2">
-          Medallero oficial
+          Clasificados oficiales
         </h1>
 
         <p className="text-sm text-gray-600 mb-4">
-          Aquí se muestran todos los documentos oficiales
-          
+          Documentos Oficiales 
+          (clasificados).
         </p>
 
         {loading && (
-          <div className="mt-4 text-gray-600 text-sm">
-            Cargando documentos…
-          </div>
+          <div className="mt-4 text-gray-600 text-sm">Cargando documentos…</div>
         )}
 
         {error && (
@@ -86,7 +87,8 @@ export default function Medallero() {
 
         {!loading && !hayDocumentos && !error && (
           <p className="mt-4 text-gray-600">
-            Aún no hay documentos de medallero publicados.
+            Aún no hay documentos de clasificados publicados por el responsable de
+            área.
           </p>
         )}
 
@@ -94,9 +96,7 @@ export default function Medallero() {
           <section className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Lista de documentos */}
             <div className="md:col-span-1">
-              <h2 className="text-sm font-semibold mb-2">
-                Documentos publicados
-              </h2>
+              <h2 className="text-sm font-semibold mb-2">Documentos publicados</h2>
               <ul className="space-y-1 max-h-80 overflow-y-auto pr-1">
                 {docs.map((doc, idx) => (
                   <li key={doc.id_archivo || idx}>

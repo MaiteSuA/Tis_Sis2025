@@ -60,6 +60,8 @@ export default function LoginModal({
               </button>
             </span>
           );
+          setLoading(false);
+          return; 
         } else {
           throw new Error(result.error || "Credenciales incorrectas");
         }
@@ -176,7 +178,7 @@ export default function LoginModal({
                 value={correo}
                 onChange={(e) => setCorreo(e.target.value)}
                 required
-                disabled={loading || loginSuccess}
+                disabled={loading || loginSuccess || failedAttempts >= 3}
               />
             </div>
           </div>
@@ -194,14 +196,14 @@ export default function LoginModal({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                disabled={loading || loginSuccess}
+                disabled={loading || loginSuccess || failedAttempts >= 3}
               />
               <button
                 type="button"
                 onClick={() => setShowPwd((s) => !s)}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-800 text-lg"
                 title={showPwd ? "Ocultar contraseña" : "Mostrar contraseña"}
-                disabled={loading || loginSuccess}
+                disabled={loading || loginSuccess || failedAttempts >= 3}
               >
                 👁️
               </button>
@@ -221,10 +223,12 @@ export default function LoginModal({
 
           <button
             type="submit"
-            disabled={loading || loginSuccess}
+            disabled={loading || loginSuccess || failedAttempts >= 3} 
             className="w-full mt-2 bg-[#a19f99] hover:bg-[#c4bfba] text-white font-semibold py-2 rounded-full text-sm transition disabled:opacity-60"
           >
-            {loading ? "Verificando..." : "Iniciar sesión"}
+            {loading ? "Verificando..." : 
+            failedAttempts >= 3 ? "Límite de intentos alcanzado" :
+            "Iniciar sesión"}
           </button>
 
           <div className="text-center mt-3">

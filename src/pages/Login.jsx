@@ -1,13 +1,17 @@
-// Importación de componentes y dependencias necesarias
-import Navbar from "../components/Navbar";          // Barra superior
-import { useState } from "react";                  // Hook para manejar estados
-import Carousel from "../components/Carousel";     // Carrusel de imágenes o noticias
-import { useNavigate } from "react-router-dom";    // Hook para redirigir entre rutas
-import { loginApi } from "../api/auth";           // Función API para autenticar usuario
-import RegisterModal from "../components/RegisterModal"; // Modal de registro
+// src/pages/Home.jsx
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import Navbar from "../components/Navbar";
+import Carousel from "../components/Carousel";
+import LoginModal from "../components/LoginModal";
+import RegisterModal from "../components/RegisterModal";
+import ForgotPasswordModal from "../components/ForgotPasswordModal";
+import VerifyCodeModal from "../components/VerifyCodeModal";
+import ResetPasswordModal from "../components/ResetPasswordModal";
+import { getAnunciosCarrusel } from "../api/anuncios";
 
-// Noticias que se muestran en el carrusel
-const news = [
+// Fallback estático por si aún no hay anuncios en BD o la API falla
+const NEWS_FALLBACK = [
   {
     title: "Convocatoria Oficial 2025 publicada",
     description: "Revisa fechas y requisitos para las Olimpiadas OhSanSi.",
@@ -37,130 +41,149 @@ const ROLE_ROUTES = {
   Evaluador: "/evaluador",
   "Responsable de Area": "/responsable",
 };
+export default function Home() {
+  const [showLogin, setShowLogin] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [showVerify, setShowVerify] = useState(false);
+  const [showReset, setShowReset] = useState(false);
+  const [correoRecuperacion, setCorreoRecuperacion] = useState("");
 
-export default function Login() {
-  const [role, setRole] = useState(ROLES[0]);
-  const [showPwd, setShowPwd] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  // 👇 anuncios que se mostrarán en el carrusel
+  const [anuncios, setAnuncios] = useState(NEWS_FALLBACK);
+  const [/* loadingAnuncios, */ setLoadingAnuncios] = useState(true);
+
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+  // ----- Cargar anuncios del carrusel desde el backend -----
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoadingAnuncios(true);
+        const data = await getAnunciosCarrusel(); // viene del backend
 
-    try {
-      const result = await loginApi({ username, password, role });
-      console.log("✅ Login exitoso:", result);
+        if (Array.isArray(data) && data.length > 0) {
+          // Adaptamos los campos de BD al formato que espera <Carousel />
+          const adaptados = data.map((a) => ({
+            title: a.titulo,
+            description: a.contenido,
+            image: a.imagen_url, // asegúrate que en BD guardas la URL de la imagen
+          }));
 
-      const path = ROLE_ROUTES[role] || "/";
-      navigate(path);
-    } catch (err) {
-      console.error("❌ Error en login:", err);
-      setError(err.message || "Error en el login");
-    } finally {
-      setLoading(false);
-    }
+          setAnuncios(adaptados);
+        } else {
+          // si viene vacío, usamos el fallback estático
+          setAnuncios(NEWS_FALLBACK);
+        }
+      } catch (err) {
+        console.error("Error cargando anuncios del carrusel:", err);
+        // en caso de error, mostramos también el fallback
+        setAnuncios(NEWS_FALLBACK);
+      } finally {
+        setLoadingAnuncios(false);
+      }
+    })();
+  }, []);
+
+  // Funciones para navegación entre modales
+  /* const handleOpenLogin = () => setShowLogin(true); */
+  const handleOpenRegister = () => {
+    setShowLogin(false);
+    setShowRegister(true);
   };
+  const handleOpenForgot = () => {
+    setShowLogin(false);
+    setShowForgot(true);
+  };
+  const handleCloseLogin = () => setShowLogin(false);
 
   return (
     <div className="min-h-screen w-screen bg-white overflow-x-hidden">
       <Navbar />
 
-      <section className="w-screen h-[calc(100vh-4rem)] grid grid-cols-1 md:grid-cols-2">
-        <div className="h-full bg-gray-300 flex items-center justify-center px-6">
-          <div className="w-full max-w-3xl">
-            <Carousel items={news} />
-          </div>
+      {/* HERO esto ocupa toda la pantalla */}
+      <section className="w-screen min-h-screen bg-gray-200 flex flex-col items-center justify-center text-center px-6">
+        <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-8">
+          Sistema de <br className="hidden md:block" />
+          Evaluación <br className="hidden md:block" />
+          "Olimpiadas OhSansi"
+        </h1>
+
+        {/* Carrusel centrado debajo del título */}
+        <div className="w-full max-w-5xl mb-8">
+          {/* Si quieres, podrías mostrar un mensaje mientras carga,
+              pero el carrusel igual funciona con el fallback */}
+          <Carousel items={anuncios} />
         </div>
 
-        <div className="h-full bg-gray-200 flex items-center justify-center px-6">
-          <div className="w-full max-w-xl">
-            <div className="flex flex-wrap items-center gap-6 mb-6 text-gray-700">
-              {ROLES.map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setRole(r)}
-                  className={`pb-1 border-b-2 transition ${
-                    role === r
-                      ? "border-gray-800 text-gray-900"
-                      : "border-transparent hover:border-gray-400"
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
+        {/* Botones Medallero / Clasificados */}
+        <div className="flex flex-wrap gap-4 justify-center">
+          <button
+            onClick={() => navigate("/medallero")}
+            className="px-8 py-2 rounded-md bg-gray-700 hover:bg-gray-800 text-white font-semibold shadow-md transition opacity-100 relative z-10"
+          >
+            Medallero
+          </button>
 
-            <form
-              onSubmit={handleLogin}
-              className="bg-white/80 rounded-3xl shadow p-8 md:p-10"
-            >
-              <div className="w-20 h-20 mx-auto rounded-full bg-gray-300 mb-6" />
-
-              <label className="block text-sm font-medium text-gray-600 mb-1">
-                Usuario
-              </label>
-              <input
-                type="text"
-                placeholder="Usuario"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 mb-4 outline-none focus:ring-2 focus:ring-gray-400"
-                required
-              />
-
-              <label className="block text-sm font-medium text-gray-600 mb-1">
-                Contraseña
-              </label>
-              <div className="relative mb-6">
-                <input
-                  type={showPwd ? "text" : "password"}
-                  placeholder="********"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 pr-10 outline-none focus:ring-2 focus:ring-gray-400"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPwd((s) => !s)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                >
-                  👁️
-                </button>
-              </div>
-
-              {error && (
-                <div className="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded">
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="
-                  w-full rounded-md 
-                  !bg-gray-700 hover:!bg-gray-800 
-                  !text-white font-semibold py-2 shadow-md 
-                  transition !opacity-100 relative z-10
-                  disabled:opacity-50"
-              >
-                {loading ? "Ingresando..." : "Ingresar"}
-              </button>
-
-              <p className="text-center text-xs text-gray-500 mt-3">
-                Rol seleccionado: <span className="font-medium">{role}</span>
-              </p>
-            </form>
-          </div>
+          <button
+            onClick={() => navigate("/clasificados")}
+            className="px-8 py-2 rounded-md border border-gray-700 text-gray-700 hover:bg-gray-700 hover:text-white font-semibold shadow-md transition opacity-100 relative z-10"
+          >
+            Clasificados
+          </button>
         </div>
       </section>
+
+      <footer className="w-screen bg-gray-100 py-6 text-center text-sm text-gray-500">
+        © 2025 OhSanSi — Todos los derechos reservados.
+      </footer>
+
+      {/* MODALES */}
+      <LoginModal
+        open={showLogin}
+        onClose={handleCloseLogin}
+        onOpenRegister={handleOpenRegister}
+        onOpenForgot={handleOpenForgot}
+      />
+
+      <RegisterModal
+        open={showRegister}
+        onClose={() => setShowRegister(false)}
+        onOpenLogin={() => {
+          setShowRegister(false);
+          setShowLogin(true);
+        }}
+      />
+
+      <ForgotPasswordModal
+        open={showForgot}
+        onClose={() => setShowForgot(false)}
+        onSuccess={(email) => {
+          setCorreoRecuperacion(email);
+          setShowForgot(false);
+          setShowVerify(true);
+        }}
+      />
+
+      <VerifyCodeModal
+        open={showVerify}
+        correo={correoRecuperacion}
+        onClose={() => setShowVerify(false)}
+        onVerified={() => {
+          setShowVerify(false);
+          setShowReset(true);
+        }}
+      />
+
+      <ResetPasswordModal
+        open={showReset}
+        correo={correoRecuperacion}
+        onClose={() => setShowReset(false)}
+        onSuccess={() => {
+          setShowReset(false);
+          setShowLogin(true);
+        }}
+      />
     </div>
   );
 }

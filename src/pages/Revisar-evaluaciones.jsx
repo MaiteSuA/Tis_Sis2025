@@ -4,6 +4,8 @@ import EvaluadorForm from "../components/EvaluadorForm.jsx";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
+import { useNavigate } from "react-router-dom";
+
 // Servicios
 import {
   createEvaluadorCompleto,
@@ -30,6 +32,10 @@ const RevisarEvaluaciones = () => {
   const [toast, setToast] = useState("");
 
   const [user, setUser] = useState(null);
+
+  const [filterEstado, setFilterEstado] = useState("todos");
+
+  const navigate = useNavigate();
 
   // ====================== TOAST ======================
   const showToast = (msg) => {
@@ -58,7 +64,7 @@ const RevisarEvaluaciones = () => {
       if (data.ok) {
         console.log(data);
 
-        setUser(data.data); // ✅ así guardas directamente { nombres, apellidos, correo, area, estado, rol }
+        setUser(data.data); // Guarda directamente { nombres, apellidos, correo, area, estado, rol }
       }
     } catch (error) {
       console.error("Error al obtener usuario:", error);
@@ -204,16 +210,19 @@ const handleSave = async (formData) => {
 
   // ====================== EXPORTAR EXCEL ======================
   const exportExcel = () => {
-    if (!competidores.length) {
+    if (!competidoresFiltrados.length) {
       alert("No hay datos para exportar.");
       return;
     }
 
-    const data = competidores.map((c) => ({
+    const data = competidoresFiltrados.map((c) => ({
+      ID_Inscrito: c.id,
       Competidor: c.competidor,
       Nota: c.nota,
       Observación: c.observacion,
       Estado: c.estado,
+      Fase: 2,
+
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
@@ -241,6 +250,18 @@ const handleSave = async (formData) => {
     setMode("create");
     setShowForm(true);
   };
+
+  const competidoresFiltrados = competidores.filter((c) => {
+  if (filterEstado === "todos") return true;
+  if (filterEstado === "clasificados") return c.estado === "Clasificado";
+  return true;
+});
+
+//Mostrar evluadores por Area unicamente
+const evaluadoresFiltrados = evaluadores.filter(e => {
+  if (!user) return false; // Evita mostrar algo antes de cargar usuario
+  return e.area === user.area;
+});
 
   return (
     <div className="bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen">
@@ -318,7 +339,7 @@ const handleSave = async (formData) => {
 
               <tbody>
                 {!loadingEvals &&
-                  evaluadores.map((e) => (
+                  evaluadoresFiltrados.map((e) => (
                     <tr key={e.id} className="border-t hover:!bg-gray-200">
                       <td className="p-3">{e.id}</td>
                       <td className="p-3">{e.nombres}</td>
@@ -367,6 +388,18 @@ const handleSave = async (formData) => {
 
           {/* Tabla Clasificatoria */}
           <h3 className="text-lg font-bold mb-3 ">Resultados Clasificatoria</h3>
+          <div className="mb-4 flex gap-3 items-center">
+            <label className="font-semibold">Filtrar:</label>
+            <select
+              className="border px-3 py-2 rounded-lg"
+              value={filterEstado}
+              onChange={(e) => setFilterEstado(e.target.value)}
+            >
+              <option value="todos">Todos</option>
+              <option value="clasificados">Clasificados</option>
+            </select>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full border-collapse bg-white shadow rounded-lg">
               <thead className="!bg-gray-200 text-gray-700">
@@ -379,7 +412,8 @@ const handleSave = async (formData) => {
               </thead>
 
               <tbody>
-                {competidores.map((c, i) => (
+                {competidoresFiltrados.map((c, i) => (
+
                   <tr key={i} className="border-t hover:bg-gray-50">
                     <td className="p-3">{c.competidor}</td>
                     <td className="p-3">{c.nota}</td>
@@ -401,11 +435,18 @@ const handleSave = async (formData) => {
                 Exportar Excel
               </button>
 
-              <button
-                className="!bg-gray-800 text-white px-4 py-2 rounded-lg hover:!bg-gray-700"
-              >
-                Autorizar Publicación
-              </button>
+                <button 
+                  onClick={() => navigate("/ResponsableDocumentosClasificados")} 
+                  className="!bg-gray-700 text-white px-4 py-2 rounded-lg hover:!bg-gray-600" > 
+                  Autorizar Publicación Clasificados
+                </button>
+
+                <button 
+                  onClick={() => navigate("/ResponsableMedallero")} 
+                  className="!bg-gray-700 text-white px-4 py-2 rounded-lg hover:!bg-gray-600" > 
+                  Autorizar Publicación Medallero
+                </button>
+
             </div>
           </div>
 
