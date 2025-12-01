@@ -13,7 +13,7 @@ const ROLE_ROUTES = {
 export default function LoginModal({
   open,
   onClose,
-  onOpenRegister,
+  /* onOpenRegister, */
   onOpenForgot,
 }) {
   const [correo, setCorreo] = useState("");
@@ -79,7 +79,7 @@ export default function LoginModal({
 
           const MAPA_ROLES = {
             Administrador: "ADMIN",
-            "Coordinador Area": "COORDINADOR",
+            "COORDINADOR": "COORDINADOR",
             "Responsable de Area": "RESPONSABLE",
             Evaluador: "EVALUADOR",
           };

@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import TopNav from "../../components/coordinador/TopNav";
 import Sidebar from "../../components/coordinador/Sidebar";
 import StatsStrip from "../../components/coordinador/StatsStrip";
 import ImportCsvCard from "../../components/coordinador/ImportCsvCard";
 import DataTable from "../../components/coordinador/DataTable";
 import FilterBar from "../../components/coordinador/FilterBar";
-import { importInscritosCsv, getDashboardStats } from "../../services/api";
+import {
+  importInscritosCsv,
+  getDashboardStats,
+  getAreas, // 👈 viene del mismo sitio que usas en GestionarInscritos
+} from "../../services/api";
 import Papa from "papaparse";
-import AssignEvaluatorBar from "../../components/coordinador/AssignEvaluatorBar";
 
 /**
  * Pantalla de Coordinador para:
@@ -16,10 +18,7 @@ import AssignEvaluatorBar from "../../components/coordinador/AssignEvaluatorBar"
  * - Filtrar por Área y Nivel
  * - Seleccionar filas con checkboxes
  */
-
 export default function ImportarInscritos() {
-  const navigate = useNavigate();
-
   // Estado base del dashboard
   const [previewRows, setPreviewRows] = useState([]);
   const [totals, setTotals] = useState({
@@ -34,8 +33,8 @@ export default function ImportarInscritos() {
   const [filters, setFilters] = useState({ area: null, nivel: null });
   const [selected, setSelected] = useState(new Set());
 
-  // Evaluador elegido en el combo
-  const [selectedEval, setSelectedEval] = useState(null); // 👈 nuevo
+  // catálogo de áreas desde la BD
+  const [areasCatalog, setAreasCatalog] = useState([]);
 
   // columnas esperadas por la tabla (cabecera fija de la previsualización)
   const TARGET_COLS = [
@@ -51,29 +50,7 @@ export default function ImportarInscritos() {
     "Tutor_Académico",
   ];
 
-  // Mock de evaluadores
-  const EVALUADORES = [
-    { id: "eva-mate-1", area: "Matemática", nombre: "Ana Pérez" },
-    { id: "eva-fis-1", area: "Física", nombre: "Luis Soto" },
-    { id: "eva-qui-1", area: "Química", nombre: "María Gómez" },
-    { id: "eva-bio-1", area: "Biología", nombre: "Diego Rivera" },
-    { id: "eva-info-1", area: "Informática", nombre: "Camila Rojas" },
-    { id: "eva-rob-1", area: "Robótica", nombre: "Jorge Vargas" },
-  ];
-
-  /**
-   * useMemo: devuelve los evaluadores visibles según el filtro de Área.
-   * Evita recalcular en cada render si el área no cambió.
-   */
-  const evaluadoresFiltrados = useMemo(() => {
-    if (!filters.area) return EVALUADORES;
-    return EVALUADORES.filter((e) => e.area === filters.area);
-  }, [filters.area]);
-
-  /**
-   * useEffect: carga las métricas del dashboard al montar el componente.
-   * En caso de error, no rompe la pantalla: muestra un aviso suave.
-   */
+  // ── Cargar estadísticas del dashboard
   useEffect(() => {
     (async () => {
       try {
@@ -86,11 +63,27 @@ export default function ImportarInscritos() {
     })();
   }, []);
 
+  // ── Cargar ÁREAS desde la BD (como en GestionarInscritos)
+  useEffect(() => {
+    (async () => {
+      try {
+        const areasData = await getAreas();
+        console.log("📌 ÁREAS desde getAreas() en ImportarInscritos:", areasData);
+
+        // Si áreasData ya es un array (como en GestionarInscritos), lo guardamos tal cual.
+        const lista = Array.isArray(areasData)
+          ? areasData
+          : areasData?.data ?? [];
+
+        setAreasCatalog(lista);
+      } catch (e) {
+        console.error("Error cargando áreas en ImportarInscritos:", e);
+      }
+    })();
+  }, []);
+
   /**
    * handleSelect: lee el CSV local y genera la previsualización.
-   * - NO envía datos al backend (seguro)
-   * - Normaliza encabezados variables del CSV a las columnas TARGET_COLS
-   * - Mantiene un máximo de 300 filas en la vista previa por performance
    */
   function handleSelect(file) {
     if (!file) {
@@ -100,26 +93,17 @@ export default function ImportarInscritos() {
     }
 
     Papa.parse(file, {
-      header: true, // Usa la primera fila como cabecera
-      skipEmptyLines: true, // Ignora filas vacías
-      transformHeader: (h) => (h || "").trim(), // Limpia espacios en headers
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (h) => (h || "").trim(),
       complete: ({ data }) => {
         const mapKey = (k) => {
-          /**
-           * mapKey: normaliza un nombre de columna libre del CSV
-           * a una de las claves oficiales de la tabla.
-           * Reglas:
-           * - minúsculas
-           * - sin acentos
-           * - espacios -> guión bajo
-           * - mapeo por ALIAS ("cedula" -> "CI")
-           */
           const key = (k || "")
             .trim()
             .toLowerCase()
             .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "") // quita acentos
-            .replace(/\s+/g, "_"); // espacios -> _
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, "_");
           const ALIAS = {
             nombres: "Nombres",
             apellidos: "Apellidos",
@@ -138,10 +122,9 @@ export default function ImportarInscritos() {
             tutor_academico: "Tutor_Académico",
             tutor: "Tutor_Académico",
           };
-          return ALIAS[key] || null; // si no hay mapeo, la columna se ignora
+          return ALIAS[key] || null;
         };
 
-        // Convierte cada fila cruda del CSV a un objeto con las TARGET_COLS
         const rows = (data || []).slice(0, 300).map((row) => {
           const out = Object.fromEntries(TARGET_COLS.map((c) => [c, ""]));
           Object.entries(row).forEach(([k, v]) => {
@@ -151,8 +134,8 @@ export default function ImportarInscritos() {
           return out;
         });
 
-        setPreviewRows(rows); // pinta la previsualización
-        setSelected(new Set()); // limpia selección previa
+        setPreviewRows(rows);
+        setSelected(new Set());
         setMsg(
           rows.length
             ? `Previsualizando ${rows.length} fila(s)`
@@ -167,35 +150,26 @@ export default function ImportarInscritos() {
     });
   }
 
-  // ---- Import real al backend ----
-  // (la función de importación vive aquí debajo; cuando se activa,
-  //  puedes reutilizar filteredRows/selected para decidir qué enviar)
-
+  // ─────────────── Import real al backend ───────────────
   async function handleConfirm(file) {
     try {
-      // 1) calcular qué filas se importan:
-      // - si el usuario marcó checkboxes, usamos esas
-      // - si no marcó nada, importamos todas las filas que pasan los filtros
       let indexes = [];
       if (selected.size > 0) {
-        indexes = Array.from(selected); // ya son índices de previewRows
+        indexes = Array.from(selected);
       } else {
-        // Mapear cada fila filtrada a su índice real en previewRows
         indexes = filteredRows.map((r) => previewRows.indexOf(r));
       }
 
       setLoading(true);
       setMsg("Importando...");
 
-      // 2) Llamada al servicio (puedes enviar también filtros e índices seleccionados)
       const r = await importInscritosCsv({
-        file, // archivo original
-        area: filters.area || undefined, // filtro activo
-        nivel: filters.nivel || undefined, // filtro activo
-        selectedIndexes: indexes, // QUÉ filas importar
+        file,
+        area: filters.area || undefined,
+        nivel: filters.nivel || undefined,
+        selectedIndexes: indexes,
       });
 
-      // 3) Feedback al usuario + refresco de métricas del dashboard
       if (r?.ok) {
         const { total, importados, errores } = r.data;
         setMsg(`✅ Importados: ${importados}/${total}. Errores: ${errores}.`);
@@ -212,19 +186,7 @@ export default function ImportarInscritos() {
     }
   }
 
-  /**
-   * Valores únicos para los combos de filtro:
-   * - areas: único por columna "Área"
-   * - niveles: único por columna "Grado_Escolaridad"
-   * useMemo evita recalcular si previewRows no cambia.
-   */
-  const areas = useMemo(
-    () =>
-      Array.from(
-        new Set(previewRows.map((r) => r["Área"]).filter(Boolean))
-      ).sort(),
-    [previewRows]
-  );
+  // ─────────────── Niveles (estos sí siguen saliendo del CSV) ───────────────
   const niveles = useMemo(
     () =>
       Array.from(
@@ -233,11 +195,25 @@ export default function ImportarInscritos() {
     [previewRows]
   );
 
-  /**
-   * Aplica filtros actuales sobre la previsualización completa.
-   * Devuelve SOLO las filas visibles.
-   * useMemo evita recomputar si no cambian previewRows o filters.
-   */
+  // ─────────────── OPCIONES DE ÁREA (BD + fallback CSV) ───────────────
+  const areasOptions = useMemo(() => {
+    // Si la BD devolvió algo, usamos eso
+    if (Array.isArray(areasCatalog) && areasCatalog.length > 0) {
+      return areasCatalog;
+    }
+
+    // Fallback: construir a partir del CSV para no dejar el combo vacío
+    const fromCsv = Array.from(
+      new Set(previewRows.map((r) => r["Área"]).filter(Boolean))
+    ).sort();
+
+    return fromCsv.map((nombre, idx) => ({
+      id_area: `csv-${idx}`,
+      nombre_area: nombre,
+    }));
+  }, [areasCatalog, previewRows]);
+
+  // ─────────────── Aplicar filtros ───────────────
   const filteredRows = useMemo(() => {
     return previewRows.filter((r) => {
       if (filters.area && r["Área"] !== filters.area) return false;
@@ -247,13 +223,7 @@ export default function ImportarInscritos() {
     });
   }, [previewRows, filters]);
 
-  /**
-   * Selección de una fila:
-   * - El checkbox actúa sobre el índice RELATIVO del filtrado (idxInFiltered),
-   *   por eso mapeamos a índice REAL en previewRows.
-   * - Guardamos la selección como Set de índices reales para que sea estable
-   *   aunque cambien los filtros.
-   */
+  // ─────────────── Selección (checkboxes) ───────────────
   function toggleRow(idxInFiltered) {
     const realIndex = previewRows.indexOf(filteredRows[idxInFiltered]);
     const next = new Set(selected);
@@ -262,12 +232,6 @@ export default function ImportarInscritos() {
     setSelected(next);
   }
 
-  /**
-   * Seleccionar / deseleccionar TODO lo visible:
-   * - Si TODAS las filas filtradas ya están en 'selected', las quitamos.
-   * - Si falta alguna, seleccionamos todas las filtradas.
-   * - Siempre trabajamos con índices REALES de previewRows.
-   */
   function toggleAll() {
     if (filteredRows.length === 0) return;
     const allSelected = filteredRows.every((r) =>
@@ -275,74 +239,18 @@ export default function ImportarInscritos() {
     );
     const next = new Set(selected);
     if (allSelected)
-      // Quitar todos los visibles
       filteredRows.forEach((r) => next.delete(previewRows.indexOf(r)));
-    // Agregar todos los visibles
     else filteredRows.forEach((r) => next.add(previewRows.indexOf(r)));
     setSelected(next);
   }
 
-  /**
-   * Limpia toda la previsualización y los filtros activos.
-   * - Vacía la lista de inscritos previsualizados.
-   * - Reinicia la selección y los filtros (área, nivel).
-   * - Muestra un mensaje temporal de confirmación.
-   */
+  // ─────────────── Limpiar lista ───────────────
   function clearList() {
-    setPreviewRows([]); // Borra todas las filas previsualizadas.
-    setSelected(new Set()); // Quita todas las filas seleccionadas.
-    setFilters({ area: null, nivel: null }); // Reinicia los filtros del combobox.
-    setMsg("Lista limpiada."); // Mensaje de estado para el usuario.
-    setTimeout(() => setMsg(""), 3000); // Borra el mensaje después de 3 segundos.
-  }
-
-  /**
-   * Envía (simuladamente en front) las filas filtradas o seleccionadas
-   * al evaluador de área elegido en el combobox.
-   *
-   * - Si no se elige evaluador, muestra advertencia.
-   * - Si hay filas seleccionadas (checkbox), envía solo esas.
-   * - Si no hay selección, envía todas las filas filtradas actualmente.
-   * - Crea un payload con todos los datos listos para enviar al backend.
-   * - Muestra mensaje de confirmación visual (sin conexión real todavía).
-   */
-  function handleSendToEvaluator() {
-    // Verificación obligatoria: debe elegirse un evaluador antes de enviar
-    if (!selectedEval) {
-      setMsg("⚠️ Selecciona un evaluador de área.");
-      return;
-    }
-
-    // Determinar qué filas se enviarán:
-    // - Si hay checkboxes marcados: solo esas filas
-    // - Si no hay selección: todas las que pasan los filtros
-    const selectedInFiltered = filteredRows.filter(
-      (r) => selected.has(previewRows.indexOf(r)) // revisa si el índice real está en el set
-    );
-    const rowsToSend = selectedInFiltered.length
-      ? selectedInFiltered
-      : filteredRows;
-
-    // Construir el payload de envío (estructura lista para un POST futuro
-    const payload = {
-      evaluadorId: selectedEval,
-      filtros: { area: filters.area, nivel: filters.nivel },
-      total: rowsToSend.length,
-      filas: rowsToSend.map((r) => ({
-        Nombres: r.Nombres,
-        Apellidos: r.Apellidos,
-        CI: r.CI,
-        Area: r["Área"],
-        Grado: r["Grado_Escolaridad"],
-        Colegio: r.Colegio,
-      })),
-    };
-
-    console.log("📦 Envío a evaluador (solo front):", payload);
-    setMsg(
-      `📨 Se enviaron ${payload.total} fila(s) al evaluador seleccionado.`
-    );
-    setTimeout(() => setMsg(""), 5000);
+    setPreviewRows([]);
+    setSelected(new Set());
+    setFilters({ area: null, nivel: null });
+    setMsg("Lista limpiada.");
+    setTimeout(() => setMsg(""), 3000);
   }
 
   return (
@@ -367,7 +275,7 @@ export default function ImportarInscritos() {
             {/* Filtros + Acciones */}
             <div className="flex items-center gap-3">
               <FilterBar
-                areas={areas}
+                areas={areasOptions}      // 👈 ya mezclado BD + fallback
                 niveles={niveles}
                 filters={filters}
                 onChange={setFilters}
@@ -379,70 +287,14 @@ export default function ImportarInscritos() {
               </div>
             </div>
 
-            {/* Asignar a evaluador */}
-            <AssignEvaluatorBar
-              evaluadores={evaluadoresFiltrados} // o EVALUADORES si no quieres filtrar por área
-              value={selectedEval}
-              onChange={setSelectedEval}
-              onSend={handleSendToEvaluator}
-              disabled={filteredRows.length === 0}
-              count={
-                filteredRows.filter((r) => selected.has(previewRows.indexOf(r)))
-                  .length || filteredRows.length
-              }
-            />
-
             {/* Tabla */}
             <DataTable
               rows={filteredRows}
+              previewRows={previewRows}
               selected={selected}
               onToggleRow={(idx) => toggleRow(idx)}
               onToggleAll={toggleAll}
             />
-
-            {/* Exportar / Reportes → vistas temporales */}
-            <div className="card px-4 py-3 flex flex-wrap items-center gap-3">
-              <div className="font-semibold">Exportar / Reportes:</div>
-              <button
-                className="btn"
-                onClick={() => navigate("/temporal/reportes-de-clasificados")}
-              >
-                Reportes de Clasificados
-              </button>
-              <button
-                className="btn"
-                onClick={() =>
-                  navigate("/temporal/reportes-de-no-clasificados")
-                }
-              >
-                Reportes de No clasificados
-              </button>
-              <button
-                className="btn"
-                onClick={() => navigate("/temporal/reporte-desclasificados")}
-              >
-                Reporte desclasificados
-              </button>
-            </div>
-
-            {/* Fase final → vistas temporales */}
-            <div className="card px-4 py-3 flex flex-wrap items-center gap-3">
-              <div className="font-semibold">Fase final</div>
-              <button
-                className="btn"
-                onClick={() =>
-                  navigate("/temporal/lista-de-clasificados-confirmados")
-                }
-              >
-                Ver Lista de Clasificados Confirmados
-              </button>
-              <button
-                className="btn"
-                onClick={() => navigate("/temporal/habilitar-fase-final")}
-              >
-                Habilitar fase final
-              </button>
-            </div>
           </div>
         </main>
       </div>

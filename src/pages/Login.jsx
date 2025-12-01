@@ -29,11 +29,11 @@ const news = [
 ];
 
 // Lista de roles disponibles para loguearse
-const ROLES = ["Administrador", "Coordinador Area", "Evaluador", "Responsable de Area"];
+const ROLES = ["Administrador", "COORDINADOR", "Evaluador", "Responsable de Area"];
 
 const ROLE_ROUTES = {
   Administrador: "/admin",
-  "Coordinador Area": "/coordinador",
+  "COORDINADOR": "/coordinador",
   Evaluador: "/evaluador",
   "Responsable de Area": "/responsable",
 };

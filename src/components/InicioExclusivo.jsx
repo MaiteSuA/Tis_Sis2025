@@ -6,7 +6,7 @@ import { loginApi } from "../api/auth";
 
 const ROLE_ROUTES = {
   ADMINISTRADOR: "/admin",
-  "COORDINADOR AREA": "/coordinador",
+  "COORDINADOR": "/coordinador",
   EVALUADOR: "/evaluador",
   "RESPONSABLE DE AREA": "/responsable",
 };
