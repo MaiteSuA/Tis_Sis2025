@@ -7,6 +7,7 @@ import RegisterModal from "../components/RegisterModal";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
 import VerifyCodeModal from "../components/VerifyCodeModal";
 import ResetPasswordModal from "../components/ResetPasswordModal";
+import { getAnunciosCarrusel } from "../api/anuncios";
 
 const news = [
   {

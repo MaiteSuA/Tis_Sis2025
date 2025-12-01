@@ -174,8 +174,7 @@ export default function ResponsableMedallero() {
         </h1>
         <p className="text-sm text-gray-600 mb-6">
           Adjunta uno o varios documentos (PDF, imágenes, CSV, Excel, Word,
-          etc.) con la información oficial de los Medalleros. Antes de
-          publicar podrás revisar una vista previa.
+          etc.) con la información oficial de los Ganadores. 
         </p>
 
         {/* Sección de carga */}

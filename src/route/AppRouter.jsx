@@ -21,10 +21,10 @@ import InicioExclusivo from "../components/InicioExclusivo.jsx";
 import LoginModal from "../components/LoginModal.jsx";
 import ResponsableDocumentosClasificados from "../pages/ResponsableDocumentosClasificados.jsx";
 import ResponsableMedallero from "../pages/ResponsableMedallero.jsx";
-//import Medallero from "./pages/Medallero.jsx";
-//import Clasificados from "./pages/Clasificados.jsx";
+import ResponsableAnuncios from "../pages/ResponsableAnuncios.jsx";
+import CrearAnuncio from "../pages/CrearAnuncio.jsx";
 
-// ...
+
 
 
 export default function AppRouter() {
@@ -38,6 +38,10 @@ export default function AppRouter() {
       <Route path="/login" element={<Login />} />
       <Route path="/inicio-exclusivo" element={<InicioExclusivo />} />
       <Route path="/LoginModal" element={<LoginModal/>} />
+
+      
+<Route path="/ResponsableAnuncios" element={<ResponsableAnuncios />} />
+<Route path="/crear-anuncio" element={<CrearAnuncio />} />
 
 
       {/* Rutas temporales para reportes y fase final */}
@@ -69,6 +73,7 @@ export default function AppRouter() {
   path="/ResponsableMedallero"
   element={<ResponsableMedallero/>}
 />
+
 
       <Route path="/evaluador" element={<RegistrarNotasReplanteado />} />
       <Route path="/responsable" element={<ResponsableArea />} />
