@@ -5,7 +5,7 @@ import {
   assignInscritosToEvaluador,
   getAreas,
 } from "../../services/api";
-import { getEvaluadores } from "../../services/evaluadores"; // <-- ajusta ruta si es necesario
+import { getEvaluadores } from "../../api/evaluadores";
 import TopNav from "../../components/coordinador/TopNav"; // ajusta si tu path es distinto
 import Sidebar from "../../components/coordinador/Sidebar"; // idem
 
