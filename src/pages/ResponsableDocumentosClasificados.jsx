@@ -136,7 +136,7 @@ export default function ResponsableDocumentosClasificados() {
     e.target.value = "";
     setMessage("");
   };
-
+//GUARDAR A LA API
   const handleSave = async () => {
     if (!files.length) {
       setMessage("Primero adjunta al menos un documento.");
@@ -147,14 +147,31 @@ export default function ResponsableDocumentosClasificados() {
     setMessage("");
 
     try {
-      // Aquí iría tu llamada real al backend con FormData:
-      // const fd = new FormData();
-      // files.forEach((f) => fd.append("documentos", f.file));
-      // await fetch("/api/responsable/clasificados", { method: "POST", body: fd });
+      const rows = await extractExcelData();
 
-      await new Promise((res) => setTimeout(res, 1200));
+      if (!rows.length) {
+        setMessage("❌ El Excel no contiene datos válidos.");
+        setSaving(false);
+        return;
+      }
 
-      setMessage("✅ Documentos publicados correctamente (simulado).");
+      const token = localStorage.getItem("token"); // si tu API requiere token
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/clasificados/cargar`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ rows })
+      });
+
+      const result = await res.json();
+
+      if (!result.ok) throw new Error(result.message || "Error al cargar los clasificados");
+
+      //await new Promise((res) => setTimeout(res, 1200));
+
+      setMessage("✅ Documentos publicados correctamente.");
     } catch (err) {
       console.error(err);
       setMessage("❌ Ocurrió un error al publicar los documentos.");
@@ -162,6 +179,41 @@ export default function ResponsableDocumentosClasificados() {
       setSaving(false);
     }
   };
+
+  const extractExcelData = async () => {
+    if (!files.length) return [];
+
+    const excelFiles = files.filter(f => 
+      f.name.endsWith(".xls") || f.name.endsWith(".xlsx")
+    );
+    if (excelFiles.length === 0) return [];
+
+    const file = excelFiles[0].file; // Solo tomamos el primero por ahora
+    const data = await file.arrayBuffer();
+    const wb = XLSX.read(data);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(ws);
+
+    // Mapeo de estados del Excel al enum de Prisma
+    /* const estadoMap = {
+      Pendiente: "NO_CLASIFICADO",  // si en Excel dice "Pendiente" lo convertimos
+      Clasificado: "CLASIFICADO",
+      Desclasificado: "DESCLASIFICADO",
+    }; */
+
+    return json.map(r => ({
+      id_inscrito: Number(r.ID_Inscrito),
+      id_fase: Number(r.Fase),
+      estado: r.Estado
+    }));
+    //estado: r.Estado,
+    //PRUEBA DE API POST CORRECTA
+    //estado: estadoMap[r.Estado] || "NO_CLASIFICADO", // valor por defecto si no coincide
+
+    // json: [{ ID_Inscrito: 101, Fase: 2, Estado: "CLASIFICADO" }, ...]
+    
+  };
+
 
   const current = files[previewIndex] || null;
   const ext = current ? current.name.toLowerCase().split(".").pop() : "";

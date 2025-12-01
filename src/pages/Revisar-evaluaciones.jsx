@@ -216,10 +216,13 @@ const handleSave = async (formData) => {
     }
 
     const data = competidoresFiltrados.map((c) => ({
+      ID_Inscrito: c.id,
       Competidor: c.competidor,
       Nota: c.nota,
       Observación: c.observacion,
       Estado: c.estado,
+      Fase: 2,
+
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);

@@ -40,8 +40,8 @@ export default function AppRouter() {
       <Route path="/LoginModal" element={<LoginModal/>} />
 
       
-<Route path="/ResponsableAnuncios" element={<ResponsableAnuncios />} />
-<Route path="/crear-anuncio" element={<CrearAnuncio />} />
+      <Route path="/ResponsableAnuncios" element={<ResponsableAnuncios />} />
+      <Route path="/crear-anuncio" element={<CrearAnuncio />} />
 
 
       {/* Rutas temporales para reportes y fase final */}
@@ -66,13 +66,13 @@ export default function AppRouter() {
         element={<ImportarInscritos />}
       />
       <Route
-  path="/ResponsableDocumentosClasificados"
-  element={<ResponsableDocumentosClasificados />}
-/>
+        path="/ResponsableDocumentosClasificados"
+        element={<ResponsableDocumentosClasificados />}
+      />
       <Route
-  path="/ResponsableMedallero"
-  element={<ResponsableMedallero/>}
-/>
+        path="/ResponsableMedallero"
+        element={<ResponsableMedallero/>}
+      />
 
 
       <Route path="/evaluador" element={<RegistrarNotasReplanteado />} />
