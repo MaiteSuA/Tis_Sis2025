@@ -5,11 +5,11 @@ import {
   assignInscritosToEvaluador,
   getAreas,
 } from "../../services/api";
-import { getEvaluadores } from "../../services/evaluadores"; // <-- ajusta ruta si es necesario
-import TopNav from "../../components/coordinador/TopNav"; // ajusta si tu path es distinto
-import Sidebar from "../../components/coordinador/Sidebar"; // idem
+import { getEvaluadores } from "../../api/evaluadores";
+import TopNav from "../../components/coordinador/TopNav";
+import Sidebar from "../../components/coordinador/Sidebar";
 
-// Helper para obtener ID del inscrito (ajusta al nombre real de tu modelo)
+// Helper para obtener ID del inscrito
 const getInscritoId = (ins) =>
   ins.id_inscritos ?? ins.id_inscrito ?? ins.id ?? ins.idInscrito;
 
@@ -36,23 +36,36 @@ export default function GestionarInscritos() {
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
 
+  // 🔹 Cargar evaluadores + áreas al entrar
   useEffect(() => {
-  (async () => {
-    try {
-      const [evaluadoresData, areasData] = await Promise.all([
-        getEvaluadores(),
-        getAreas()
-      ]);
+    (async () => {
+      try {
+        const [evaluadoresData, areasData] = await Promise.all([
+          getEvaluadores(),
+          getAreas(),
+        ]);
 
-      setEvaluadores(evaluadoresData);
-      setAreas(areasData);
-    } catch (e) {
-      console.error(e);
-      setError("Error cargando catálogos (áreas/evaluadores)");
-    }
-  })();
-}, []);
+        // Normalizar por si la API responde { ok, data: [...] }
+        const listaEvaluadores = Array.isArray(evaluadoresData?.data)
+          ? evaluadoresData.data
+          : Array.isArray(evaluadoresData)
+          ? evaluadoresData
+          : [];
 
+        const listaAreas = Array.isArray(areasData?.data)
+          ? areasData.data
+          : Array.isArray(areasData)
+          ? areasData
+          : [];
+
+        setEvaluadores(listaEvaluadores);
+        setAreas(listaAreas);
+      } catch (e) {
+        console.error(e);
+        setError("Error cargando catálogos (áreas/evaluadores)");
+      }
+    })();
+  }, []);
 
   // Buscar inscritos con los filtros actuales
   const buscarInscritos = async () => {
@@ -67,7 +80,9 @@ export default function GestionarInscritos() {
         search,
         soloSinEvaluador,
       });
-      setInscritos(data);
+
+      const lista = Array.isArray(data?.data) ? data.data : data ?? [];
+      setInscritos(lista);
       setSelected(new Set()); // limpiar selección al refrescar
     } catch (e) {
       console.error(e);
@@ -122,8 +137,7 @@ export default function GestionarInscritos() {
         idsInscritos,
       });
       setMsg(`Asignados ${idsInscritos.length} inscritos correctamente`);
-      // refrescar lista para que ya no aparezcan (si filtras solo sin evaluador)
-      await buscarInscritos();
+      await buscarInscritos(); // refrescar lista
     } catch (e) {
       console.error(e);
       setError(e.message || "Error al asignar inscritos");
@@ -134,7 +148,6 @@ export default function GestionarInscritos() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
-      {/* Top bar con etiqueta COORDINADOR tenue */}
       <TopNav
         rightSlot={
           <span className="text-xs md:text-sm text-gray-400 tracking-widest uppercase">
@@ -192,7 +205,6 @@ export default function GestionarInscritos() {
                   <option value="">Todos</option>
                   <option value="Primaria">Primaria</option>
                   <option value="Secundaria">Secundaria</option>
-                  {/* idem, ajustar a tus niveles reales */}
                 </select>
               </div>
 
@@ -206,7 +218,6 @@ export default function GestionarInscritos() {
                   <option value="">Todos</option>
                   <option value="PENDIENTE">Pendiente</option>
                   <option value="ASIGNADO">Asignado</option>
-                  {/* ajusta a los estados que uses */}
                 </select>
               </div>
 
@@ -234,7 +245,6 @@ export default function GestionarInscritos() {
             </label>
           </section>
 
-          {/* Mensajes */}
           {(error || msg) && (
             <div className="space-y-2">
               {error && (
@@ -336,13 +346,28 @@ export default function GestionarInscritos() {
                   <select
                     className="select select-bordered w-full mt-1"
                     value={idEvaluadorSeleccionado}
-                    onChange={(e) => setIdEvaluadorSeleccionado(e.target.value)}
+                    onChange={(e) =>
+                      setIdEvaluadorSeleccionado(e.target.value)
+                    }
                   >
                     <option value="">-- Selecciona evaluador --</option>
                     {evaluadores.map((ev) => (
-                      <option key={ev.id} value={ev.id}>
-                        {ev.nombres} {ev.apellidos}{" "}
-                        {ev.area ? `(${ev.area})` : ""}
+                      <option
+                        key={ev.id_evaluador ?? ev.id}
+                        value={ev.id_evaluador ?? ev.id}
+                      >
+                        {/* nombre + apellidos con varios posibles nombres de campo */}
+                        {(ev.nombre_evaluado ?? ev.nombres ?? ev.nombre ?? "") +
+                          " " +
+                          (ev.apellidos_evaluador ??
+                            ev.apellidos ??
+                            ev.apellido ??
+                            "")}
+                        {" "}
+                        {/* área entre paréntesis si viene */}
+                        {ev.area?.nombre_area || ev.area_nombre
+                          ? `(${ev.area?.nombre_area ?? ev.area_nombre})`
+                          : ""}
                       </option>
                     ))}
                   </select>
