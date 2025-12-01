@@ -6,7 +6,6 @@ import { saveAs } from "file-saver";
 
 import { useNavigate } from "react-router-dom";
 
-
 // Servicios
 import {
   createEvaluadorCompleto,
@@ -36,12 +35,7 @@ const RevisarEvaluaciones = () => {
 
   const [filterEstado, setFilterEstado] = useState("todos");
 
-  const [publicado, setPublicado] = useState(
-    localStorage.getItem("publicado") === "true"
-  );
-
-const navigate = useNavigate();
-
+  const navigate = useNavigate();
 
   // ====================== TOAST ======================
   const showToast = (msg) => {
@@ -438,36 +432,17 @@ const evaluadoresFiltrados = evaluadores.filter(e => {
                 Exportar Excel
               </button>
 
-               {!publicado ? (
-                <button
-                  onClick={() => {
-                    localStorage.setItem("publicado", "true");
-                    setPublicado(true);
-                    showToast("Resultados publicados ✔");
-                  }}
-                  className="!bg-green-800 text-white px-4 py-2 rounded-lg hover:!bg-green-700"
-                >
-                  Autorizar Publicación
+                <button 
+                  onClick={() => navigate("/ResponsableDocumentosClasificados")} 
+                  className="!bg-gray-700 text-white px-4 py-2 rounded-lg hover:!bg-gray-600" > 
+                  Autorizar Publicación Clasificados
                 </button>
-               ) : (
-                <button
-                  onClick={() => {
-                    localStorage.removeItem("publicado");
-                    setPublicado(false);
-                    showToast("Publicación cancelada");
-                  }}
-                  className="!bg-red-800 text-white px-4 py-2 rounded-lg hover:!bg-red-700"
-                >
-                  Cancelar Autorización
-                </button>
-              )}
 
-              <button
-              onClick={() => navigate("/resultados")}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 mb-4"
-            >
-              Ver página de Resultados (Temporal)
-            </button>
+                <button 
+                  onClick={() => navigate("/ResponsableMedallero")} 
+                  className="!bg-gray-700 text-white px-4 py-2 rounded-lg hover:!bg-gray-600" > 
+                  Autorizar Publicación Medallero
+                </button>
 
             </div>
           </div>

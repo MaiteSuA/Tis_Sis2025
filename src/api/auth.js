@@ -3,17 +3,18 @@
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
 
 /* =========================
- *  LOGIN
+ *  LOGIN (acepta { username } o { correo })
  * =======================*/
-export async function loginApi({ correo, password }) {
+export async function loginApi({ username, correo, password, role }) {
+  const userOrCorreo = (username ?? correo ?? "").trim();
+
   const res = await fetch(`${BASE_URL}/auth/login`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      username: correo, // backend espera "username"
+      username: userOrCorreo, // backend espera "username"
       password,
+      role, // si tu backend lo usa en mock
     }),
   });
 
@@ -23,11 +24,22 @@ export async function loginApi({ correo, password }) {
     throw new Error(data.error || "Login failed");
   }
 
-  // guarda usuario + token
-  localStorage.setItem("token", data.token);
-  localStorage.setItem("usuario", JSON.stringify(data.user));
+  // 🔽 Normalizar siempre lo que se guarda en localStorage
+  const u = data.user || {};
+  const normalizado = {
+    id: Number(u.id ?? u.id_usuario ?? u?.evaluador?.id_evaluador) || null,
+    username: u.username ?? u.correo ?? u.email ?? userOrCorreo,
+    email: u.email ?? u.correo ?? null,
+    nombre: u.nombre ?? u?.evaluador?.nombre_evaluado ?? "",
+    apellidos: u.apellidos ?? u.apellido ?? u?.evaluador?.apellidos_evaluador ?? "",
+    id_area: Number(u.id_area ?? u?.evaluador?.id_area) || null,
+    rol: u.rol ?? null,
+  };
 
-  return data; // { ok, token, user }
+  localStorage.setItem("token", data.token);
+  localStorage.setItem("usuario", JSON.stringify(normalizado));
+
+  return { ...data, user: normalizado };
 }
 
 /* =========================

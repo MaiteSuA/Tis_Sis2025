@@ -1,36 +1,51 @@
-const BASE = import.meta.env.VITE_API_URL;
+const BASE = import.meta.env.VITE_API_URL; // ej: http://localhost:3000/api
 
-// GET todas las áreas
+function getAuthHeaders(extra = {}) {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...extra,
+  };
+}
+
 export async function fetchAreas() {
-  const r = await fetch(`${BASE}/areas`);
+  const r = await fetch(`${BASE}/areas`, {
+    headers: getAuthHeaders(),
+  });
   const j = await r.json();
+  if (!r.ok) throw new Error(j.message || 'Error al obtener áreas');
+  return j.data; // [{ id_area, nombre_area, ... }]
+}
+
+export async function createArea(nombre) {
+  const r = await fetch(`${BASE}/areas`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ nombre_area: nombre }),
+  });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.message || 'Error al crear área');
+  return j.data; // área creada
+}
+
+export async function updateArea(id, nombre) {
+  const r = await fetch(`${BASE}/areas/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ nombre_area: nombre }),
+  });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.message || 'Error al actualizar área');
   return j.data;
 }
 
-// Crear área
-export async function createArea(nombre) {
-  const r = await fetch(`${BASE}/areas`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ nombre_area: nombre })
-  });
-  return r.json();
-}
-
-// Actualizar área
-export async function updateArea(id, nombre) {
-  const r = await fetch(`${BASE}/areas/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ nombre_area: nombre })
-  });
-  return r.json();
-}
-
-// Eliminar área
 export async function deleteArea(id) {
   const r = await fetch(`${BASE}/areas/${id}`, {
-    method: "DELETE",
+    method: 'DELETE',
+    headers: getAuthHeaders(),
   });
-  return r.json();
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.message || 'Error al eliminar área');
+  return j.data;
 }

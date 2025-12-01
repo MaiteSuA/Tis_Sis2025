@@ -184,8 +184,16 @@ export default function UsuarioForm({
               type="checkbox"
               checked={form.activo}
               onChange={(e) => set("activo", e.target.checked)}
+              disabled={!isEdit} // 👈 solo se puede modificar en modo edición
+              className={!isEdit ? "opacity-60 cursor-not-allowed" : ""}
             />
-            Activo
+            <span>
+              Activo
+              {!isEdit && (
+                <span className="text-xs text-gray-500 ml-1">
+                </span>
+              )}
+            </span>
           </label>
         </div>
         {/* Botones de acción */}

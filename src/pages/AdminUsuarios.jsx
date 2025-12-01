@@ -19,22 +19,36 @@ import {
   deleteCoordinador,
 } from "../api/coordinador.js";
 
+import {
+  fetchAreas,
+  createArea as apiCreateArea,
+  updateArea as apiUpdateArea,
+  deleteArea as apiDeleteArea,
+} from "../api/area.js";
+
 export default function AdminUsuarios() {
   // pestaña activa del módulo usuarios (RESPONSABLE | COORDINADOR)
   const [tab, setTab] = useState("RESPONSABLE");
 
-  // ÁREAS (solo frontend, editable desde el modal)
-  const [areas, setAreas] = useState([
-    { id: 1, nombre: "General" },
-    { id: 2, nombre: "Matematica" },
-    { id: 3, nombre: "Fisica" },
-    { id: 4, nombre: "Quimica" },
-    { id: 5, nombre: "Biologia" },
-    { id: 6, nombre: "Robotica" },
-    { id: 7, nombre: "Informatica" },
-  ]);
-  const [showAreasModal, setShowAreasModal] = useState(false);
+ // ÁREAS (ahora vienen de la BD, pero las guardamos como { id, nombre } para no romper nada)
+const [areas, setAreas] = useState([]);
 
+const [showAreasModal, setShowAreasModal] = useState(false);
+useEffect(() => {
+  const cargarAreas = async () => {
+    try {
+      const data = await fetchAreas(); // viene [{ id_area, nombre_area, ... }]
+      const adaptadas = data.map((a) => ({
+        id: Number(a.id_area),
+        nombre: a.nombre_area,
+      }));
+      setAreas(adaptadas);
+    } catch (e) {
+      console.error("Error cargando áreas:", e);
+    }
+  };
+  cargarAreas();
+}, []);
   // ============================================================
   // MEDALLAS POR ÁREA (localStorage)
   // ============================================================
@@ -155,39 +169,55 @@ export default function AdminUsuarios() {
  // guardar (crear / editar)
 const handleSave = async (form) => {
   try {
+    const isEditing = mode === "edit";      // 👈 usamos tu estado mode
+    const editingId = selected?.id ?? null; // id del usuario seleccionado (si lo hay)
+
+    if (isEditing && !editingId) {
+      await Swal.fire({
+        title: "Error",
+        text: "No se encontró el registro a editar.",
+        icon: "error",
+      });
+      return;
+    }
+
     if (isEditing) {
-      // editar responsable
+      // 📝 EDITAR
       if (tab === "RESPONSABLE") {
         await updateResponsable(editingId, form);
-        // aquí podrías recargar desde el back o actualizar el estado local
-        await cargarResponsables?.(); // si tienes esta función
+        // refrescar lista en memoria
+        const actualizados = await fetchResponsables();
+        setResponsables(actualizados);
       } else if (tab === "COORDINADOR") {
         await updateCoordinador(editingId, form);
-        await cargarCoordinadores?.();
+        const actualizados = await fetchCoordinadores();
+        setCoordinadores(actualizados);
       }
 
       await Swal.fire({
-        title: 'Actualizado',
-        text: 'Los datos se guardaron correctamente.',
-        icon: 'success',
+        title: "Actualizado",
+        text: "Los datos se guardaron correctamente.",
+        icon: "success",
         timer: 1500,
         showConfirmButton: false,
       });
 
     } else {
-      // crear responsable / coordinador
+      // ✨ CREAR
       if (tab === "RESPONSABLE") {
         await createResponsable(form);
-        await cargarResponsables?.();
+        const actualizados = await fetchResponsables();
+        setResponsables(actualizados);
       } else if (tab === "COORDINADOR") {
         await createCoordinador(form);
-        await cargarCoordinadores?.();
+        const actualizados = await fetchCoordinadores();
+        setCoordinadores(actualizados);
       }
 
       await Swal.fire({
-        title: 'Creado',
-        text: 'El registro fue creado correctamente.',
-        icon: 'success',
+        title: "Creado",
+        text: "El registro fue creado correctamente.",
+        icon: "success",
         timer: 1500,
         showConfirmButton: false,
       });
@@ -196,14 +226,14 @@ const handleSave = async (form) => {
     // cerrar formulario / limpiar selección
     setShowForm(false);
     setSelected(null);
-    // setIsEditing(false); // si tienes este estado
+    setMode("create");
 
   } catch (e) {
     console.error("Error al guardar:", e);
     Swal.fire({
-      title: 'Error',
-      text: 'Ocurrió un error al guardar el registro.',
-      icon: 'error',
+      title: "Error",
+      text: "Ocurrió un error al guardar el registro.",
+      icon: "error",
     });
   }
 };
@@ -211,7 +241,6 @@ const handleSave = async (form) => {
   // lista actual según pestaña
   const rows = tab === "RESPONSABLE" ? responsables : coordinadores;
 
-  // eliminar
  // eliminar
 const handleDelete = async (row) => {
   const id = row?.id;
@@ -303,21 +332,58 @@ const handleEdit = (row) => {
     setShowForm(true);
   };
 
-  // ---- Handlers para ÁREAS (solo UI, sin backend) ----
-  const handleCreateArea = (nombre) => {
-    setAreas((prev) => {
-      const nextId = (prev[prev.length - 1]?.id || 0) + 1;
-      return [...prev, { id: nextId, nombre }];
+ // ---- Handlers para ÁREAS (con backend) ----
+const handleCreateArea = async (nombre) => {
+  try {
+    const creada = await apiCreateArea(nombre); // POST /api/areas
+    const nueva = {
+      id: Number(creada.id_area),
+      nombre: creada.nombre_area,
+    };
+    setAreas((prev) => [...prev, nueva]);
+  } catch (e) {
+    console.error("Error creando área:", e);
+    Swal.fire({
+      title: "Error",
+      text: "No se pudo crear el área.",
+      icon: "error",
     });
-  };
+  }
+};
 
-  const handleUpdateArea = (id, nombre) => {
-    setAreas((prev) => prev.map((a) => (a.id === id ? { ...a, nombre } : a)));
-  };
+const handleUpdateArea = async (id, nombre) => {
+  try {
+    const actualizada = await apiUpdateArea(id, nombre); // PUT /api/areas/:id
+    const adaptada = {
+      id: Number(actualizada.id_area),
+      nombre: actualizada.nombre_area,
+    };
+    setAreas((prev) =>
+      prev.map((a) => (a.id === id ? adaptada : a))
+    );
+  } catch (e) {
+    console.error("Error actualizando área:", e);
+    Swal.fire({
+      title: "Error",
+      text: "No se pudo renombrar el área.",
+      icon: "error",
+    });
+  }
+};
 
-  const handleDeleteArea = (id) => {
+const handleDeleteArea = async (id) => {
+  try {
+    await apiDeleteArea(id); // DELETE /api/areas/:id
     setAreas((prev) => prev.filter((a) => a.id !== id));
-  };
+  } catch (e) {
+    console.error("Error eliminando área:", e);
+    Swal.fire({
+      title: "Error",
+      text: "No se pudo eliminar el área.",
+      icon: "error",
+    });
+  }
+};
 
   // ============================================================
   // RENDER
