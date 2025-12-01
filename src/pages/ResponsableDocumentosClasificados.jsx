@@ -195,16 +195,16 @@ export default function ResponsableDocumentosClasificados() {
     const json = XLSX.utils.sheet_to_json(ws);
 
     // Mapeo de estados del Excel al enum de Prisma
-    /* const estadoMap = {
-      Pendiente: "NO_CLASIFICADO",  // si en Excel dice "Pendiente" lo convertimos
+    const estadoMap = {
+      
       Clasificado: "CLASIFICADO",
       Desclasificado: "DESCLASIFICADO",
-    }; */
+    };
 
     return json.map(r => ({
       id_inscrito: Number(r.ID_Inscrito),
       id_fase: Number(r.Fase),
-      estado: r.Estado
+      estado: estadoMap[r.Estado]
     }));
     //estado: r.Estado,
     //PRUEBA DE API POST CORRECTA
