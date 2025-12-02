@@ -1,56 +1,109 @@
 // src/pages/Coordinador/RegistroEvaluadores.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import TopNav from "../../components/coordinador/TopNav";
 import Sidebar from "../../components/coordinador/Sidebar";
+import {
+  getAreas,
+  getResponsablesArea,
+  createResponsableArea,
+} from "../../services/api";
 
 export default function RegistroResponsablesArea() {
-  // Estado del formulario
   const [form, setForm] = useState({
     nombre: "",
+    apellidos: "",
     email: "",
     telefono: "",
-    area: "",
+    id_area: "",
+    password: "",
   });
 
-  // Datos de muestra (se reemplazarán con backend después)
-  const [responsables, setResponsables] = useState([
-    { id: 1, nombre: "Ana Pérez", email: "ana@sansi.edu", area: "Matemática" },
-    { id: 2, nombre: "Luis Soto", email: "luis@sansi.edu", area: "Física" },
-    {
-      id: 3,
-      nombre: "Diego Rivera",
-      email: "diego@sansi.edu",
-      area: "Biología",
-    },
-  ]);
+  const [areas, setAreas] = useState([]);
+  const [responsables, setResponsables] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  // Control simple del formulario
+  // Cargar áreas + responsables al entrar
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const [areasData, respData] = await Promise.all([
+          getAreas(),
+          getResponsablesArea(),
+        ]);
+
+        setAreas(areasData || []);
+
+        const mapped = (respData || []).map((r) => ({
+          id: r.id_responsable ?? r.id_responsable_area ?? r.id,
+          nombreCompleto: `${r.nombres_evaluador ?? ""} ${
+            r.apellidos ?? ""
+          }`.trim(),
+          email: r.correo_electronico ?? r.email,
+          telefono: r.usuario?.telefono ?? r.telefono ?? "",
+          areaNombre: r.area?.nombre_area ?? "",
+        }));
+
+        setResponsables(mapped);
+      } catch (e) {
+        console.error(e);
+        setError("Error cargando datos iniciales");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
   function limpiarFormulario() {
-    setForm({ nombre: "", email: "", telefono: "", area: "" });
+    setForm({
+      nombre: "",
+      apellidos: "",
+      email: "",
+      telefono: "",
+      id_area: "",
+      password: "",
+    });
   }
 
-  function registrarResponsable() {
-    if (!form.nombre || !form.email || !form.area) {
-      alert("⚠️ Debes llenar al menos nombre, email y área.");
+  async function registrarResponsable() {
+    if (!form.nombre || !form.apellidos || !form.email || !form.id_area) {
+      alert("⚠️ Debes llenar nombre, apellidos, email y área.");
       return;
     }
 
-    const nuevo = {
-      id: responsables.length + 1,
-      nombre: form.nombre,
-      email: form.email,
-      telefono: form.telefono,
-      area: form.area,
-    };
+    try {
+      setLoading(true);
+      setError("");
 
-    setResponsables([...responsables, nuevo]);
-    limpiarFormulario();
+      const creado = await createResponsableArea(form);
 
-    alert("✅ Responsable registrado (solo front)");
+      const nuevoUI = {
+        id: creado.id_responsable ?? creado.id_responsable_area ?? creado.id,
+        nombreCompleto: `${creado.nombres_evaluador ?? ""} ${
+          creado.apellidos ?? ""
+        }`.trim(),
+        email: creado.correo_electronico ?? form.email,
+        telefono: creado.usuario?.telefono ?? form.telefono,
+        areaNombre: creado.area?.nombre_area ?? "",
+      };
+
+      setResponsables((prev) => [...prev, nuevoUI]);
+      limpiarFormulario();
+      alert("✅ Responsable registrado correctamente");
+    } catch (e) {
+      console.error(e);
+      setError(e.message || "Error al registrar responsable");
+      alert("❌ " + (e.message || "Error al registrar responsable"));
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -61,10 +114,16 @@ export default function RegistroResponsablesArea() {
 
         <main className="flex-1 p-6">
           <h1 className="text-xl font-semibold text-gray-700 mb-4">
-            Registro de Responsables de area
+            Registro de Responsables de área
           </h1>
 
-          {/* Card del formulario */}
+          {error && (
+            <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded">
+              {error}
+            </div>
+          )}
+
+          {/* Formulario */}
           <div className="card p-6 mb-6 space-y-4">
             <h2 className="font-semibold text-gray-700 mb-2">
               Datos del Responsable de Área
@@ -78,7 +137,20 @@ export default function RegistroResponsablesArea() {
                   name="nombre"
                   value={form.nombre}
                   onChange={handleChange}
-                  placeholder="Nombre del responsable"
+                  placeholder="Nombre(s) del responsable"
+                  disabled={loading}
+                />
+              </div>
+
+              <div>
+                <label className="label">Apellidos</label>
+                <input
+                  className="input w-full"
+                  name="apellidos"
+                  value={form.apellidos}
+                  onChange={handleChange}
+                  placeholder="Apellidos"
+                  disabled={loading}
                 />
               </div>
 
@@ -87,9 +159,11 @@ export default function RegistroResponsablesArea() {
                 <input
                   className="input w-full"
                   name="email"
+                  type="email"
                   value={form.email}
                   onChange={handleChange}
                   placeholder="correo@ejemplo.com"
+                  disabled={loading}
                 />
               </div>
 
@@ -101,6 +175,7 @@ export default function RegistroResponsablesArea() {
                   value={form.telefono}
                   onChange={handleChange}
                   placeholder="77712345"
+                  disabled={loading}
                 />
               </div>
 
@@ -108,38 +183,56 @@ export default function RegistroResponsablesArea() {
                 <label className="label">Área</label>
                 <select
                   className="input w-full"
-                  name="area"
-                  value={form.area}
+                  name="id_area"
+                  value={form.id_area}
                   onChange={handleChange}
+                  disabled={loading}
                 >
                   <option value="">Seleccionar área</option>
-                  <option value="Matemática">Matemática</option>
-                  <option value="Física">Física</option>
-                  <option value="Química">Química</option>
-                  <option value="Biología">Biología</option>
-                  <option value="Informática">Informática</option>
-                  <option value="Robótica">Robótica</option>
+                  {areas.map((a) => (
+                    <option key={a.id_area} value={a.id_area}>
+                      {a.nombre_area}
+                    </option>
+                  ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="label">Contraseña inicial</label>
+                <input
+                  className="input w-full"
+                  name="password"
+                  type="text"
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="Opcional (por defecto 123456)"
+                  disabled={loading}
+                />
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 mt-2">
               <button
                 className="btn btn-primary"
                 onClick={registrarResponsable}
+                disabled={loading}
               >
-                Registrar Responsable de area
+                {loading ? "Guardando..." : "Registrar Responsable de área"}
               </button>
-              <button className="btn" onClick={limpiarFormulario}>
+              <button
+                className="btn"
+                onClick={limpiarFormulario}
+                disabled={loading}
+              >
                 Limpiar
               </button>
             </div>
           </div>
 
-          {/* Tabla de responsables de area */}
+          {/* Tabla */}
           <div className="card p-6">
             <h2 className="font-semibold text-gray-700 mb-4">
-              Responsables de Area Registrados
+              Responsables de Área Registrados
             </h2>
 
             <div className="overflow-x-auto">
@@ -148,15 +241,28 @@ export default function RegistroResponsablesArea() {
                   <tr className="border-b">
                     <th className="p-2">Nombre</th>
                     <th className="p-2">Email</th>
+                    <th className="p-2">Teléfono</th>
                     <th className="p-2">Área</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {responsables.map((e) => (
-                    <tr key={e.id} className="border-b hover:bg-gray-50">
-                      <td className="p-2">{e.nombre}</td>
-                      <td className="p-2">{e.email}</td>
-                      <td className="p-2">{e.area}</td>
+                  {responsables.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="p-4 text-center text-gray-500"
+                      >
+                        No hay responsables registrados.
+                      </td>
+                    </tr>
+                  )}
+
+                  {responsables.map((r) => (
+                    <tr key={r.id} className="border-b hover:bg-gray-50">
+                      <td className="p-2">{r.nombreCompleto}</td>
+                      <td className="p-2">{r.email}</td>
+                      <td className="p-2">{r.telefono}</td>
+                      <td className="p-2">{r.areaNombre}</td>
                     </tr>
                   ))}
                 </tbody>
