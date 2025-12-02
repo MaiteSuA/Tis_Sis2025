@@ -3,15 +3,18 @@ const BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 // BACK -> UI
 function mapBackToUICoordinador(r) {
   if (!r) return null;
+
+  const u = r.usuario || {};
+
   return {
     id: r.id_coordinador ?? r.id,
-    nombres: r.nombre_coordinador,
-    apellidos: r.apellidos_coordinador,
+    nombres: u.nombre ?? r.nombre_coordinador ?? "",
+    apellidos: u.apellido ?? r.apellidos_coordinador ?? "",
     rol: "COORDINADOR",
     area: r?.area?.nombre_area || "General",
-    correo: r.correo_electronico || "",
+    correo: u.correo ?? r.correo_electronico ?? "",
     carnet: r.carnet || "",
-    telefono: r.telefono || "",
+    telefono: u.telefono ?? r.telefono ?? "",
     estado: true,
   };
 }
