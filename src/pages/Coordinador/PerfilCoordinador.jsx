@@ -5,6 +5,7 @@ import {
   getPerfilCoordinador,
   updatePerfilCoordinador,
 } from "../../services/api";
+import { useEstadoProceso } from "../../hook/useEstadoProceso";
 
 export default function PerfilCoordinador() {
   const [form, setForm] = useState({
@@ -19,6 +20,7 @@ export default function PerfilCoordinador() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
+  const { label, isConcluido } = useEstadoProceso();
   // Cargar perfil desde el backend al entrar
   useEffect(() => {
     async function load() {
@@ -56,7 +58,7 @@ export default function PerfilCoordinador() {
       telefono: original.telefono ?? "",
       carnet: original.carnet ?? "",
     });
-    setMsg("↩️ Cambios descartados.");
+    setMsg(" Cambios descartados.");
     setTimeout(() => setMsg(""), 2000);
   }
 
@@ -100,9 +102,20 @@ export default function PerfilCoordinador() {
         <Sidebar />
         <main className="flex-1">
           <div className="w-full max-w-6xl mx-auto px-4 py-6 space-y-4">
+           <div className="flex items-center justify-between">
             <h1 className="text-lg font-semibold text-gray-700">
               Perfil del Coordinador
             </h1>
+            <span className="text-xs md:text-sm px-3 py-1 rounded-full bg-gray-100 text-gray-700">
+              {label}
+              </span>
+            </div> 
+            {/* Mensaje opcional si el proceso está concluido */}
+            {isConcluido && (
+              <div className="px-4 py-2 rounded-md bg-red-50 text-red-700 text-sm">
+                El proceso está concluido. No se permiten más cambios.
+              </div>
+            )}
 
             {msg && (
               <div className="card px-4 py-3">

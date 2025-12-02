@@ -1,8 +1,11 @@
 import Brand from "../Brand";
 import { NavLink, useNavigate } from "react-router-dom";
+import { useEstadoProceso } from "../../hook/useEstadoProceso";
 
 export default function TopNav() {
   const navigate = useNavigate();
+
+  const { label } = useEstadoProceso();
 
   function handleLogout() {
     localStorage.removeItem("token");
@@ -22,7 +25,9 @@ export default function TopNav() {
         <Brand />
 
         {/* Texto rol */}
-        <span className="text-gray-400 text-sm tracking-wide">COORDINADOR</span>
+        <span className="text-gray-400 text-sm tracking-wide">
+          COORDINADOR · {label}
+        </span>
 
         {/* --- BOTONES DEL COORDINADOR --- */}
         <nav className="hidden md:flex items-center gap-2">
