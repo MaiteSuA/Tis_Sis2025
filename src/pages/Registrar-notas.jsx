@@ -229,6 +229,49 @@ export default function RegistrarNotasReplanteado() {
     }
   };
 
+   // === CONTEXTO DEL EVALUADOR (Área/Nivel) ===
+  const [areaNombre, setAreaNombre] = useState("");          // "Matemáticas", etc.
+  const [nivelesDisponibles, setNivelesDisponibles] = useState([]); // [{id, nombre}]
+  const [nivelSel, setNivelSel] = useState("");              // Nombre del nivel
+
+  useEffect(() => {
+    const cargarAreaYNiveles = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        // 1) Perfil (área del evaluador)
+        const r1 = await fetch(`${API_BASE_URL}/evaluadores/mi-perfil`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!r1.ok) throw new Error("No se pudo obtener el perfil de evaluador");
+        const j1 = await r1.json();
+        const area = j1?.evaluador?.area;
+        if (area?.nombre_area) setAreaNombre(area.nombre_area);
+
+        // 2) Niveles por área (opcional: para mostrar uno sugerido)
+        if (area?.id_area) {
+          const r2 = await fetch(`${API_BASE_URL}/evaluadores/niveles-por-area/${Number(area.id_area)}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (r2.ok) {
+            const j2 = await r2.json();
+            const niveles = Array.isArray(j2?.data) ? j2.data : [];
+            setNivelesDisponibles(niveles);        // [{id, nombre}]
+            if (niveles.length > 0) setNivelSel(niveles[0].nombre); // sugerir el primero
+          }
+        }
+      } catch (e) {
+        // Silencioso: si falla, mostramos guiones en el UI
+        console.warn("Contexto área/nivel no disponible:", e.message);
+        setAreaNombre("");
+        setNivelesDisponibles([]);
+        setNivelSel("");
+      }
+    };
+    cargarAreaYNiveles();
+  }, []);
+
   // ============================
   //   RENDER
   // ============================
@@ -267,12 +310,12 @@ export default function RegistrarNotasReplanteado() {
 
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-700">Área:</span>
-            <span className="text-slate-600">"default"</span>
+            <span className="text-slate-600">{areaNombre || "—"}</span>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-700">Nivel:</span>
-            <span className="text-slate-600">"default"</span>
+            <span className="text-slate-600">{nivelSel || "—"}</span>
           </div>
         </div>
 
