@@ -1,9 +1,30 @@
+// src/components/Carousel.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import leftArrow from "../assets/izquierda.jpg";
 import rightArrow from "../assets/derecha.jpg";
 
+/**
+ * Este carrusel ahora admite:
+ * - image  (frontend dummy data)
+ * - imagen_url (backend anuncios)
+ * - title
+ * - descripcion / description
+ */
 export default function Carousel({ items = [], intervalMs = 4500 }) {
-  const slides = useMemo(() => items.filter(Boolean), [items]);
+  // Adaptamos los items para soportar ambos formatos (dummy y BD)
+  const slides = useMemo(
+    () =>
+      items
+        .filter(Boolean)
+        .map((item) => ({
+          image: item.image || item.imagen_url || "", // Soporta backend y estáticos
+          title: item.title || item.titulo || "Sin título",
+          description:
+            item.description || item.contenido || item.descripcion || "",
+        })),
+    [items]
+  );
+
   const [i, setI] = useState(0);
   const timer = useRef(null);
   const hover = useRef(false);
@@ -13,9 +34,11 @@ export default function Carousel({ items = [], intervalMs = 4500 }) {
 
   useEffect(() => {
     if (!slides.length) return;
+
     timer.current = setInterval(() => {
       if (!hover.current) next();
     }, intervalMs);
+
     return () => clearInterval(timer.current);
   }, [slides.length, intervalMs]);
 
@@ -35,7 +58,7 @@ export default function Carousel({ items = [], intervalMs = 4500 }) {
       onMouseEnter={() => (hover.current = true)}
       onMouseLeave={() => (hover.current = false)}
     >
-      {/* Imagen de fondo + velo */}
+      {/* Imagen del anuncio */}
       {s.image && (
         <>
           <img
@@ -47,22 +70,21 @@ export default function Carousel({ items = [], intervalMs = 4500 }) {
         </>
       )}
 
-      {/* Texto central */}
+      {/* Texto centrado */}
       <div className="absolute inset-0 flex flex-col items-center justify-center text-white px-6 text-center">
         <div className="uppercase tracking-wide text-xs md:text-sm opacity-90">
           NOTICIAS / PRÓXIMOS EVENTOS
         </div>
-        <h3 className="mt-2 text-xl md:text-2xl font-semibold">
-          {s.title}
-        </h3>
+        <h3 className="mt-2 text-xl md:text-2xl font-semibold">{s.title}</h3>
         {s.description && (
           <p className="mt-1 text-xs md:text-sm opacity-90 max-w-3xl">
             {s.description}
           </p>
         )}
       </div>
-      {/* Flecha izquierda (imagen) */}
-    <button
+
+      {/* Botón izquierda */}
+      <button
         aria-label="Anterior"
         onClick={prev}
         className="absolute left-3 top-1/2 -translate-y-1/2
@@ -78,7 +100,7 @@ export default function Carousel({ items = [], intervalMs = 4500 }) {
         />
       </button>
 
-      {/* Flecha derecha (imagen) */}
+      {/* Botón derecha */}
       <button
         aria-label="Siguiente"
         onClick={next}
@@ -95,7 +117,7 @@ export default function Carousel({ items = [], intervalMs = 4500 }) {
         />
       </button>
 
-      {/* Dots */}
+      {/* Puntos del carrusel */}
       <div className="absolute bottom-3 w-full flex items-center justify-center gap-2">
         {slides.map((_, idx) => (
           <button

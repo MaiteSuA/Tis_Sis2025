@@ -1,41 +1,45 @@
 // src/api/anuncios.js
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-// Más adelante puedes cambiar esto a tu helper real de API.
-// Por ahora uso fetch directo a tu backend.
-const BASE_URL = "http://localhost:3000/api"; // ajusta si tu back usa otro prefijo
-
-// Obtener anuncios activos para el carrusel (vista pública y dashboard)
-export async function getAnunciosCarrusel() {
+async function handleResponse(res) {
+  let json = {};
   try {
-    const res = await fetch(`${BASE_URL}/anuncios/carrusel`);
-    if (!res.ok) {
-      console.error("Error HTTP en getAnunciosCarrusel:", res.status);
-      return [];
-    }
-    const data = await res.json();
-    return Array.isArray(data) ? data : [];
-  } catch (e) {
-    console.error("Error de red en getAnunciosCarrusel:", e);
-    return [];
+    json = await res.json();
+  } catch (_) {}
+
+  if (!res.ok || json.ok === false) {
+    throw new Error(json.message || "Error en la solicitud");
   }
+
+  return json.data ?? json;
 }
 
-// Crear nuevo anuncio desde el dashboard de responsable
+//  Lista TODOS los anuncios (para ResponsableAnuncios)
+export async function getAnunciosCarrusel() {
+  const res = await fetch(`${BASE_URL}/anuncios/carrusel`);
+  return handleResponse(res);
+}
+
+//  Crea anuncio
 export async function crearAnuncioCarrusel(payload) {
   const res = await fetch(`${BASE_URL}/anuncios/carrusel`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      // si más adelante agregas auth, aquí iría el Authorization: Bearer token
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    console.error("Error HTTP al crear anuncio:", res.status, text);
-    throw new Error("Error al crear anuncio");
-  }
+  return handleResponse(res);
+}
 
-  return res.json().catch(() => ({}));
+//  Para el HOME (solo anuncios vigentes)
+export async function getAnunciosVigentes() {
+  const res = await fetch(`${BASE_URL}/anuncios/carrusel/vigentes`);
+  return handleResponse(res);
+}
+
+export async function eliminarAnuncioCarrusel(id) {
+  const res = await fetch(`${BASE_URL}/anuncios/carrusel/${id}`, {
+    method: "DELETE",
+  });
+  return handleResponse(res);
 }
