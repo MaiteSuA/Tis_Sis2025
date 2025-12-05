@@ -32,35 +32,49 @@ const ExcelGrid = ({
           </thead>
 
           <tbody>
-            {data.map((row, rowIndex) => (
-              <tr key={row.id ?? rowIndex} className="hover:bg-blue-50 transition-colors">
-                {showRowNumbers && (
-                  <td className="border border-gray-300 bg-gray-50 px-3 py-1 text-xs text-gray-600 font-medium text-center">
-                    {rowIndex + 1}
-                  </td>
-                )}
+            {data.map((row, rowIndex) => {
+              // Generar una key única usando múltiples campos
+              const uniqueKey = row.id_evaluacion 
+                ? `eval-${row.id_evaluacion}` 
+                : row.id 
+                  ? `row-${row.id}-${rowIndex}` 
+                  : `index-${rowIndex}`;
+              
+              return (
+                <tr key={uniqueKey} className="hover:bg-blue-50 transition-colors">
+                  {showRowNumbers && (
+                    <td className="border border-gray-300 bg-gray-50 px-3 py-1 text-xs text-gray-600 font-medium text-center">
+                      {rowIndex + 1}
+                    </td>
+                  )}
 
-                {columns.map((col, colIndex) => (
-                  <td key={colIndex} className="border border-gray-300 p-0">
-                    {renderCell ? (
-                      renderCell(row, col, rowIndex, colIndex, onCellChange)
-                    ) : (
-                      <input
-                        type="text"
-                        value={row[col.field] || ""}
-                        onChange={(e) => onCellChange(row.id, col.field, e.target.value)}
-                        placeholder={col.placeholder || ""}
-                        className="w-full h-full px-2 py-1.5 text-sm border-none focus:ring-2 focus:ring-blue-500 focus:ring-inset outline-none bg-transparent"
-                      />
-                    )}
-                  </td>
-                ))}
-              </tr>
-            ))}
+                  {columns.map((col, colIndex) => (
+                    <td key={colIndex} className="border border-gray-300 p-0">
+                      {renderCell ? (
+                        renderCell(row, col, rowIndex, colIndex, onCellChange)
+                      ) : (
+                        <input
+                          type="text"
+                          value={row[col.field] || ""}
+                          onChange={(e) => {
+                            // Usar id_evaluacion si existe, sino usar id
+                            const rowId = row.id_evaluacion || row.id;
+                            onCellChange(rowId, col.field, e.target.value);
+                          }}
+                          placeholder={col.placeholder || ""}
+                          className="w-full h-full px-2 py-1.5 text-sm border-none focus:ring-2 focus:ring-blue-500 focus:ring-inset outline-none bg-transparent"
+                        />
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
     </div>
   );
 };
+
 export default ExcelGrid;
