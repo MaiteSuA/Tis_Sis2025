@@ -31,6 +31,7 @@ function mapBackToUICoordinador(r) {
     // Correo / Gmail
     correo,
     gmail: correo,
+    // correo: u.correo ?? r.correo_electronico ?? "",
 
     // Otros datos
     carnet: r.carnet || "",
