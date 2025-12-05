@@ -131,3 +131,11 @@ export async function resetPasswordApi({ correo, password }) {
 
   return data; // { ok: true }
 }
+
+export function getAuthHeaders() {
+  const token = localStorage.getItem("token");
+  if (!token) return {};
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+}

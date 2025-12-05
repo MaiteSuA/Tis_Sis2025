@@ -4,6 +4,7 @@ import UsuariosTabs from "../components/UsuariosTabs.jsx";
 import UsuariosTable from "../components/UsuariosTable.jsx";
 import UsuarioForm from "../components/UsuarioForm.jsx";
 import AreasModal from "../components/AreasModal.jsx";
+
 import Swal from 'sweetalert2';
 import {
   fetchResponsables,
@@ -112,31 +113,47 @@ useEffect(() => {
     setGuardadoArea(false);
   };
 
-  // ============================================================
-  // ESTADO DEL PROCESO
-  // ============================================================
-  const PROCESS_KEY = "ohsansi_estado_proceso";
-  const [proceso, setProceso] = useState({ en: false, fin: false });
+// ============================================================
+// ESTADO DEL PROCESO
+// ============================================================
+  const PROCESS_KEY = "ohsansi_estado_proceso_v2";
+
+  const FASES = {
+    CLASIFICATORIA: "CLASIFICATORIA",
+    FINAL: "FINAL",
+    CONCLUIDO: "CONCLUIDO",
+  };
+
+  const [fase, setFase] = useState(FASES.CLASIFICATORIA);
   const [dirtyProceso, setDirtyProceso] = useState(false);
   const [savedProceso, setSavedProceso] = useState(false);
-  const lastSavedProceso = useRef({ en: false, fin: false });
+  const lastSavedFase = useRef(FASES.CLASIFICATORIA);
 
-  const onChangeProceso = (campo) => (e) => {
-    const value = e.target.checked;
-    const nuevo = { ...proceso, [campo]: value };
-    setProceso(nuevo);
+    useEffect(() => {
+      try {
+        const raw = localStorage.getItem(PROCESS_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (parsed?.fase && Object.values(FASES).includes(parsed.fase)) {
+          setFase(parsed.fase);
+          lastSavedFase.current = parsed.fase;
+        }
+      } catch (e) {
+        console.error("Error leyendo estado de proceso:", e);
+      }
+    }, []);
 
-    const isDifferent =
-      nuevo.en !== lastSavedProceso.current.en ||
-      nuevo.fin !== lastSavedProceso.current.fin;
-
-    setDirtyProceso(isDifferent);
+  // Cuando cambia un radio
+  const onChangeFase = (nuevaFase) => {
+    setFase(nuevaFase);
+    setDirtyProceso(nuevaFase !== lastSavedFase.current);
     setSavedProceso(false);
   };
 
   const guardarProceso = () => {
-    localStorage.setItem(PROCESS_KEY, JSON.stringify(proceso));
-    lastSavedProceso.current = { ...proceso };
+  const payload = { fase };
+    localStorage.setItem(PROCESS_KEY, JSON.stringify(payload));
+    lastSavedFase.current = fase;
     setDirtyProceso(false);
     setSavedProceso(true);
   };
@@ -517,23 +534,36 @@ const handleDeleteArea = async (id) => {
             <span className="section">Estado del proceso:</span>
 
             <label className="inline-flex items-center gap-2 text-gray-800 text-sm">
-              <span>En evaluación</span>
               <input
-                type="checkbox"
+                type="radio"
+                name="fase"
                 className="accent-gray-700"
-                checked={proceso.en}
-                onChange={onChangeProceso("en")}
+                checked={fase === FASES.CLASIFICATORIA}
+                onChange={() => onChangeFase(FASES.CLASIFICATORIA)}
               />
+              <span>Fase clasificatoria</span>
             </label>
 
             <label className="inline-flex items-center gap-2 text-gray-800 text-sm">
-              <span>Concluido</span>
               <input
-                type="checkbox"
+                type="radio"
+                name="fase"
                 className="accent-gray-700"
-                checked={proceso.fin}
-                onChange={onChangeProceso("fin")}
+                checked={fase === FASES.FINAL}
+                onChange={() => onChangeFase(FASES.FINAL)}
               />
+              <span>Fase final</span>
+            </label>
+
+            <label className="inline-flex items-center gap-2 text-gray-800 text-sm">
+              <input
+                type="radio"
+                name="fase"
+                className="accent-gray-700"
+                checked={fase === FASES.CONCLUIDO}
+                onChange={() => onChangeFase(FASES.CONCLUIDO)}
+              />
+              <span>Concluido</span>
             </label>
 
             <div className="ml-auto flex items-center gap-3">
@@ -542,16 +572,16 @@ const handleDeleteArea = async (id) => {
                 disabled={!dirtyProceso}
                 className={`btn-dark ${
                   !dirtyProceso ? "opacity-60 cursor-not-allowed" : ""
-                }`}
+                  }`}
               >
                 Guardar Cambios
               </button>
 
-                {savedProceso && (
-                  <span className="text-green-600 text-sm whitespace-nowrap">
-                    ✓ Guardado
-                  </span>
-                )}
+              {savedProceso && (
+                <span className="text-green-600 text-sm whitespace-nowrap">
+                  ✓ Guardado
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -577,7 +607,7 @@ const handleDeleteArea = async (id) => {
         </div>
 
         <div className="px-4 pb-4 flex justify-between">
-          <button className="btn-light">Historial</button>
+          
           <button className="btn-dark" onClick={handleCreate}>
             + Agregar nuevo usuario
           </button>
