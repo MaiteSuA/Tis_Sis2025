@@ -37,11 +37,43 @@ const RevisarEvaluaciones = () => {
 
   const navigate = useNavigate();
 
+  //get NOTA MINIMA
+  const [notaMinima, setNotaMinima] = useState(null);
+
   // ====================== TOAST ======================
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(""), 3000);
   };
+
+  //Get Nota minima
+ useEffect(() => {
+  const fetchNotaMinima = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      console.log("TOKEN ENVIADO:", token); // para verificar
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/fases/clasificacion`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "authorization": `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      console.log("RESPUESTA DEL BACKEND:", data);
+
+      
+      setNotaMinima(Number(data.nota_minima));
+      
+    } catch (err) {
+      console.error("Error al obtener nota mínima:", err);
+    }
+  };
+
+  fetchNotaMinima();
+}, []);
+
 
   // ====================== LOGIN ======================
   useEffect(() => {
@@ -193,12 +225,32 @@ const handleSave = async (formData) => {
 
   // ====================== CARGAR COMPETIDORES ======================
   useEffect(() => {
+    if (notaMinima === null) return; // espera a que la nota mínima esté cargada
     const fetchCompetidores = async () => {
       try {
         const response = await fetch(`${import.meta.env.VITE_API_URL}/evaluaciones`);
         const result = await response.json();
         if (!response.ok) throw new Error("Error al obtener los datos");
-        if (result.ok) setCompetidores(result.data);
+        
+        if (result.ok) {
+          const normalizados = result.data.map(c => {
+            const rawNota = c.nota;
+            const nota = rawNota !== null && rawNota !== undefined && rawNota !== "" 
+            ? Number(rawNota) 
+            : null;
+
+            let estado = "Pendiente"; // por defecto
+
+            if (nota !== null) {
+              if (nota >= notaMinima) estado = "Clasificado";
+              else estado = "No Clasificado";
+            }
+
+            return { ...c, estado };
+          });
+
+          setCompetidores(normalizados);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -206,7 +258,9 @@ const handleSave = async (formData) => {
       }
     };
     fetchCompetidores();
-  }, []);
+  }, [notaMinima]);
+
+  
 
   // ====================== EXPORTAR EXCEL ======================
   const exportExcel = () => {
@@ -252,9 +306,15 @@ const handleSave = async (formData) => {
   };
 
   const competidoresFiltrados = competidores.filter((c) => {
-  if (filterEstado === "todos") return true;
-  if (filterEstado === "clasificados") return c.estado === "Clasificado";
-  return true;
+  switch (filterEstado) {
+    case "clasificados":
+      return c.estado === "Clasificado";
+    case "noClasificados":
+      return c.estado === "No Clasificado";
+    case "pendientes":
+      return c.estado === "Pendiente";
+    default:
+      return true; }
 });
 
 //Mostrar evluadores por Area unicamente
@@ -296,10 +356,22 @@ const evaluadoresFiltrados = evaluadores.filter(e => {
             <div className="!bg-gray-50 p-4 rounded-lg border">
               <h3 className="text-lg font-semibold mb-2">Resumen</h3>
               <ul className="text-gray-700">
-                <li>Competidores: {competidores.length}</li>
+                <li>Competidores Totales: {competidores.length}</li>
                 <li>
                   Clasificados:{" "}
                   {competidores.filter((c) => c.estado === "Clasificado").length}
+                </li>
+                <li>
+                  No Clasificados:{" "}
+                  {competidores.filter((c) => c.estado === "No Clasificado").length}
+                </li>
+                <li>
+                  Pendientes:{" "}
+                  {competidores.filter((c) => c.estado === "Pendiente").length}
+                </li>
+                <li>
+                  Descalificado:{" "}
+                  {competidores.filter((c) => c.estado === "Descalificado").length}
                 </li>
               </ul>
             </div>
@@ -397,6 +469,8 @@ const evaluadoresFiltrados = evaluadores.filter(e => {
             >
               <option value="todos">Todos</option>
               <option value="clasificados">Clasificados</option>
+              <option value="noClasificados">No Clasificados</option>
+              <option value="pendientes">Pendientes</option>
             </select>
           </div>
 
@@ -457,7 +531,7 @@ const evaluadoresFiltrados = evaluadores.filter(e => {
               key={mode + (selected?.id ?? "nuevo")}
               mode={mode}
               title="Registro de Evaluador"
-              areas={areas}
+              areas={areas.filter(a => a.nombre === user?.area)}
               initialData={selected}
               defaultRol="EVALUADOR"
               onSubmit={handleSave}

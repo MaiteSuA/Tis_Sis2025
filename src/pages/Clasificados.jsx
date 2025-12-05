@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 // Endpoint público que devolverá TODOS los documentos publicados
 // AJUSTA esta URL a tu backend real:
-const API_CLASIFICADOS = `${import.meta.env.VITE_API_URL}/clasificados`;//andreas cambias aca tu api que le pongasss
+const API_CLASIFICADOS = `${import.meta.env.VITE_API_URL}/clasificados`;
 
 export default function Clasificados() {
   const navigate = useNavigate();
