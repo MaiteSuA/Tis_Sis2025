@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";   
+// src/pages/Home.jsx
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Carousel from "../components/Carousel";
 import LoginModal from "../components/LoginModal";
@@ -7,28 +8,11 @@ import RegisterModal from "../components/RegisterModal";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
 import VerifyCodeModal from "../components/VerifyCodeModal";
 import ResetPasswordModal from "../components/ResetPasswordModal";
-import { getAnunciosCarrusel } from "../api/anuncios";
+import { getAnunciosVigentes } from "../api/anuncios";
 
-const news = [
-  {
-    title: "Convocatoria Oficial 2025 publicada",
-    description: "Revisa fechas y requisitos para las Olimpiadas OhSanSi.",
-    image:
-      "https://images.unsplash.com/photo-1523580846011-d3a5bc25702b?q=80&w=1600&auto=format&fit=crop",
-  },
-  {
-    title: "Capacitación a Evaluadores",
-    description: "Sesiones intro y rúbricas de evaluación por áreas.",
-    image:
-      "https://images.unsplash.com/photo-1523580846011-8a49fd8d1a76?q=80&w=1600&auto=format&fit=crop",
-  },
-  {
-    title: "Clasificatorias regionales",
-    description: "Cronograma y sedes confirmadas para las pruebas.",
-    image:
-      "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?q=80&w=1600&auto=format&fit=crop",
-  },
-];
+// 👇 Si ya no quieres noticias estáticas, puedes borrar esto.
+// (Lo dejo eliminado para que SOLO use BD)
+// const news = [ ... ];
 
 export default function Home() {
   const [showLogin, setShowLogin] = useState(false);
@@ -38,7 +22,29 @@ export default function Home() {
   const [showReset, setShowReset] = useState(false);
   const [correoRecuperacion, setCorreoRecuperacion] = useState("");
 
+  const [anuncios, setAnuncios] = useState([]);
+
   const navigate = useNavigate(); // 👈 para ir a medallero / clasificados
+
+  // Cargar anuncios vigentes para el carrusel del home
+  useEffect(() => {
+    async function cargar() {
+      try {
+        const data = await getAnunciosVigentes();
+        setAnuncios(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error("Error cargando anuncios vigentes:", e);
+      }
+    }
+    cargar();
+  }, []);
+
+  // Adaptar la forma de los anuncios de BD al formato que espera el Carousel
+  const anunciosAdaptados = anuncios.map((a) => ({
+    title: a.titulo,
+    description: a.contenido,
+    image: a.imagen_url,
+  }));
 
   // Funciones para navegación entre modales
   const handleOpenLogin = () => {
@@ -73,11 +79,11 @@ export default function Home() {
 
         {/* Carrusel centrado debajo del título */}
         <div className="w-full max-w-5xl mb-8">
-          <Carousel items={news} />
+          {/* 👇 AHORA SOLO USA ANUNCIOS DE BD */}
+          <Carousel items={anunciosAdaptados} />
         </div>
 
-        {/* 🔁 Antes: un solo botón "Empezar" que abría login
-            Ahora: dos botones -> Medallero y Clasificados */}
+        {/* Botones Medallero / Clasificados */}
         <div className="flex flex-wrap gap-4 justify-center">
           <button
             onClick={() => navigate("/medallero")}
@@ -93,9 +99,6 @@ export default function Home() {
             Clasificados
           </button>
         </div>
-
-        {/* Si quisieras que uno de estos abra el login modal en vez de navegar,
-            podríamos usar onClick={handleOpenLogin} en uno de ellos. */}
       </section>
 
       <footer className="w-screen bg-gray-100 py-6 text-center text-sm text-gray-500">
