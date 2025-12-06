@@ -1,187 +1,616 @@
-// src/pages/Clasificados.jsx
-import { useEffect, useState } from "react";
+// src/pages/ResponsableClasificados.jsx
+import { useEffect, useState, useRef } from "react";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
 import { useNavigate } from "react-router-dom";
 
-// Endpoint público que devolverá TODOS los documentos publicados
-// AJUSTA esta URL a tu backend real:
-const API_CLASIFICADOS = `${import.meta.env.VITE_API_URL}/clasificados`;
+import {
+  Document,
+  Packer,
+  Paragraph,
+  Table,
+  TableRow,
+  TableCell,
+  TextRun,
+} from "docx";
+import html2canvas from "html2canvas";
 
-export default function Clasificados() {
-  const navigate = useNavigate();
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
 
-  const [docs, setDocs] = useState([]);
-  const [selectedIndex, setSelectedIndex] = useState(0);
+export default function ResponsableClasificados() {
+  const [clasificados, setClasificados] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [downloadFormat, setDownloadFormat] = useState("xlsx");
+  const tableRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        setError("");
-
-        const resp = await fetch(API_CLASIFICADOS);
-        if (!resp.ok) {
-          throw new Error("No se pudo obtener los clasificados");
-        }
-
-        const data = await resp.json();
-        const arr = Array.isArray(data) ? data : [];
-
-        setDocs(arr);
-        setSelectedIndex(arr.length > 0 ? 0 : -1);
-      } catch (e) {
-        console.error(e);
-        setError(
-          e.message || "Ocurrió un error al cargar los documentos de clasificados."
-        );
-        setDocs([]);
-        setSelectedIndex(-1);
-      } finally {
-        setLoading(false);
-      }
-    })();
+    cargarClasificados();
   }, []);
 
-  const hayDocumentos = docs.length > 0;
-  const current = hayDocumentos && selectedIndex >= 0 ? docs[selectedIndex] : null;
+  async function cargarClasificados() {
+    try {
+      setLoading(true);
+      setError("");
 
-  // helper para saber si el tipo es imagen o pdf
-  const esPdf = (doc) =>
-    doc?.tipo_archivo === "application/pdf" ||
-    doc?.nombre_archivo?.toLowerCase().endsWith(".pdf");
+      const token = localStorage.getItem("token");
 
-  const esImagen = (doc) =>
-    doc?.tipo_archivo?.startsWith("image/") ||
-    [".png", ".jpg", ".jpeg", ".gif", ".webp"].some((ext) =>
-      doc?.nombre_archivo?.toLowerCase().endsWith(ext)
+      const res = await fetch(`${API_URL}/clasificados`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const json = await res.json();
+      const lista = Array.isArray(json.data)
+        ? json.data
+        : Array.isArray(json)
+        ? json
+        : [];
+
+      setClasificados(lista);
+    } catch (err) {
+      console.error(err);
+      setError("No se pudieron cargar los clasificados.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /* ===============================
+     HELPERS DE DATOS
+  =============================== */
+
+  function getNombres(c) {
+    return (
+      c.nombres_inscrito ??
+      c.inscritos?.nombres ??
+      c.inscritos?.nombre ??
+      ""
+    );
+  }
+
+  function getApellidos(c) {
+    return (
+      c.apellidos_inscrito ??
+      c.inscritos?.apellidos ??
+      c.inscritos?.apellido ??
+      ""
+    );
+  }
+
+  function getNombreCompleto(c) {
+    const n = getNombres(c);
+    const a = getApellidos(c);
+    const full = `${n} ${a}`.trim();
+    return full || "-";
+  }
+
+  function getCi(c) {
+    // primero el campo plano que viene del SELECT, luego por si algún día viene anidado
+    return c.ci_inscrito ?? c.inscritos?.ci_inscrito ?? "";
+  }
+
+  function getColegio(c) {
+    return c.colegio ?? c.inscritos?.colegio ?? "";
+  }
+
+  function getContactoTutor(c) {
+    return c.contacto_tutor ?? c.inscritos?.contacto_tutor ?? "";
+  }
+
+  function getUnidadEducativa(c) {
+    return c.unidad_educativa ?? c.inscritos?.unidad_educativa ?? "";
+  }
+
+  function getDepartamento(c) {
+    return c.departamento ?? c.inscritos?.departamento ?? "";
+  }
+
+  function getGradoEscolaridad(c) {
+    return c.grado_escolaridad ?? c.inscritos?.grado_escolaridad ?? "";
+  }
+
+  function getArea(c) {
+    // de momento mostramos el id_area; si luego haces JOIN con AREA, aquí pondrías el nombre
+    return c.id_area ?? c.inscritos?.id_area ?? "";
+  }
+
+  function getTutorAcademico(c) {
+    return c.tutor_academico ?? c.inscritos?.tutor_academico ?? "";
+  }
+
+  // Convierte estado → nombre de fase visible
+  function getNombreFase(c) {
+    if (c.estado === "CLASIFICADO") return "FINAL";
+    if (c.estado === "NO_CLASIFICADO") return "NO FINALISTA";
+    return "SIN FASE";
+  }
+
+  // Filas para exportar
+    // Filas para exportar (TODAS las columnas visibles)
+  function getExportRows() {
+    return clasificados.map((c, index) => ({
+      N: index + 1,
+      Nombres: getNombres(c),
+      Apellidos: getApellidos(c),
+      CI: getCi(c),
+      Colegio: getColegio(c),
+      Contacto_Tutor: getContactoTutor(c),
+      Unidad_Educativa: getUnidadEducativa(c),
+      Departamento: getDepartamento(c),
+      Grado_Escolaridad: getGradoEscolaridad(c),
+      Area: getArea(c),
+      Tutor_Academico: getTutorAcademico(c),
+      Fase: getNombreFase(c),
+      Estado: c.estado,
+    }));
+  }
+
+  /* ===============================
+       DESCARGA EXCEL
+  =============================== */
+  function downloadExcel() {
+    const rows = getExportRows();
+    if (!rows.length) return;
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, "Clasificados");
+    XLSX.writeFile(wb, "clasificados_publicados.xlsx");
+  }
+
+  /* ===============================
+       DESCARGA CSV
+  =============================== */
+  function downloadCsv() {
+    const rows = getExportRows();
+    if (!rows.length) return;
+
+    const headers = Object.keys(rows[0]);
+    const csvLines = [
+      headers.join(";"),
+      ...rows.map((r) => headers.map((h) => (r[h] ?? "")).join(";")),
+    ];
+
+    const blob = new Blob([csvLines.join("\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "clasificados_publicados.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /* ===============================
+       DESCARGA PDF
+  =============================== */
+  /*function downloadPdf() {
+    const rows = getExportRows();
+    if (!rows.length) return;
+
+    try {
+      const doc = new jsPDF({ unit: "mm", format: "a4" });
+
+      let y = 15;
+      doc.setFontSize(14);
+      doc.text("Clasificados publicados", 10, y);
+      y += 8;
+
+      doc.setFontSize(8);
+
+      const headers = Object.keys(rows[0]);
+
+      // cabecera
+      doc.text(headers.join(" | "), 10, y);
+      y += 4;
+      doc.text("".padEnd(180, "-"), 10, y);
+      y += 4;
+
+      rows.forEach((r) => {
+        const line = headers.map((h) => String(r[h] ?? "")).join(" | ");
+        // salto de página si se acaba el espacio
+        if (y > 280) {
+          doc.addPage();
+          y = 15;
+        }
+        doc.text(line.substring(0, 180), 10, y);
+        y += 4;
+      });
+
+      doc.save("clasificados_publicados.pdf");
+    } catch (err) {
+      console.error("Error generando PDF:", err);
+      alert("Error al generar PDF");
+    }
+  }
+*/
+  /* ===============================
+       DESCARGA WORD
+  =============================== */
+  /*
+  async function downloadWord() {
+    const rows = getExportRows();
+    if (!rows.length) return;
+
+    const headers = Object.keys(rows[0]);
+
+    const headerRow = new TableRow({
+      children: headers.map(
+        (h) =>
+          new TableCell({
+            children: [
+              new Paragraph({
+                children: [new TextRun({ text: h, bold: true })],
+              }),
+            ],
+          })
+      ),
+    });
+
+    const dataRows = rows.map(
+      (r) =>
+        new TableRow({
+          children: headers.map(
+            (h) =>
+              new TableCell({
+                children: [new Paragraph(String(r[h] ?? ""))],
+              })
+          ),
+        })
     );
 
-  const handleDescargar = () => {
-    if (!current) return;
-    // abre en nueva pestaña (el navegador se encargará de descargar / mostrar)
-    window.open(current.url_archivo, "_blank");
-  };
+    const docxDoc = new Document({
+      sections: [
+        {
+          children: [
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Clasificados publicados",
+                  bold: true,
+                  size: 28,
+                }),
+              ],
+            }),
+            new Paragraph({ text: "" }),
+            new Table({ rows: [headerRow, ...dataRows] }),
+          ],
+        },
+      ],
+    });
+
+    const blob = await Packer.toBlob(docxDoc);
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "clasificados_publicados.docx";
+    a.click();
+
+    URL.revokeObjectURL(url);
+  }
+*/
+/* ===============================
+     DESCARGA PDF
+=============================== */
+function downloadPdf() {
+  const rows = getExportRows();
+  if (!rows.length) return;
+
+  try {
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+
+    let y = 15;
+    doc.setFontSize(14);
+    doc.text("Clasificados publicados", 10, y);
+    y += 10;
+
+    doc.setFont("courier", "normal");
+    doc.setFontSize(9);
+
+    // Usamos solo algunas columnas visibles para mantener formato limpio
+    const header =
+      " # | Nombres               | Apellidos             | CI        | Fase      | Estado";
+    doc.text(header, 10, y);
+    y += 4;
+
+    doc.text("--------------------------------------------------------------------------", 10, y);
+    y += 5;
+
+    rows.forEach((r) => {
+      const line =
+        `${String(r.N).padEnd(2)}| ` +
+        `${String(r.Nombres).padEnd(20).slice(0, 20)} | ` +
+        `${String(r.Apellidos).padEnd(20).slice(0, 20)} | ` +
+        `${String(r.CI).padEnd(10)} | ` +
+        `${String(r.Fase).padEnd(10)} | ` +
+        `${r.Estado}`;
+
+      if (y > 280) {
+        doc.addPage();
+        y = 15;
+      }
+
+      doc.text(line, 10, y);
+      y += 5;
+    });
+
+    doc.save("clasificados_publicados.pdf");
+  } catch (err) {
+    console.error("Error generando PDF:", err);
+    alert("Error al generar PDF");
+  }
+}
+
+
+/* ===============================
+     DESCARGA WORD
+=============================== */
+async function downloadWord() {
+  const rows = getExportRows();
+  if (!rows.length) return;
+
+  const headers = ["#", "Nombres", "Apellidos", "CI", "Fase", "Estado"];
+
+  const headerRow = new TableRow({
+    children: headers.map(
+      (h) =>
+        new TableCell({
+          children: [
+            new Paragraph({
+              children: [new TextRun({ text: h, bold: true })],
+            }),
+          ],
+        })
+    ),
+  });
+
+  const dataRows = rows.map(
+    (r) =>
+      new TableRow({
+        children: [
+          r.N,
+          r.Nombres,
+          r.Apellidos,
+          r.CI,
+          r.Fase,
+          r.Estado,
+        ].map((val) =>
+          new TableCell({
+            children: [new Paragraph(String(val ?? ""))],
+          })
+        ),
+      })
+  );
+
+  const docxDoc = new Document({
+    sections: [
+      {
+        children: [
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Clasificados publicados",
+                bold: true,
+                size: 28,
+              }),
+            ],
+          }),
+          new Paragraph({ text: "" }),
+          new Table({ rows: [headerRow, ...dataRows] }),
+        ],
+      },
+    ],
+  });
+
+  const blob = await Packer.toBlob(docxDoc);
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "clasificados_publicados.docx";
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+
+  /* ===============================
+       DESCARGA IMAGEN PNG
+  =============================== */
+  async function downloadImage() {
+    if (!tableRef.current) return alert("Tabla no encontrada");
+
+    try {
+      const clone = tableRef.current.cloneNode(true);
+
+      clone.style.background = "#fff";
+      clone.querySelectorAll("*").forEach((el) => {
+        el.style.background = "#fff";
+      });
+
+      const wrapper = document.createElement("div");
+      wrapper.style.position = "fixed";
+      wrapper.style.left = "-9999px";
+      wrapper.appendChild(clone);
+      document.body.appendChild(wrapper);
+
+      await new Promise((res) => setTimeout(res, 30));
+
+      const canvas = await html2canvas(clone, { scale: 2 });
+
+      const url = canvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "clasificados_publicados.png";
+      a.click();
+
+      document.body.removeChild(wrapper);
+    } catch (err) {
+      console.error("Error generando imagen:", err);
+      alert("Error al generar imagen");
+    }
+  }
+
+  /* ===============================
+       CONTROLADOR DE DESCARGAS
+  =============================== */
+  async function handleDownload() {
+    switch (downloadFormat) {
+      case "xlsx":
+        return downloadExcel();
+      case "csv":
+        return downloadCsv();
+      case "pdf":
+        return downloadPdf();
+      case "docx":
+        return downloadWord();
+      case "png":
+        return downloadImage();
+    }
+  }
+
+  /* ===============================
+       VISTA
+  =============================== */
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      <main className="flex-1 max-w-6xl mx-auto py-8 px-4">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2">
-          Clasificados oficiales
-        </h1>
-
-        <p className="text-sm text-gray-600 mb-4">
-          Documentos Oficiales 
-          (clasificados).
-        </p>
-
-        {loading && (
-          <div className="mt-4 text-gray-600 text-sm">Cargando documentos…</div>
-        )}
-
-        {error && (
-          <div className="mt-4 mb-4 px-3 py-2 border border-red-300 bg-red-50 text-red-700 text-sm rounded-md">
-            {error}
+  <div className="min-h-screen bg-gray-100 flex flex-col">
+    <main className="max-w-6xl mx-auto py-8 px-4">
+      {/* Encabezado: título + Actualizar + descargas */}
+      <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
+        {/* Título + botón Actualizar */}
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-3xl font-bold">Clasificados - Oficial</h1>
+            <p className="text-gray-600 text-sm">
+              Vista de los inscritos clasificados.
+            </p>
           </div>
-        )}
 
-        {!loading && !hayDocumentos && !error && (
-          <p className="mt-4 text-gray-600">
-            Aún no hay documentos de clasificados publicados por el responsable de
-            área.
-          </p>
-        )}
+          <button
+            type="button"
+            onClick={cargarClasificados}
+            disabled={loading}
+            className="px-3 py-1 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? "Actualizando..." : "Actualizar"}
+          </button>
+        </div>
 
-        {hayDocumentos && (
-          <section className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Lista de documentos */}
-            <div className="md:col-span-1">
-              <h2 className="text-sm font-semibold mb-2">Documentos publicados</h2>
-              <ul className="space-y-1 max-h-80 overflow-y-auto pr-1">
-                {docs.map((doc, idx) => (
-                  <li key={doc.id_archivo || idx}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedIndex(idx)}
-                      className={`w-full text-left text-xs px-2 py-2 rounded-md border transition ${
-                        idx === selectedIndex
-                          ? "bg-gray-800 text-white border-gray-800"
-                          : "bg-white hover:bg-gray-100 border-gray-200"
-                      }`}
-                    >
-                      <span className="block truncate font-medium">
-                        {doc.nombre_archivo || `Documento ${idx + 1}`}
-                      </span>
-                      <span className="block text-[10px] text-gray-500">
-                        {doc.tipo_archivo || "tipo desconocido"}
-                      </span>
-                    </button>
-                  </li>
+        {/* Selector de formato + botón Descargar */}
+        <div className="flex items-center gap-2">
+          <select
+            value={downloadFormat}
+            onChange={(e) => setDownloadFormat(e.target.value)}
+            className="border px-2 py-1 rounded"
+          >
+            <option value="xlsx">Excel</option>
+            <option value="csv">CSV</option>
+            <option value="pdf">PDF</option>
+            <option value="docx">Word</option>
+            <option value="png">Imagen (PNG)</option>
+          </select>
+
+          <button
+            onClick={handleDownload}
+            disabled={!clasificados.length}
+            className="bg-gray-800 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Descargar
+          </button>
+        </div>
+      </div>
+
+      {loading && (
+        <div className="text-sm text-gray-600">Cargando clasificados...</div>
+      )}
+
+      {error && (
+        <div className="mb-4 text-sm px-3 py-2 rounded-md bg-red-50 border border-red-200 text-red-700">
+          {error}
+        </div>
+      )}
+
+      {!loading && !clasificados.length && !error && (
+        <div className="text-sm text-gray-500">
+          No hay clasificados registrados todavía.
+        </div>
+      )}
+
+      {!loading && clasificados.length > 0 && (
+        <>
+          <div
+            className="bg-white rounded shadow overflow-auto"
+            ref={tableRef}
+          >
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-800 text-white">
+                <tr>
+                  <th className="px-2 py-2 text-center">
+                    <input type="checkbox" disabled />
+                  </th>
+                  <th className="px-3 py-2 text-left">Nombres</th>
+                  <th className="px-3 py-2 text-left">Apellidos</th>
+                  <th className="px-3 py-2 text-left">CI</th>
+                  <th className="px-3 py-2 text-left">Colegio</th>
+                  <th className="px-3 py-2 text-left">Contacto_Tutor</th>
+                  <th className="px-3 py-2 text-left">Unidad_Educativa</th>
+                  <th className="px-3 py-2 text-left">Departamento</th>
+                  <th className="px-3 py-2 text-left">Grado_Escolaridad</th>
+                  <th className="px-3 py-2 text-left">Área</th>
+                  <th className="px-3 py-2 text-left">Tutor_Académico</th>
+                  <th className="px-3 py-2 text-left">Fase</th>
+                  <th className="px-3 py-2 text-left">Estado</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {clasificados.map((c, index) => (
+                  <tr
+                    key={c.id_clasificado ?? `${c.id_inscrito}-${c.id_fase}`}
+                    className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                  >
+                    <td className="px-2 py-2 text-center">
+                      <input type="checkbox" disabled />
+                    </td>
+                    <td className="px-3 py-2">{getNombres(c)}</td>
+                    <td className="px-3 py-2">{getApellidos(c)}</td>
+                    <td className="px-3 py-2">{getCi(c)}</td>
+                    <td className="px-3 py-2">{getColegio(c)}</td>
+                    <td className="px-3 py-2">{getContactoTutor(c)}</td>
+                    <td className="px-3 py-2">{getUnidadEducativa(c)}</td>
+                    <td className="px-3 py-2">{getDepartamento(c)}</td>
+                    <td className="px-3 py-2">{getGradoEscolaridad(c)}</td>
+                    <td className="px-3 py-2">{getArea(c)}</td>
+                    <td className="px-3 py-2">{getTutorAcademico(c)}</td>
+                    <td className="px-3 py-2">{getNombreFase(c)}</td>
+                    <td className="px-3 py-2">{c.estado}</td>
+                  </tr>
                 ))}
-              </ul>
-            </div>
+              </tbody>
+            </table>
+          </div>
 
-            {/* Vista previa */}
-            <div className="md:col-span-2">
-              <h2 className="text-sm font-semibold mb-2">Vista previa</h2>
+          {/* Botón Volver */}
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="px-4 py-2 rounded-md border border-gray-300 text-sm hover:bg-gray-100"
+            >
+              Volver
+            </button>
+          </div>
+        </>
+      )}
+    </main>
+  </div>
+);
 
-              {!current && (
-                <div className="w-full h-[65vh] flex items-center justify-center border border-dashed border-gray-300 rounded-lg text-gray-400 text-sm">
-                  No hay documento seleccionado.
-                </div>
-              )}
-
-              {current && (
-                <div className="w-full h-[65vh] border rounded-lg overflow-hidden bg-white shadow-sm flex items-center justify-center">
-                  {esPdf(current) ? (
-                    <iframe
-                      src={current.url_archivo}
-                      title={current.nombre_archivo || "Documento"}
-                      className="w-full h-full"
-                    />
-                  ) : esImagen(current) ? (
-                    <img
-                      src={current.url_archivo}
-                      alt={current.nombre_archivo}
-                      className="max-h-full max-w-full object-contain"
-                    />
-                  ) : (
-                    <div className="p-4 text-center text-sm text-gray-600">
-                      Vista previa no disponible para este tipo de archivo.
-                      <br />
-                      Puedes descargarlo para verlo:
-                      <br />
-                      <span className="font-mono text-xs">
-                        {current.nombre_archivo}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Botones */}
-              <div className="mt-4 flex flex-wrap gap-3 justify-between md:justify-end">
-                <button
-                  type="button"
-                  onClick={handleDescargar}
-                  disabled={!current}
-                  className="px-4 py-2 rounded-md bg-gray-700 text-white font-semibold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Descargar
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => navigate("/")}
-                  className="px-4 py-2 rounded-md border border-gray-400 text-gray-700 hover:bg-gray-200"
-                >
-                  Volver al inicio
-                </button>
-              </div>
-            </div>
-          </section>
-        )}
-      </main>
-    </div>
-  );
 }
