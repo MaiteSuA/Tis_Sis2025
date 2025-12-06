@@ -205,6 +205,7 @@ export default function GestionarInscritos() {
                   <option value="">Todos</option>
                   <option value="Primaria">Primaria</option>
                   <option value="Secundaria">Secundaria</option>
+                  <option value="Avanzado">Avanzado</option>
                 </select>
               </div>
 
@@ -318,7 +319,7 @@ export default function GestionarInscritos() {
                             {ins.nombres_inscrito} {ins.apellidos_inscrito}
                           </td>
                           <td>{ins.unidad_educativa || "-"}</td>
-                          <td>{ins.grado_escolaridad || "-"}</td>
+                          <td>{ins.nivel || "-"}</td>
                           <td>{ins.area || "-"}</td>
                           <td>{ins.estado || "-"}</td>
                         </tr>
@@ -346,30 +347,36 @@ export default function GestionarInscritos() {
                   <select
                     className="select select-bordered w-full mt-1"
                     value={idEvaluadorSeleccionado}
-                    onChange={(e) =>
-                      setIdEvaluadorSeleccionado(e.target.value)
-                    }
+                    onChange={(e) => setIdEvaluadorSeleccionado(e.target.value)}
                   >
                     <option value="">-- Selecciona evaluador --</option>
-                    {evaluadores.map((ev) => (
-                      <option
-                        key={ev.id_evaluador ?? ev.id}
-                        value={ev.id_evaluador ?? ev.id}
-                      >
-                        {/* nombre + apellidos con varios posibles nombres de campo */}
-                        {(ev.nombre_evaluado ?? ev.nombres ?? ev.nombre ?? "") +
-                          " " +
-                          (ev.apellidos_evaluador ??
-                            ev.apellidos ??
-                            ev.apellido ??
-                            "")}
-                        {" "}
-                        {/* área entre paréntesis si viene */}
-                        {ev.area?.nombre_area || ev.area_nombre
-                          ? `(${ev.area?.nombre_area ?? ev.area_nombre})`
-                          : ""}
-                      </option>
-                    ))}
+                    {evaluadores.map((ev) => {
+                      const id = ev.id_evaluador ?? ev.id;
+
+                      const nombreCompleto = [
+                        ev.nombre_evaluado ?? ev.nombres ?? ev.nombre ?? "",
+                        ev.apellidos_evaluador ??
+                          ev.apellidos ??
+                          ev.apellido ??
+                          "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ");
+
+                      // 👇 aquí soportamos string, objeto o alias area_nombre
+                      const areaNombre =
+                        (typeof ev.area === "string" && ev.area) ||
+                        (ev.area && ev.area.nombre_area) ||
+                        ev.area_nombre ||
+                        "";
+
+                      return (
+                        <option key={id} value={id}>
+                          {nombreCompleto}
+                          {areaNombre ? ` (${areaNombre})` : ""}
+                        </option>
+                      );
+                    })}
                   </select>
                 </label>
 
