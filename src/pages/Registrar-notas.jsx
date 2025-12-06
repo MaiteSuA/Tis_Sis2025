@@ -94,62 +94,41 @@ export default function RegistrarNotasReplanteado() {
   // ============================
   //   CARGA DE DATOS DESDE BACK
   // ============================
-  const cargarDatos = async () => {
+const cargarDatos = async () => {
   try {
     setCargando(true);
     setError("");
 
-      // Evaluaciones
-      const resEval = await fetch(`${API_BASE_URL}/evaluaciones`);
-      if (!resEval.ok) {
-        const errorText = await resEval.text();
-        console.error("❌ Error del servidor:", errorText);
-        throw new Error(`Error al obtener evaluaciones: ${resEval.status}`);
-      }
-      
-      const jsonEval = await resEval.json();
-      console.log("📊 Respuesta del servidor:", jsonEval);
-      
-      // El backend devuelve { ok: true, data: [...] }
-      const dataEval = jsonEval.ok ? jsonEval.data : (Array.isArray(jsonEval) ? jsonEval : []);
-      
-      console.log("✅ Evaluaciones cargadas:", dataEval.length, "registros");
-      setEvaluaciones(dataEval);
-
-      // Historial
-      const resHist = await fetch(`${API_BASE_URL}/evaluaciones/historial`);
-      if (resHist.ok) {
-        const jsonHist = await resHist.json();
-        const dataHist = jsonHist.ok ? jsonHist.data : (Array.isArray(jsonHist) ? jsonHist : []);
-        console.log("✅ Historial cargado:", dataHist.length, "registros");
-        setHistorial(dataHist);
-      } else {
-        console.warn("⚠️ No se pudo cargar el historial");
-        setHistorial([]);
-      }
-    } catch (err) {
-      console.error("❌ Error en cargarDatos:", err);
-      setError(err.message || "Error al cargar datos");
-    } finally {
-      setCargando(false);
+    // Evaluaciones
+    const resEval = await fetch(`${API_BASE_URL}/evaluaciones`);
+    if (!resEval.ok) {
+      const errorText = await resEval.text();
+      console.error("❌ Error del servidor:", errorText);
+      throw new Error(`Error al obtener evaluaciones: ${resEval.status}`);
     }
+    
     const jsonEval = await resEval.json();
-    const dataEval = Array.isArray(jsonEval) ? jsonEval : jsonEval.data ?? [];
+    console.log("📊 Respuesta del servidor:", jsonEval);
+    
+    // El backend devuelve { ok: true, data: [...] }
+    const dataEval = jsonEval.ok ? jsonEval.data : (Array.isArray(jsonEval) ? jsonEval : []);
+    
+    console.log("✅ Evaluaciones cargadas:", dataEval.length, "registros");
     setEvaluaciones(dataEval);
 
-    // 📥 Historial
-    const resHist = await fetch(`${API_BASE_URL}/evaluaciones/historial`, {
-      headers: authHeaders,
-    });
+    // Historial
+    const resHist = await fetch(`${API_BASE_URL}/evaluaciones/historial`);
     if (resHist.ok) {
       const jsonHist = await resHist.json();
-      const dataHist = Array.isArray(jsonHist) ? jsonHist : jsonHist.data ?? [];
+      const dataHist = jsonHist.ok ? jsonHist.data : (Array.isArray(jsonHist) ? jsonHist : []);
+      console.log("✅ Historial cargado:", dataHist.length, "registros");
       setHistorial(dataHist);
     } else {
+      console.warn("⚠️ No se pudo cargar el historial");
       setHistorial([]);
     }
   } catch (err) {
-    console.error(err);
+    console.error("❌ Error en cargarDatos:", err);
     setError(err.message || "Error al cargar datos");
   } finally {
     setCargando(false);
