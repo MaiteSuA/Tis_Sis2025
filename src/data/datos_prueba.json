@@ -1,0 +1,37 @@
+{
+  "clasificados": [
+    { "id": 1, "competidor": "Juan Pérez", "nota": 89, "observacion": "Buen desempeño", "estado": "Clasificado" },
+    { "id": 2, "competidor": "María López", "nota": 92, "observacion": "Excelente trabajo", "estado": "Clasificado" },
+    { "id": 3, "competidor": "Carlos Gómez", "nota": 87, "observacion": "Constante", "estado": "Clasificado" },
+    { "id": 4, "competidor": "Lucía Fernández", "nota": 95, "observacion": "Destacado", "estado": "Clasificado" },
+    { "id": 5, "competidor": "Andrés Rojas", "nota": 90, "observacion": "Sólido rendimiento", "estado": "Clasificado" },
+    { "id": 6, "competidor": "Sofía Gutiérrez", "nota": 86, "observacion": "Buena participación", "estado": "Clasificado" },
+    { "id": 7, "competidor": "Javier Aguilar", "nota": 93, "observacion": "Muy buen resultado", "estado": "Clasificado" },
+    { "id": 8, "competidor": "Elena Vargas", "nota": 88, "observacion": "Aprobado con mérito", "estado": "Clasificado" },
+    { "id": 9, "competidor": "Miguel Ortega", "nota": 84, "observacion": "Cumplidor", "estado": "Clasificado" },
+    { "id": 10, "competidor": "Laura Molina", "nota": 91, "observacion": "Excelente actitud", "estado": "Clasificado" },
+    { "id": 11, "competidor": "Pedro Jiménez", "nota": 85, "observacion": "Estable", "estado": "Clasificado" },
+    { "id": 12, "competidor": "Valeria Romero", "nota": 94, "observacion": "Muy destacada", "estado": "Clasificado" },
+    { "id": 13, "competidor": "Héctor Ponce", "nota": 90, "observacion": "Buen nivel", "estado": "Clasificado" },
+    { "id": 14, "competidor": "Camila Rivas", "nota": 89, "observacion": "Buena presentación", "estado": "Clasificado" },
+    { "id": 15, "competidor": "José Álvarez", "nota": 92, "observacion": "Gran avance", "estado": "Clasificado" }
+  ],
+
+  "historial": [
+    { "id": 1, "competidor": "Juan Pérez", "notaAnterior": 82, "notaNueva": 89, "fecha": "2025-10-20", "usuario": "Admin" },
+    { "id": 2, "competidor": "María López", "notaAnterior": 90, "notaNueva": 92, "fecha": "2025-10-20", "usuario": "Admin" },
+    { "id": 3, "competidor": "Carlos Gómez", "notaAnterior": 85, "notaNueva": 87, "fecha": "2025-10-21", "usuario": "Admin" },
+    { "id": 4, "competidor": "Lucía Fernández", "notaAnterior": 94, "notaNueva": 95, "fecha": "2025-10-21", "usuario": "Coordinador" },
+    { "id": 5, "competidor": "Andrés Rojas", "notaAnterior": 88, "notaNueva": 90, "fecha": "2025-10-21", "usuario": "Coordinador" },
+    { "id": 6, "competidor": "Sofía Gutiérrez", "notaAnterior": 83, "notaNueva": 86, "fecha": "2025-10-22", "usuario": "Admin" },
+    { "id": 7, "competidor": "Javier Aguilar", "notaAnterior": 91, "notaNueva": 93, "fecha": "2025-10-22", "usuario": "Admin" },
+    { "id": 8, "competidor": "Elena Vargas", "notaAnterior": 84, "notaNueva": 88, "fecha": "2025-10-22", "usuario": "Admin" },
+    { "id": 9, "competidor": "Miguel Ortega", "notaAnterior": 80, "notaNueva": 84, "fecha": "2025-10-23", "usuario": "Coordinador" },
+    { "id": 10, "competidor": "Laura Molina", "notaAnterior": 89, "notaNueva": 91, "fecha": "2025-10-23", "usuario": "Admin" },
+    { "id": 11, "competidor": "Pedro Jiménez", "notaAnterior": 81, "notaNueva": 85, "fecha": "2025-10-23", "usuario": "Admin" },
+    { "id": 12, "competidor": "Valeria Romero", "notaAnterior": 91, "notaNueva": 94, "fecha": "2025-10-23", "usuario": "Admin" },
+    { "id": 13, "competidor": "Héctor Ponce", "notaAnterior": 88, "notaNueva": 90, "fecha": "2025-10-23", "usuario": "Admin" },
+    { "id": 14, "competidor": "Camila Rivas", "notaAnterior": 86, "notaNueva": 89, "fecha": "2025-10-24", "usuario": "Coordinador" },
+    { "id": 15, "competidor": "José Álvarez", "notaAnterior": 89, "notaNueva": 92, "fecha": "2025-10-24", "usuario": "Admin" }
+  ]
+}

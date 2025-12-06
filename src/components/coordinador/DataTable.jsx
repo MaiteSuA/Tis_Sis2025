@@ -1,0 +1,95 @@
+export default function DataTable({
+  rows = [],           // normalmente filteredRows
+  previewRows = [],    // array completo para mapear índice real
+  selected = new Set(),
+  onToggleRow,
+  onToggleAll,
+}) {
+  const headers = [
+    "Nombres",
+    "Apellidos",
+    "CI",
+    "Colegio",
+    "Contacto_Tutor",
+    "Unidad_Educativa",
+    "Departamento",
+    "Grado_Escolaridad",
+    "Área",
+    "Tutor_Académico",
+  ];
+
+  // ¿Todas las filas visibles están seleccionadas?
+  const allSelected =
+    rows.length > 0 &&
+    rows.every((row) => selected.has(previewRows.indexOf(row)));
+
+  return (
+    <div className="card overflow-hidden">
+      <div className="overflow-x-auto">
+        <div className="border rounded-lg overflow-y-auto max-h-96">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr className="text-left">
+                <th className="px-3 py-2 w-10">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={onToggleAll}
+                  />
+                </th>
+                {headers.map((h) => (
+                  <th
+                    key={h}
+                    className="px-3 py-2 font-semibold text-gray-700"
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={headers.length + 1}
+                    className="px-4 py-10 text-center text-gray-500"
+                  >
+                    (Previsualización vacía)
+                  </td>
+                </tr>
+              ) : (
+                rows.map((r, idxInFiltered) => {
+                  // índice REAL dentro de previewRows
+                  const realIndex = previewRows.indexOf(r);
+                  const checked = selected.has(realIndex);
+
+                  return (
+                    <tr
+                      key={realIndex !== -1 ? realIndex : idxInFiltered}
+                      className={`border-t hover:bg-gray-50 ${
+                        checked ? "bg-sky-50" : ""
+                      }`}
+                    >
+                      <td className="px-3 py-2">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => onToggleRow(idxInFiltered)}
+                        />
+                      </td>
+                      {headers.map((h) => (
+                        <td key={h} className="px-3 py-2">
+                          {r[h] ?? ""}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}

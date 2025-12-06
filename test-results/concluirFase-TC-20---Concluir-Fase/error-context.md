@@ -1,0 +1,44 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e7]
+      - navigation [ref=e8]:
+        - link "Cerrar Sesion" [ref=e9] [cursor=pointer]:
+          - /url: /
+  - generic [ref=e11]:
+    - generic [ref=e13]:
+      - 'heading "Área: Química" [level=2] [ref=e14]'
+      - paragraph [ref=e15]: "Estado: Pendiente de Cierre"
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - heading "Resumen" [level=3] [ref=e18]
+        - list [ref=e19]:
+          - listitem [ref=e20]: "Competidores:"
+          - listitem [ref=e21]: "Clasificados:"
+          - listitem [ref=e22]: "Evaluaciones:"
+        - button "Ver Reporte" [ref=e23]
+      - generic [ref=e24]:
+        - heading "Cierre de Fase" [level=3] [ref=e25]
+        - list [ref=e26]:
+          - listitem [ref=e27]: Todas las evaluaciones registradas
+          - listitem [ref=e28]: No existen pendientes
+          - listitem [ref=e29]: Se han revisado observaciones
+        - button "Concluir Fase" [active] [ref=e30]
+    - heading "Resultados Clasificatoria" [level=3] [ref=e31]
+    - table [ref=e33]:
+      - rowgroup [ref=e34]:
+        - row "Competidor Nota Observaciones Estado" [ref=e35]:
+          - cell "Competidor" [ref=e36]
+          - cell "Nota" [ref=e37]
+          - cell "Observaciones" [ref=e38]
+          - cell "Estado" [ref=e39]
+      - rowgroup
+    - generic [ref=e40]:
+      - generic [ref=e41]:
+        - button "Exportar Excel" [ref=e42]
+        - button "Autorizar Publicación" [ref=e43]
+      - button "Registrar Evaluador" [ref=e44]
+```
