@@ -1,6 +1,10 @@
 // src/pages/ResponsableAnuncios.jsx
 import { useEffect, useState } from "react";
-import { crearAnuncioCarrusel, getAnunciosCarrusel } from "../api/anuncios";
+import {
+  crearAnuncioCarrusel,
+  getAnunciosCarrusel,
+  eliminarAnuncioCarrusel,
+} from "../api/anuncios";
 
 export default function ResponsableAnuncios() {
   const [titulo, setTitulo] = useState("");
@@ -64,12 +68,36 @@ export default function ResponsableAnuncios() {
         fecha_expiracion: expDate || null,
       });
 
-      setOkMsg(" Anuncio guardado correctamente.");
+      setOkMsg("Anuncio guardado correctamente.");
       resetForm();
       await cargarAnuncios();
     } catch (err) {
       console.error(err);
       setError("No se pudo guardar el anuncio.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Eliminar anuncio
+  const handleDelete = async (id) => {
+    const confirmar = window.confirm(
+      "¿Seguro que deseas eliminar este anuncio del carrusel?"
+    );
+    if (!confirmar) return;
+
+    try {
+      setSaving(true);
+      setError("");
+      setOkMsg("");
+
+      await eliminarAnuncioCarrusel(id);
+
+      setOkMsg("Anuncio eliminado correctamente.");
+      await cargarAnuncios();
+    } catch (err) {
+      console.error(err);
+      setError("No se pudo eliminar el anuncio.");
     } finally {
       setSaving(false);
     }
@@ -268,11 +296,14 @@ export default function ResponsableAnuncios() {
                       <th className="px-2 py-1 border">Título</th>
                       <th className="px-2 py-1 border">Desde</th>
                       <th className="px-2 py-1 border">Hasta</th>
+                      <th className="px-2 py-1 border">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     {anuncios.map((a) => (
-                      <tr key={a.id_anuncio || a.id || `${a.titulo}-${a.orden}`}>
+                      <tr
+                        key={a.id_anuncio || a.id || `${a.titulo}-${a.orden}`}
+                      >
                         <td className="px-2 py-1 border text-center">
                           {a.orden ?? "-"}
                         </td>
@@ -295,6 +326,17 @@ export default function ResponsableAnuncios() {
                           {a.fecha_expiracion
                             ? String(a.fecha_expiracion).slice(0, 10)
                             : "-"}
+                        </td>
+                        <td className="px-2 py-1 border text-center">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleDelete(a.id_anuncio || a.id)
+                            }
+                            className="text-xs px-2 py-1 rounded-md bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
+                          >
+                            Eliminar
+                          </button>
                         </td>
                       </tr>
                     ))}

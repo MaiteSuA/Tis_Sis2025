@@ -99,18 +99,39 @@ export default function RegistrarNotasReplanteado() {
     setCargando(true);
     setError("");
 
-    // 🔐 Tomamos el token del localStorage
-    const token = localStorage.getItem("token");
-    const authHeaders = token
-      ? { Authorization: `Bearer ${token}` }
-      : {};
+      // Evaluaciones
+      const resEval = await fetch(`${API_BASE_URL}/evaluaciones`);
+      if (!resEval.ok) {
+        const errorText = await resEval.text();
+        console.error("❌ Error del servidor:", errorText);
+        throw new Error(`Error al obtener evaluaciones: ${resEval.status}`);
+      }
+      
+      const jsonEval = await resEval.json();
+      console.log("📊 Respuesta del servidor:", jsonEval);
+      
+      // El backend devuelve { ok: true, data: [...] }
+      const dataEval = jsonEval.ok ? jsonEval.data : (Array.isArray(jsonEval) ? jsonEval : []);
+      
+      console.log("✅ Evaluaciones cargadas:", dataEval.length, "registros");
+      setEvaluaciones(dataEval);
 
-    // 📥 Evaluaciones
-    const resEval = await fetch(`${API_BASE_URL}/evaluaciones`, {
-      headers: authHeaders,
-    });
-    if (!resEval.ok) {
-      throw new Error(`Error al obtener evaluaciones: ${resEval.status}`);
+      // Historial
+      const resHist = await fetch(`${API_BASE_URL}/evaluaciones/historial`);
+      if (resHist.ok) {
+        const jsonHist = await resHist.json();
+        const dataHist = jsonHist.ok ? jsonHist.data : (Array.isArray(jsonHist) ? jsonHist : []);
+        console.log("✅ Historial cargado:", dataHist.length, "registros");
+        setHistorial(dataHist);
+      } else {
+        console.warn("⚠️ No se pudo cargar el historial");
+        setHistorial([]);
+      }
+    } catch (err) {
+      console.error("❌ Error en cargarDatos:", err);
+      setError(err.message || "Error al cargar datos");
+    } finally {
+      setCargando(false);
     }
     const jsonEval = await resEval.json();
     const dataEval = Array.isArray(jsonEval) ? jsonEval : jsonEval.data ?? [];
@@ -216,26 +237,25 @@ export default function RegistrarNotasReplanteado() {
     [historial, busqHist]
   );
 
-// ============================
-//   HANDLERS
-// ============================
-const onCellChange = (id, field, value) =>
-  setEvaluaciones((prev) =>
-    prev.map((r) => {
-      if (r.id !== id) return r;
-
-      const updated = { ...r, [field]: value };
-
-      // Si cambia la nota, recalculamos el estado
-      if (field === "nota") {
-        const tieneNota = String(value ?? "").trim() !== "";
-        updated.estado = tieneNota ? "Calificado" : "Pendiente";
-      }
-
-      return updated;
-    })
-  );
-
+  // ============================
+  //   HANDLERS
+  // ============================
+  const onCellChange = (id, field, value) => {
+    console.log("📝 Cambio detectado:", { id, field, value });
+    
+    setEvaluaciones((prev) =>
+      prev.map((r) => {
+        // Buscar por id_evaluacion primero, luego por id
+        const matches = r.id_evaluacion === id || r.id === id;
+        
+        if (matches) {
+          console.log("✅ Actualizando registro:", r.competidor);
+          return { ...r, [field]: value };
+        }
+        return r;
+      })
+    );
+  };
 
   const handleGuardarCambios = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
@@ -243,34 +263,76 @@ const onCellChange = (id, field, value) =>
       setMensajeGuardado("");
       setError("");
 
-      const token = localStorage.getItem("token");
-      const headers = {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      };
+      // IMPORTANTE: Enviar solo evaluaciones que tengan id_evaluacion
+      const evaluacionesConId = evaluaciones
+        .filter(ev => ev.id_evaluacion) // Solo las que tienen id_evaluacion
+        .map(ev => ({
+          id_evaluacion: ev.id_evaluacion,
+          nota: ev.nota,
+          observacion: ev.observacion
+        }));
+
+      if (evaluacionesConId.length === 0) {
+        setError("No hay evaluaciones para guardar");
+        return;
+      }
+
+      console.log("📤 Enviando evaluaciones:", evaluacionesConId.length, "registros");
 
       const res = await fetch(`${API_BASE_URL}/evaluaciones`, {
         method: "PUT",
-        headers,
-        body: JSON.stringify(evaluaciones),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(evaluacionesConId),
       });
       if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error("❌ Error del servidor:", errorData);
         throw new Error(`Error al guardar cambios: ${res.status}`);
       }
 
       const json = await res.json();
-      const message =
-        (json && (json.message || json.msg)) || "Cambios guardados correctamente";
+      const message = json?.data?.message || json?.message || "Cambios guardados correctamente";
 
+      console.log("✅ Guardado exitoso:", message);
       setMensajeGuardado(message);
       await cargarDatos();
 
-      setTimeout(() => setMensajeGuardado(""), 2000);
+      setTimeout(() => setMensajeGuardado(""), 3000);
     } catch (err) {
-      console.error(err);
+      console.error("❌ Error en handleGuardarCambios:", err);
       setError(err.message || "Error al guardar cambios");
     }
   };
+
+  const [areaNombre, setAreaNombre] = useState("");
+
+useEffect(() => {
+  const cargarArea = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const r1 = await fetch(`${API_BASE_URL}/evaluadores/mi-perfil`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!r1.ok) {
+        console.warn("No se pudo obtener el perfil de evaluador");
+        return;
+      }
+      
+      const j1 = await r1.json();
+      const area = j1?.evaluador?.area;
+      if (area?.nombre_area) {
+        setAreaNombre(area.nombre_area);
+      }
+    } catch (e) {
+      console.warn("Contexto área no disponible:", e.message);
+      setAreaNombre("");
+    }
+  };
+  cargarArea();
+}, []);
 
   // ============================
   //   RENDER
@@ -310,12 +372,7 @@ const onCellChange = (id, field, value) =>
 
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-700">Área:</span>
-            <span className="text-slate-600">"default"</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-700">Nivel:</span>
-            <span className="text-slate-600">"default"</span>
+            <span className="text-slate-600">{areaNombre || "—"}</span>
           </div>
         </div>
 
