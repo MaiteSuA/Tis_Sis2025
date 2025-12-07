@@ -32,6 +32,7 @@ import {
 import {
   fetchParametroClasificacion,
   updateParametroClasificacion,
+  eliminarClasificadosPorNotaMinima,
 } from "../api/fases.js";
 
 export default function AdminUsuarios() {
@@ -151,6 +152,34 @@ export default function AdminUsuarios() {
 
     try {
       await updateParametroClasificacion(notaMinima);
+      
+      // Traer clasificados y evaluaciones
+      const resClasificados =  await fetch(`${import.meta.env.VITE_API_URL}/clasificados`);
+      const { data: clasificados } = await resClasificados.json();
+
+      const resEvaluaciones = await fetch(`${import.meta.env.VITE_API_URL}/evaluaciones`);
+      const { data: evaluaciones } = await resEvaluaciones.json();
+        
+      // Filtrar ids_inscritos con nota menor
+      const idsInscritosBajoNota = evaluaciones
+        .filter(ev => Number(ev.nota) < notaMinima && ev.nota !== "")
+        .map(ev => Number(ev.id_inscrito));
+
+      // Filtrar ids_clasificado a eliminar
+      const idsAEliminar = clasificados
+        .filter(c => idsInscritosBajoNota.includes(Number(c.id_inscrito)))
+        .map(c => Number(c.id_clasificado));
+
+      console.log(idsAEliminar);
+
+      // Eliminar si hay algo
+      if (idsAEliminar.length > 0) {
+        await eliminarClasificadosPorNotaMinima(idsAEliminar);
+      }
+
+      // Vaciar array
+      idsAEliminar.length = 0;
+
       setNotaGuardada(true);
       setNotaDirty(false);
 
@@ -166,7 +195,7 @@ export default function AdminUsuarios() {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: e.message || "No se pudo guardar la nota mínima.",
+        text: e.message || "No se pudo guardar la nota mínima. d",
       });
     }
   };

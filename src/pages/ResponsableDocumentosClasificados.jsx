@@ -198,7 +198,6 @@ export default function ResponsableDocumentosClasificados() {
     const estadoMap = {
       
       Clasificado: "CLASIFICADO",
-      Desclasificado: "DESCLASIFICADO",
     };
 
     return json.map(r => ({
