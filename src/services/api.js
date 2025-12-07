@@ -1,4 +1,6 @@
 // src/services/api.js
+import { getAuthHeaders } from "../api/auth";
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
 
 function authHeaders() {
@@ -38,10 +40,20 @@ export async function importInscritosCsv({
 /** Stats para el dashboard */
 export async function getDashboardStats() {
   const res = await fetch(`${API_URL}/inscritos/stats`, {
-    headers: { ...authHeaders() },
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
   });
-  if (!res.ok) throw new Error("No se pudieron cargar stats");
-  return res.json(); // { ok, data: { total, clasificados } }
+
+  const data = await res.json();
+
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || "Error obteniendo estadísticas");
+  }
+
+  // data.data: { totalInscritos, clasificados }
+  return data;
 }
 
 /* ================= PERFIL COORDINADOR ================= */

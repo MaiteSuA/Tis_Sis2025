@@ -8,7 +8,7 @@ import FilterBar from "../../components/coordinador/FilterBar";
 import {
   importInscritosCsv,
   getDashboardStats,
-  getAreas, // 👈 viene del mismo sitio que usas en GestionarInscritos
+  getAreas,
 } from "../../services/api";
 import Papa from "papaparse";
 
@@ -22,9 +22,8 @@ export default function ImportarInscritos() {
   // Estado base del dashboard
   const [previewRows, setPreviewRows] = useState([]);
   const [totals, setTotals] = useState({
-    total: 0,
+    totalInscritos: 0,
     clasificados: 0,
-    reportes: 0,
   });
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
@@ -55,7 +54,9 @@ export default function ImportarInscritos() {
     (async () => {
       try {
         const r = await getDashboardStats();
-        if (r?.ok) setTotals(r.data);
+        if (r?.ok && r.data) {
+          setTotals(r.data);
+        }
       } catch (err) {
         console.debug("No se pudieron cargar las stats:", err);
         setMsg("No se pudieron cargar las estadísticas del dashboard.");
@@ -68,7 +69,10 @@ export default function ImportarInscritos() {
     (async () => {
       try {
         const areasData = await getAreas();
-        console.log("📌 ÁREAS desde getAreas() en ImportarInscritos:", areasData);
+        console.log(
+          "📌 ÁREAS desde getAreas() en ImportarInscritos:",
+          areasData
+        );
 
         // Si áreasData ya es un array (como en GestionarInscritos), lo guardamos tal cual.
         const lista = Array.isArray(areasData)
@@ -174,7 +178,7 @@ export default function ImportarInscritos() {
         const { total, importados, errores } = r.data;
         setMsg(`✅ Importados: ${importados}/${total}. Errores: ${errores}.`);
         const s = await getDashboardStats().catch(() => null);
-        if (s?.ok) setTotals(s.data);
+        if (s?.ok && s.data) setTotals(s.data);
       } else {
         setMsg("❌ Hubo un problema al importar.");
       }
@@ -275,7 +279,7 @@ export default function ImportarInscritos() {
             {/* Filtros + Acciones */}
             <div className="flex items-center gap-3">
               <FilterBar
-                areas={areasOptions}      // 👈 ya mezclado BD + fallback
+                areas={areasOptions} // 👈 ya mezclado BD + fallback
                 niveles={niveles}
                 filters={filters}
                 onChange={setFilters}
