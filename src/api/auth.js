@@ -20,23 +20,66 @@ export async function loginApi({ username, correo, password, role }) {
 
   const data = await res.json();
 
-  if (!res.ok || !data.ok) {
+  // si el backend no manda "ok", solo revisamos res.ok
+  if (!res.ok || data.ok === false) {
     throw new Error(data.error || "Login failed");
   }
 
+  // 👇 Intentamos obtener el usuario de varias propiedades posibles
+  const rawUser =
+    data.user ??     // caso: { ok, token, user: {...} }
+    data.data ??     // caso: { ok, token, data: {...} }
+    data.usuario ??  // otros nombres posibles
+    data.userData ??
+    {};
+
+  // Puedes descomentar esto un momento si quieres ver qué llega
+  // console.log("Respuesta login:", data);
+  // console.log("Usuario bruto:", rawUser);
+
+  const u = rawUser;
+
   // 🔽 Normalizar siempre lo que se guarda en localStorage
-  const u = data.user || {};
   const normalizado = {
-    id: Number(u.id ?? u.id_usuario ?? u?.evaluador?.id_evaluador) || null,
+    id:
+      Number(
+        u.id ??
+          u.id_usuario ??
+          u.id_coordinador ??
+          u?.evaluador?.id_evaluador
+      ) || null,
+
     username: u.username ?? u.correo ?? u.email ?? userOrCorreo,
     email: u.email ?? u.correo ?? null,
-    nombre: u.nombre ?? u?.evaluador?.nombre_evaluado ?? "",
-    apellidos: u.apellidos ?? u.apellido ?? u?.evaluador?.apellidos_evaluador ?? "",
-    id_area: Number(u.id_area ?? u?.evaluador?.id_area) || null,
-    rol: u.rol ?? null,
+
+    nombre:
+      u.nombre ??
+      u.nombres ??
+      u?.evaluador?.nombre_evaluado ??
+      "",
+
+    apellidos:
+      u.apellidos ??
+      u.apellido ??
+      u?.evaluador?.apellidos_evaluador ??
+      "",
+
+    id_area:
+      Number(
+        u.id_area ??
+          u.areaId ??
+          u?.coordinador_area?.id_area ??
+          u?.responsable_area?.id_area ??
+          u?.evaluador?.id_area
+      ) || null,
+
+    rol: (u.rol ?? u.role ?? "COORDINADOR") || null,
   };
 
-  localStorage.setItem("token", data.token);
+  // Guardar en localStorage
+  if (data.token) {
+    localStorage.setItem("token", data.token);
+  }
   localStorage.setItem("usuario", JSON.stringify(normalizado));
 
   return { ...data, user: normalizado };
