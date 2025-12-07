@@ -22,7 +22,7 @@ export default function ImportarInscritos() {
   // Estado base del dashboard
   const [previewRows, setPreviewRows] = useState([]);
   const [totals, setTotals] = useState({
-    totalInscritos: 0,
+    total: 0,
     clasificados: 0,
   });
   const [msg, setMsg] = useState("");
@@ -54,15 +54,8 @@ export default function ImportarInscritos() {
     (async () => {
       try {
         const r = await getDashboardStats();
-        if (r?.ok && r.data) {
-        // r.data = { total, clasificados }
-        setTotals({
-          total: Number(r.data.total ?? 0),
-          clasificados: Number(r.data.clasificados ?? 0),
-        });
-        } else {
-        console.debug("Respuesta inesperada getDashboardStats:", r);
-        setMsg("No se pudieron cargar las estadísticas del dashboard.");
+        if (r?.data) {
+        setTotals(r.data);
       }
       } catch (err) {
       console.debug("No se pudieron cargar las stats:", err);
