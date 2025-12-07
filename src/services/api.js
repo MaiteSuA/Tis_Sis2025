@@ -52,7 +52,7 @@ export async function getDashboardStats() {
     throw new Error(data.error || "Error obteniendo estadísticas");
   }
 
-  // data.data: { totalInscritos, clasificados }
+  // data.data: { totalInscritos, clasificados .}
   return data;
 }
 
