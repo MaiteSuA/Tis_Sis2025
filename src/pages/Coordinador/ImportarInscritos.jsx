@@ -49,18 +49,25 @@ export default function ImportarInscritos() {
     "Tutor_Académico",
   ];
 
-  // ── Cargar estadísticas del dashboard
+  // ── Cargar estadísticas del dashboard.
   useEffect(() => {
     (async () => {
       try {
         const r = await getDashboardStats();
         if (r?.ok && r.data) {
-          setTotals(r.data);
-        }
-      } catch (err) {
-        console.debug("No se pudieron cargar las stats:", err);
+        // r.data = { total, clasificados }
+        setTotals({
+          total: Number(r.data.total ?? 0),
+          clasificados: Number(r.data.clasificados ?? 0),
+        });
+        } else {
+        console.debug("Respuesta inesperada getDashboardStats:", r);
         setMsg("No se pudieron cargar las estadísticas del dashboard.");
       }
+      } catch (err) {
+      console.debug("No se pudieron cargar las stats:", err);
+      setMsg("No se pudieron cargar las estadísticas del dashboard.");
+    }
     })();
   }, []);
 
