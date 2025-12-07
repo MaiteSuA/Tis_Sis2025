@@ -18,11 +18,13 @@ export default function RegistrarNotasReplanteado() {
   const [mensajeGuardado, setMensajeGuardado] = useState("");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
+  const [modoEdicion, setModoEdicion] = useState(false); // Controla si se puede editar
 
   // ============================
   //   NOMBRE DEL EVALUADOR
   // ============================
   const [nombreEvaluador, setNombreEvaluador] = useState("");
+  const [nivelAsignado, setNivelAsignado] = useState(""); // 👈 AGREGAR ESTA LÍNEA
 
   useEffect(() => {
     const cargarNombreEvaluador = async () => {
@@ -94,62 +96,78 @@ export default function RegistrarNotasReplanteado() {
   // ============================
   //   CARGA DE DATOS DESDE BACK
   // ============================
-const cargarDatos = async () => {
-  try {
-    setCargando(true);
-    setError("");
+  const cargarDatos = async () => {
+    try {
+      setCargando(true);
+      setError("");
 
-    // Evaluaciones
-    const resEval = await fetch(`${API_BASE_URL}/evaluaciones`);
-    if (!resEval.ok) {
-      const errorText = await resEval.text();
-      console.error("❌ Error del servidor:", errorText);
-      throw new Error(`Error al obtener evaluaciones: ${resEval.status}`);
+      // El backend automáticamente filtrará por el evaluador autenticado
+      const token = localStorage.getItem("token");
+      const headers = {
+        "Content-Type": "application/json"
+      };
+      
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      // Evaluaciones (el backend filtra automáticamente por evaluador)
+      const resEval = await fetch(`${API_BASE_URL}/evaluaciones`, {
+        headers
+      });
+      
+      if (!resEval.ok) {
+        const errorText = await resEval.text();
+        console.error("❌ Error del servidor:", errorText);
+        throw new Error(`Error al obtener evaluaciones: ${resEval.status}`);
+      }
+      
+      const jsonEval = await resEval.json();
+      console.log("📊 Respuesta del servidor:", jsonEval);
+      
+      const dataEval = jsonEval.ok ? jsonEval.data : (Array.isArray(jsonEval) ? jsonEval : []);
+      
+      console.log("✅ Evaluaciones cargadas:", dataEval.length, "registros");
+      
+      // Detectar el nivel de los inscritos asignados
+      if (dataEval.length > 0 && dataEval[0].nivel) {
+        setNivelAsignado(dataEval[0].nivel);
+      }
+      
+      setEvaluaciones(dataEval);
+
+      // Historial
+      const resHist = await fetch(`${API_BASE_URL}/evaluaciones/historial`, {
+        headers
+      });
+      
+      if (resHist.ok) {
+        const jsonHist = await resHist.json();
+        const dataHist = jsonHist.ok ? jsonHist.data : (Array.isArray(jsonHist) ? jsonHist : []);
+        console.log("✅ Historial cargado:", dataHist.length, "registros");
+        setHistorial(dataHist);
+      } else {
+        console.warn("⚠️ No se pudo cargar el historial");
+        setHistorial([]);
+      }
+    } catch (err) {
+      console.error("❌ Error en cargarDatos:", err);
+      setError(err.message || "Error al cargar datos");
+    } finally {
+      setCargando(false);
     }
-    
-    const jsonEval = await resEval.json();
-    console.log("📊 Respuesta del servidor:", jsonEval);
-    
-    // El backend devuelve { ok: true, data: [...] }
-    const dataEval = jsonEval.ok ? jsonEval.data : (Array.isArray(jsonEval) ? jsonEval : []);
-    
-    console.log("✅ Evaluaciones cargadas:", dataEval.length, "registros");
-    setEvaluaciones(dataEval);
-
-    // Historial
-    const resHist = await fetch(`${API_BASE_URL}/evaluaciones/historial`);
-    if (resHist.ok) {
-      const jsonHist = await resHist.json();
-      const dataHist = jsonHist.ok ? jsonHist.data : (Array.isArray(jsonHist) ? jsonHist : []);
-      console.log("✅ Historial cargado:", dataHist.length, "registros");
-      setHistorial(dataHist);
-    } else {
-      console.warn("⚠️ No se pudo cargar el historial");
-      setHistorial([]);
-    }
-  } catch (err) {
-    console.error("❌ Error en cargarDatos:", err);
-    setError(err.message || "Error al cargar datos");
-  } finally {
-    setCargando(false);
-  }
-};
-
+  };
 
   useEffect(() => {
     cargarDatos();
   }, []);
 
-// ============================
-//   MÉTRICAS
-// ============================
-    const totalAsignados = evaluaciones.length;
-
-    const totalHechas = evaluaciones.filter(
-      (e) => String(e.nota ?? "").trim() !== ""
-    ).length;
-
-    const totalPendientes = totalAsignados - totalHechas;
+  // ============================
+  //   MÉTRICAS
+  // ============================
+  const totalAsignados = evaluaciones.length;
+  const totalPendientes = evaluaciones.filter((e) => e.estado === "Pendiente").length;
+  const totalHechas = evaluaciones.filter((e) => String(e.nota ?? "").trim() !== "").length;
 
   // ============================
   //   COLUMNAS
@@ -179,17 +197,8 @@ const cargarDatos = async () => {
   //   DATOS FILTRADOS
   // ============================
   const dataEval = useMemo(
-  () =>
-    evaluaciones
-      .map((r) => {
-        const tieneNota = String(r.nota ?? "").trim() !== "";
-        return {
-          ...r,
-          // 👉 estado siempre calculado desde la nota
-          estado: tieneNota ? "Calificado" : "Pendiente",
-        };
-      })
-      .filter(
+    () =>
+      evaluaciones.filter(
         (r) =>
           (r.competidor || "")
             .toLowerCase()
@@ -197,10 +206,9 @@ const cargarDatos = async () => {
           (r.observacion || "")
             .toLowerCase()
             .includes(busqEval.toLowerCase())
-        ),
-       [evaluaciones, busqEval]
-    );
-
+      ),
+    [evaluaciones, busqEval]
+  );
 
   const dataHist = useMemo(
     () =>
@@ -220,11 +228,25 @@ const cargarDatos = async () => {
   //   HANDLERS
   // ============================
   const onCellChange = (id, field, value) => {
+    // Solo permitir cambios si está en modo edición
+    if (!modoEdicion) {
+      return;
+    }
+
+    // Validar que la nota esté entre 0-100
+    if (field === "nota" && value !== "") {
+      const notaNum = parseFloat(value);
+      if (isNaN(notaNum) || notaNum < 0 || notaNum > 100) {
+        setError("La nota debe estar entre 0 y 100");
+        setTimeout(() => setError(""), 3000);
+        return;
+      }
+    }
+
     console.log("📝 Cambio detectado:", { id, field, value });
     
     setEvaluaciones((prev) =>
       prev.map((r) => {
-        // Buscar por id_evaluacion primero, luego por id
         const matches = r.id_evaluacion === id || r.id === id;
         
         if (matches) {
@@ -236,82 +258,155 @@ const cargarDatos = async () => {
     );
   };
 
-  const handleGuardarCambios = async (e) => {
-    if (e && e.preventDefault) e.preventDefault();
-    try {
-      setMensajeGuardado("");
-      setError("");
-
-      // IMPORTANTE: Enviar solo evaluaciones que tengan id_evaluacion
-      const evaluacionesConId = evaluaciones
-        .filter(ev => ev.id_evaluacion) // Solo las que tienen id_evaluacion
-        .map(ev => ({
-          id_evaluacion: ev.id_evaluacion,
-          nota: ev.nota,
-          observacion: ev.observacion
-        }));
-
-      if (evaluacionesConId.length === 0) {
-        setError("No hay evaluaciones para guardar");
-        return;
-      }
-
-      console.log("📤 Enviando evaluaciones:", evaluacionesConId.length, "registros");
-
-      const res = await fetch(`${API_BASE_URL}/evaluaciones`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(evaluacionesConId),
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        console.error("❌ Error del servidor:", errorData);
-        throw new Error(`Error al guardar cambios: ${res.status}`);
-      }
-
-      const json = await res.json();
-      const message = json?.data?.message || json?.message || "Cambios guardados correctamente";
-
-      console.log("✅ Guardado exitoso:", message);
-      setMensajeGuardado(message);
-      await cargarDatos();
-
-      setTimeout(() => setMensajeGuardado(""), 3000);
-    } catch (err) {
-      console.error("❌ Error en handleGuardarCambios:", err);
-      setError(err.message || "Error al guardar cambios");
-    }
+  const handleEditar = () => {
+    setModoEdicion(true);
+    setMensajeGuardado("Modo de edición activado");
+    setTimeout(() => setMensajeGuardado(""), 2000);
   };
 
-  const [areaNombre, setAreaNombre] = useState("");
+const handleGuardarCambios = async (e) => {
+  if (e && e.preventDefault) e.preventDefault();
+  
+  if (!modoEdicion) {
+    setError("Debes activar el modo de edición primero");
+    setTimeout(() => setError(""), 3000);
+    return;
+  }
 
-useEffect(() => {
-  const cargarArea = async () => {
+  try {
+    setMensajeGuardado("");
+    setError("");
+
+    const evaluacionesConId = evaluaciones
+      .filter(ev => ev.id_evaluacion)
+      .map(ev => ({
+        id_evaluacion: ev.id_evaluacion,
+        nota: ev.nota,
+        observacion: ev.observacion
+      }));
+
+    if (evaluacionesConId.length === 0) {
+      setError("No hay evaluaciones para guardar");
+      return;
+    }
+
+    console.log("📤 Enviando evaluaciones:", evaluacionesConId.length, "registros");
+
+    // === TOKEN OBLIGATORIO ===
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Sesión expirada. Inicia sesión nuevamente.");
+      return;
+    }
+
+    const res = await fetch(`${API_BASE_URL}/evaluaciones`, {
+      method: "PUT",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`   // <-- 🔥 NECESARIO
+      },
+      body: JSON.stringify(evaluacionesConId),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      console.error("❌ Error del servidor:", errorData);
+      throw new Error(`Error al guardar cambios: ${res.status}`);
+    }
+
+    const json = await res.json();
+    const message =
+      json?.data?.message || json?.message || "Cambios guardados correctamente";
+
+    console.log("✅ Guardado exitoso:", message);
+    setMensajeGuardado(message);
+
+    setModoEdicion(false); // salir de modo edición
+    await cargarDatos(); // refrescar
+
+    setTimeout(() => setMensajeGuardado(""), 3000);
+  } catch (err) {
+    console.error("❌ Error en handleGuardarCambios:", err);
+    setError(err.message || "Error al guardar cambios");
+  }
+};
+
+
+  const handleEnviar = async () => {
+    // Verificar que todas las evaluaciones tengan nota
+    const todasCalificadas = evaluaciones.every(ev => 
+      ev.nota !== null && ev.nota !== undefined && String(ev.nota).trim() !== ""
+    );
+
+    if (!todasCalificadas) {
+      setError("Debes calificar a todos los competidores antes de enviar");
+      setTimeout(() => setError(""), 4000);
+      return;
+    }
+
+    if (!confirm("¿Estás seguro de enviar las evaluaciones? Esta acción notificará al responsable de área.")) {
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const r1 = await fetch(`${API_BASE_URL}/evaluadores/mi-perfil`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const res = await fetch(`${API_BASE_URL}/evaluaciones/notificar-responsable`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          evaluador: nombreEvaluador,
+          area: areaNombre,
+          totalEvaluaciones: evaluaciones.length
+        }),
       });
-      
-      if (!r1.ok) {
-        console.warn("No se pudo obtener el perfil de evaluador");
-        return;
+
+      if (res.ok) {
+        setMensajeGuardado("✅ Evaluaciones enviadas correctamente. El responsable ha sido notificado.");
+        setTimeout(() => setMensajeGuardado(""), 4000);
+      } else {
+        throw new Error("Error al enviar notificación");
       }
-      
-      const j1 = await r1.json();
-      const area = j1?.evaluador?.area;
-      if (area?.nombre_area) {
-        setAreaNombre(area.nombre_area);
-      }
-    } catch (e) {
-      console.warn("Contexto área no disponible:", e.message);
-      setAreaNombre("");
+    } catch (err) {
+      console.error("Error al enviar:", err);
+      setError("Error al enviar la notificación");
+      setTimeout(() => setError(""), 3000);
     }
   };
-  cargarArea();
-}, []);
+
+  // === CONTEXTO DEL EVALUADOR (Área) ===
+  const [areaNombre, setAreaNombre] = useState("");
+
+  useEffect(() => {
+    const cargarArea = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        // Obtener solo el área del evaluador
+        const r1 = await fetch(`${API_BASE_URL}/evaluadores/mi-perfil`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (!r1.ok) {
+          console.warn("No se pudo obtener el perfil de evaluador");
+          return;
+        }
+        
+        const j1 = await r1.json();
+        const area = j1?.evaluador?.area;
+        if (area?.nombre_area) {
+          setAreaNombre(area.nombre_area);
+        }
+      } catch (e) {
+        console.warn("Contexto área no disponible:", e.message);
+        setAreaNombre("");
+      }
+    };
+    cargarArea();
+  }, []);
 
   // ============================
   //   RENDER
@@ -342,7 +437,7 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* Encabezado superior: Dashboard / Área / Nivel */}
+        {/* Encabezado superior: Dashboard / Área */}
         <div className="flex flex-wrap items-center justify-between gap-6 bg-gray-200 rounded-lg p-4 mb-4">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-700">Dashboard:</span>
@@ -400,6 +495,7 @@ useEffect(() => {
               data={dataEval}
               onCellChange={onCellChange}
               className="rounded-lg"
+              readOnly={!modoEdicion}
             />
           </div>
 
@@ -409,13 +505,24 @@ useEffect(() => {
               {totalHechas} con nota
             </div>
             <div className="flex gap-2">
-              <ActionButton type="edit" label="Editar" />
+              <ActionButton 
+                type="edit" 
+                label={modoEdicion ? "Editando..." : "Editar"}
+                onClick={handleEditar}
+                disabled={modoEdicion}
+              />
               <ActionButton
                 type="save"
                 label="Guardar cambios"
                 onClick={handleGuardarCambios}
+                disabled={!modoEdicion}
               />
-              <ActionButton type="export" label="Exportar" />
+              <ActionButton 
+                type="export" 
+                label="Enviar" 
+                onClick={handleEnviar}
+                disabled={totalPendientes > 0}
+              />
             </div>
           </div>
         </section>

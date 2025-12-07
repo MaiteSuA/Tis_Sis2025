@@ -5,6 +5,7 @@ const ExcelGrid = ({
   renderCell,
   showRowNumbers = true,
   className = "",
+  readOnly = false, // Nueva prop
 }) => {
   return (
     <div className={`bg-white shadow-sm border border-gray-300 overflow-hidden ${className}`}>
@@ -71,7 +72,6 @@ const ExcelGrid = ({
               );
             })}
           </tbody>
-
         </table>
       </div>
     </div>
