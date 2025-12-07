@@ -1,11 +1,33 @@
 import Brand from "../Brand";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useEstadoProceso } from "../../hook/useEstadoProceso";
+import { useEffect, useState } from "react";
 
 export default function TopNav() {
   const navigate = useNavigate();
-
   const { label } = useEstadoProceso();
+
+  const [coordinador, setCoordinador] = useState({
+    nombre: "",
+    apellido: "",
+  });
+
+  // Obtener nombre/apellido desde el token almacenado
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const payload = JSON.parse(atob(token.split(".")[1]));
+
+      setCoordinador({
+        nombre: payload.nombre || payload.name || "",
+        apellido: payload.apellidos || payload.lastname || "",
+      });
+    } catch (e) {
+      console.error("Error leyendo token:", e);
+    }
+  }, []);
 
   function handleLogout() {
     localStorage.removeItem("token");
@@ -24,24 +46,15 @@ export default function TopNav() {
         {/* LOGO */}
         <Brand />
 
-        {/* Texto rol */}
-        <span className="text-gray-400 text-sm tracking-wide">
-          COORDINADOR · {label}
+        {/* Texto del Coordinador logueado */}
+        <span className="text-gray-700 font-semibold text-sm tracking-wide">
+          {coordinador.nombre} {coordinador.apellido} · COORDINADOR · {label}
         </span>
 
         {/* --- BOTONES DEL COORDINADOR --- */}
         <nav className="hidden md:flex items-center gap-2">
-          {/* PERFIL */}
-          <NavLink
-            to="/coordinador/perfil"
-            className={({ isActive }) =>
-              `${tabBase} ${isActive ? tabActive : tabInactive}`
-            }
-          >
-            Perfil Coordinador
-          </NavLink>
 
-          {/* "GESTIONAR INSCRITOS */}
+          {/* Gestionar Inscritos */}
           <NavLink
             to="/coordinador/gestionar-inscritos"
             className={({ isActive }) =>
@@ -51,7 +64,7 @@ export default function TopNav() {
             Gestionar inscritos
           </NavLink>
 
-          {/* "Registro de Responsables */}
+          {/* Registro Responsables */}
           <NavLink
             to="/coordinador/registro-responsables"
             className={({ isActive }) =>
@@ -61,7 +74,7 @@ export default function TopNav() {
             Registro de Responsables
           </NavLink>
 
-          {/* IMPORTAR INSCRITOS */}
+          {/* Importar Inscritos */}
           <NavLink
             to="/coordinador/importar-inscritos"
             className={({ isActive }) =>
@@ -74,7 +87,7 @@ export default function TopNav() {
 
         {/* --- BOTONES DERECHA (INICIO / CERRAR SESIÓN) --- */}
         <div className="flex flex-col items-end gap-1 h-20">
-          {/* INICIO */}
+
           <button
             className="btn text-sm px-3 py-1.5"
             onClick={() => navigate("/")}
@@ -82,7 +95,6 @@ export default function TopNav() {
             Inicio
           </button>
 
-          {/* CERRAR SESIÓN */}
           <button className="btn text-sm px-3 py-1.5" onClick={handleLogout}>
             Cerrar Sesión
           </button>
