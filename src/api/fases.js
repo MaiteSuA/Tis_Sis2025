@@ -47,6 +47,18 @@ export async function updateParametroClasificacion(nota_minima) {
   return res.json(); // fase actualizada
 }
 
+export async function eliminarClasificadosPorNotaMinima(ids) {
+  const res = await fetch(`${BASE}/fases/clasificados`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ ids }),
+  });
 
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error("Error al eliminar clasificados:", res.status, text);
+    throw new Error("No se pudieron eliminar los clasificados.");
+  }
 
-
+  return res.json();
+}

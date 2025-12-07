@@ -104,10 +104,10 @@ function DocxPreview({ file }) {
 
 /* ---------- Página principal ---------- */
 export default function ResponsableDocumentosClasificados() {
-  const [files, setFiles] = useState([]);       // archivos seleccionados
+  const [files, setFiles] = useState([]); // archivos seleccionados
   const [previewIndex, setPreviewIndex] = useState(0); // cuál estoy previsualizando
   const [saving, setSaving] = useState(false); // estado de "Publicando..."
-  const [message, setMessage] = useState("");  // mensaje de estado
+  const [message, setMessage] = useState(""); // mensaje de estado
 
   const handleFileChange = (e) => {
     const incoming = Array.from(e.target.files || []);
@@ -136,59 +136,180 @@ export default function ResponsableDocumentosClasificados() {
     e.target.value = "";
     setMessage("");
   };
-//GUARDAR A LA API
+
+  // Eliminar un archivo individual
+  const handleDeleteFile = (indexToDelete) => {
+    setFiles((prevFiles) => {
+      const newFiles = prevFiles.filter((_, index) => index !== indexToDelete);
+
+      // Liberar la URL del objeto
+      if (prevFiles[indexToDelete]?.previewUrl) {
+        URL.revokeObjectURL(prevFiles[indexToDelete].previewUrl);
+      }
+
+      // Ajustar índice de vista previa
+      if (previewIndex >= newFiles.length) {
+        setPreviewIndex(Math.max(0, newFiles.length - 1));
+      }
+
+      return newFiles;
+    });
+  };
+
+  // Eliminar todos los archivos (DESCARTAR DOCUMENTOS)
+  const handleDeleteAllFiles = () => {
+    // liberar URLs
+    files.forEach((file) => {
+      if (file.previewUrl) {
+        URL.revokeObjectURL(file.previewUrl);
+      }
+    });
+
+    setFiles([]);
+    setPreviewIndex(0);
+    setMessage("");
+  };
+
+  // GUARDAR A LA API
   const handleSave = async () => {
-    if (!files.length) {
-      setMessage("Primero adjunta al menos un documento.");
+  if (!files.length) {
+    setMessage("Primero adjunta al menos un documento.");
+    return;
+  }
+
+  const confirmar = window.confirm(
+    "⚠️ ADVERTENCIA\n\n" +
+    "Desea Publicar los clasificados actuales.\n\n" +
+    "¿Está seguro de continuar?"
+  );
+
+  if (!confirmar) {
+    setMessage("Operación cancelada por el usuario.");
+    return;
+  }
+
+  setSaving(true);
+  setMessage("");
+
+  try {
+    const rows = await extractExcelData();
+
+    if (!rows.length) {
+      setMessage("❌ El Excel no contiene datos válidos.");
+      setSaving(false);
       return;
     }
 
-    setSaving(true);
-    setMessage("");
+    // 1️⃣ Validar que TODOS los estados sean "Clasificado" (exactamente)
+    const filasInvalidas = rows.filter(
+      (r) => String(r.estadoTexto || "").trim() !== "Clasificado"
+    );
 
-    try {
-      const rows = await extractExcelData();
-
-      if (!rows.length) {
-        setMessage("❌ El Excel no contiene datos válidos.");
-        setSaving(false);
-        return;
-      }
-
-      const token = localStorage.getItem("token"); // si tu API requiere token
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/clasificados/cargar`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({ rows })
-      });
-
-      const result = await res.json();
-
-      if (!result.ok) throw new Error(result.message || "Error al cargar los clasificados");
-
-      //await new Promise((res) => setTimeout(res, 1200));
-
-      setMessage("✅ Documentos publicados correctamente.");
-    } catch (err) {
-      console.error(err);
-      setMessage("❌ Ocurrió un error al publicar los documentos.");
-    } finally {
+    if (filasInvalidas.length > 0) {
+      setMessage(
+        `❌ No se puede publicar: hay ${filasInvalidas.length} ` +
+        `fila(s) con estado diferente de "Clasificado". ` +
+        `Para publicar, TODOS deben estar exactamente como "Clasificado".`
+      );
       setSaving(false);
+      console.log("Filas con estado inválido:", filasInvalidas);
+      return;
     }
-  };
+
+    // 2️⃣ Todos están clasificados
+    const participantesClasificados = rows;
+
+    // 3️⃣ Enviar al backend
+    const token = localStorage.getItem("token");
+    const apiUrl = `${import.meta.env.VITE_API_URL}/clasificados/cargar`;
+    
+    console.log("📤 URL:", apiUrl);
+    console.log("📤 Datos a enviar:", { rows: participantesClasificados });
+
+    const res = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ rows: participantesClasificados }),
+    });
+
+    console.log("📥 Respuesta HTTP:", {
+      status: res.status,
+      statusText: res.statusText,
+      ok: res.ok
+    });
+
+    // ✅ Primero intenta leer como texto para debug
+    const responseText = await res.text();
+    console.log("📥 Response text:", responseText);
+
+    let result;
+    try {
+      result = JSON.parse(responseText);
+      console.log("📥 Response JSON:", result);
+    } catch (jsonError) {
+      console.error("❌ Error parsing JSON:", jsonError);
+      throw new Error(`La respuesta no es JSON válido: ${responseText.substring(0, 100)}...`);
+    }
+
+    // ✅ Verifica si la respuesta tiene la estructura esperada
+    if (!result) {
+      throw new Error("La respuesta está vacía");
+    }
+
+    // ✅ Si result.ok es false, lanza error
+    if (result.ok === false) {
+      throw new Error(result.message || "Error del servidor");
+    }
+
+    // ✅ Si llegamos aquí, fue exitoso
+    let mensaje = `✅ Publicados ${result.count || 0} participantes clasificados.\n`;
+    /*
+    if (result.duplicados > 0) {
+      mensaje += `⚠️ Se omitieron ${result.duplicados} duplicados dentro del Excel.\n`;
+    }
+    
+    if (result.errores > 0) {
+      mensaje += `❌ Hubo ${result.errores} errores en el procesamiento.\n`;
+    }
+    
+    // ✅ Mostrar resumen si existe
+    if (result.summary) {
+      mensaje += `\n📊 Resumen:\n`;
+      mensaje += `• Total en Excel: ${result.summary.totalEnviado}\n`;
+      mensaje += `• Duplicados omitidos: ${result.summary.duplicadosOmitidos}\n`;
+      mensaje += `• Filas únicas: ${result.summary.filasUnicas}\n`;
+      mensaje += `• Publicados exitosamente: ${result.summary.exitosas}\n`;
+      mensaje += `• Errores: ${result.summary.errores}`;
+    } else {
+      // Si no hay summary, mostrar info básica
+      mensaje += `\n📊 Total procesado: ${participantesClasificados.length} participantes.`;
+    }
+*/
+    setMessage(mensaje);
+    
+  } catch (err) {
+    console.error("❌ Error completo al publicar:", err);
+    setMessage(`❌ Error al publicar los documentos: ${err.message}`);
+  } finally {
+    setSaving(false);
+  }
+};
 
   const extractExcelData = async () => {
     if (!files.length) return [];
 
-    const excelFiles = files.filter(f => 
-      f.name.endsWith(".xls") || f.name.endsWith(".xlsx")
+    const excelFiles = files.filter(
+      (f) =>
+        f.name.toLowerCase().endsWith(".xls") ||
+        f.name.toLowerCase().endsWith(".xlsx")
     );
-    if (excelFiles.length === 0) return [];
+    if (!excelFiles.length) return [];
 
-    const file = excelFiles[0].file; // Solo tomamos el primero por ahora
+    // Tomamos solo el primer Excel
+    const file = excelFiles[0].file;
     const data = await file.arrayBuffer();
     const wb = XLSX.read(data);
     const ws = wb.Sheets[wb.SheetNames[0]];
@@ -198,7 +319,6 @@ export default function ResponsableDocumentosClasificados() {
     const estadoMap = {
       
       Clasificado: "CLASIFICADO",
-      Desclasificado: "DESCLASIFICADO",
     };
 
     return json.map(r => ({
@@ -206,14 +326,7 @@ export default function ResponsableDocumentosClasificados() {
       id_fase: Number(r.Fase),
       estado: estadoMap[r.Estado]
     }));
-    //estado: r.Estado,
-    //PRUEBA DE API POST CORRECTA
-    //estado: estadoMap[r.Estado] || "NO_CLASIFICADO", // valor por defecto si no coincide
-
-    // json: [{ ID_Inscrito: 101, Fase: 2, Estado: "CLASIFICADO" }, ...]
-    
   };
-
 
   const current = files[previewIndex] || null;
   const ext = current ? current.name.toLowerCase().split(".").pop() : "";
@@ -226,12 +339,25 @@ export default function ResponsableDocumentosClasificados() {
         </h1>
         <p className="text-sm text-gray-600 mb-6">
           Adjunta uno o varios documentos (PDF, imágenes, CSV, Excel, Word,
-          etc.) con la información oficial de los clasificados. 
+          etc.) con la información oficial de los clasificados.
         </p>
 
         {/* Sección de carga */}
         <section className="bg-white rounded-xl shadow-sm p-4 md:p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-3">Adjuntar documentos</h2>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <h2 className="text-lg font-semibold">Adjuntar documentos</h2>
+
+            {/* Botón DESCARTAR DOCUMENTOS (solo si hay archivos) */}
+            {files.length > 0 && (
+              <button
+                type="button"
+                onClick={handleDeleteAllFiles}
+                className="px-3 py-1 text-sm bg-red-50 text-red-600 border border-red-200 rounded-md hover:bg-red-100 transition-colors"
+              >
+                 Descartar documentos
+              </button>
+            )}
+          </div>
 
           <label className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-gray-800 text-white text-sm font-medium cursor-pointer hover:bg-gray-900">
             <span>Seleccionar archivos</span>
@@ -255,24 +381,44 @@ export default function ResponsableDocumentosClasificados() {
               {/* Lista */}
               <div className="md:col-span-1">
                 <h3 className="text-sm font-semibold mb-2">
-                  Archivos cargados
+                  Archivos cargados ({files.length})
                 </h3>
                 <ul className="space-y-1 max-h-64 overflow-y-auto pr-1">
                   {files.map((f, idx) => (
-                    <li key={idx}>
+                    <li key={idx} className="group relative">
                       <button
                         type="button"
                         onClick={() => setPreviewIndex(idx)}
                         className={`w-full text-left text-xs px-2 py-1 rounded-md border transition ${
                           idx === previewIndex
                             ? "bg-gray-800 text-white border-gray-800"
-                            : "bg-gray-50 hover:bg-gray-100 border-gray-200"
+                            : "bg-gray-50 hover:bg-gray-100 border-gray-200 group-hover:pr-8"
                         }`}
                       >
                         <span className="block truncate">{f.name}</span>
                         <span className="block text-[10px] text-gray-500">
                           {(f.size / 1024).toFixed(1)} KB
                         </span>
+                      </button>
+
+                      {/* Botón eliminar individual */}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteFile(idx)}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-700"
+                        aria-label={`Eliminar ${f.name}`}
+                      >
+                        <svg
+                          className="w-3 h-3"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
                       </button>
                     </li>
                   ))}
@@ -281,7 +427,18 @@ export default function ResponsableDocumentosClasificados() {
 
               {/* Vista previa */}
               <div className="md:col-span-2">
-                <h3 className="text-sm font-semibold mb-2">Vista previa</h3>
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-sm font-semibold">Vista previa</h3>
+                  {current && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteFile(previewIndex)}
+                      className="px-2 py-1 text-xs bg-red-50 text-red-600 border border-red-200 rounded hover:bg-red-100 transition-colors"
+                    >
+                       Eliminar este archivo
+                    </button>
+                  )}
+                </div>
 
                 {!current && (
                   <div className="w-full h-64 md:h-80 flex items-center justify-center border border-dashed border-gray-300 rounded-lg text-gray-400 text-sm">
@@ -340,7 +497,15 @@ export default function ResponsableDocumentosClasificados() {
 
         {/* Mensajes y acciones */}
         {message && (
-          <div className="mb-4 text-sm px-3 py-2 rounded-md bg-gray-100 border border-gray-300 text-gray-700">
+          <div
+            className={`mb-4 text-sm px-3 py-2 rounded-md border ${
+              message.includes("✅")
+                ? "bg-green-50 border-green-200 text-green-700"
+                : message.includes("❌")
+                ? "bg-red-50 border-red-200 text-red-700"
+                : "bg-gray-100 border-gray-300 text-gray-700"
+            }`}
+          >
             {message}
           </div>
         )}
