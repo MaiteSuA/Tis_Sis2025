@@ -32,6 +32,7 @@ import {
 import {
   fetchParametroClasificacion,
   updateParametroClasificacion,
+  eliminarClasificadosPorNotaMinima,
 } from "../api/fases.js";
 
 export default function AdminUsuarios() {
@@ -151,6 +152,32 @@ export default function AdminUsuarios() {
 
     try {
       await updateParametroClasificacion(notaMinima);
+      
+      // Traer clasificados y evaluaciones
+      const resClasificados =  await fetch(`${import.meta.env.VITE_API_URL}/clasificados`);
+      const { data: clasificados } = await resClasificados.json();
+
+      const resEvaluaciones = await fetch(`${import.meta.env.VITE_API_URL}/evaluaciones`);
+      const { data: evaluaciones } = await resEvaluaciones.json();
+        
+      // Filtrar ids_inscritos con nota menor
+      const idsInscritosBajoNota = evaluaciones
+        .filter(ev => Number(ev.nota) < notaMinima && ev.nota !== "")
+        .map(ev => Number(ev.id_inscrito));
+
+      // Filtrar ids_clasificado a eliminar
+      const idsAEliminar = clasificados
+        .filter(c => idsInscritosBajoNota.includes(Number(c.id_inscrito)))
+        .map(c => Number(c.id_clasificado));
+
+      // Eliminar si hay algo
+      if (idsAEliminar.length > 0) {
+        await eliminarClasificadosPorNotaMinima(idsAEliminar);
+      }
+
+      // Vaciar array
+      idsAEliminar.length = 0;
+
       setNotaGuardada(true);
       setNotaDirty(false);
 
@@ -166,52 +193,36 @@ export default function AdminUsuarios() {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: e.message || "No se pudo guardar la nota mínima.",
+        text: e.message || "No se pudo guardar la nota mínima. d",
       });
     }
   };
 
-// ============================================================
-// ESTADO DEL PROCESO
-// ============================================================
-  const PROCESS_KEY = "ohsansi_estado_proceso_v2";
-
-  const FASES = {
-    CLASIFICATORIA: "CLASIFICATORIA",
-    FINAL: "FINAL",
-    CONCLUIDO: "CONCLUIDO",
-  };
-
-  const [fase, setFase] = useState(FASES.CLASIFICATORIA);
+  // ============================================================
+  // ESTADO DEL PROCESO
+  // ============================================================
+  const PROCESS_KEY = "ohsansi_estado_proceso";
+  const [proceso, setProceso] = useState({ en: false, fin: false });
   const [dirtyProceso, setDirtyProceso] = useState(false);
   const [savedProceso, setSavedProceso] = useState(false);
-  const lastSavedFase = useRef(FASES.CLASIFICATORIA);
+  const lastSavedProceso = useRef({ en: false, fin: false });
 
-    useEffect(() => {
-      try {
-        const raw = localStorage.getItem(PROCESS_KEY);
-        if (!raw) return;
-        const parsed = JSON.parse(raw);
-        if (parsed?.fase && Object.values(FASES).includes(parsed.fase)) {
-          setFase(parsed.fase);
-          lastSavedFase.current = parsed.fase;
-        }
-      } catch (e) {
-        console.error("Error leyendo estado de proceso:", e);
-      }
-    }, []);
+  const onChangeProceso = (campo) => (e) => {
+    const value = e.target.checked;
+    const nuevo = { ...proceso, [campo]: value };
+    setProceso(nuevo);
 
-  // Cuando cambia un radio
-  const onChangeFase = (nuevaFase) => {
-    setFase(nuevaFase);
-    setDirtyProceso(nuevaFase !== lastSavedFase.current);
+    const isDifferent =
+      nuevo.en !== lastSavedProceso.current.en ||
+      nuevo.fin !== lastSavedProceso.current.fin;
+
+    setDirtyProceso(isDifferent);
     setSavedProceso(false);
   };
 
   const guardarProceso = () => {
-  const payload = { fase };
-    localStorage.setItem(PROCESS_KEY, JSON.stringify(payload));
-    lastSavedFase.current = fase;
+    localStorage.setItem(PROCESS_KEY, JSON.stringify(proceso));
+    lastSavedProceso.current = { ...proceso };
     setDirtyProceso(false);
     setSavedProceso(true);
   };
@@ -596,36 +607,23 @@ export default function AdminUsuarios() {
             <span className="section">Estado del proceso:</span>
 
             <label className="inline-flex items-center gap-2 text-gray-800 text-sm">
+              <span>En evaluación</span>
               <input
-                type="radio"
-                name="fase"
+                type="checkbox"
                 className="accent-gray-700"
-                checked={fase === FASES.CLASIFICATORIA}
-                onChange={() => onChangeFase(FASES.CLASIFICATORIA)}
+                checked={proceso.en}
+                onChange={onChangeProceso("en")}
               />
-              <span>Fase clasificatoria</span>
             </label>
 
             <label className="inline-flex items-center gap-2 text-gray-800 text-sm">
-              <input
-                type="radio"
-                name="fase"
-                className="accent-gray-700"
-                checked={fase === FASES.FINAL}
-                onChange={() => onChangeFase(FASES.FINAL)}
-              />
-              <span>Fase final</span>
-            </label>
-
-            <label className="inline-flex items-center gap-2 text-gray-800 text-sm">
-              <input
-                type="radio"
-                name="fase"
-                className="accent-gray-700"
-                checked={fase === FASES.CONCLUIDO}
-                onChange={() => onChangeFase(FASES.CONCLUIDO)}
-              />
               <span>Concluido</span>
+              <input
+                type="checkbox"
+                className="accent-gray-700"
+                checked={proceso.fin}
+                onChange={onChangeProceso("fin")}
+              />
             </label>
 
             <div className="ml-auto flex items-center gap-3">
@@ -634,7 +632,7 @@ export default function AdminUsuarios() {
                 disabled={!dirtyProceso}
                 className={`btn-dark ${
                   !dirtyProceso ? "opacity-60 cursor-not-allowed" : ""
-                  }`}
+                }`}
               >
                 Guardar Cambios
               </button>
@@ -669,7 +667,7 @@ export default function AdminUsuarios() {
         </div>
 
         <div className="px-4 pb-4 flex justify-between">
-          
+          <button className="btn-light">Historial</button>
           <button className="btn-dark" onClick={handleCreate}>
             + Agregar nuevo usuario
           </button>

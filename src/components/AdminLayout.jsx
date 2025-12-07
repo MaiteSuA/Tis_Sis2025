@@ -97,6 +97,17 @@ export default function AdminLayout({ children }) {
             >
               Log
             </NavLink>
+            {/* Nueva ventana: Anuncio */}
+            <NavLink
+              to="/admin/anuncio"
+              className={({ isActive }) =>
+                `px-3 py-1.5 rounded-full text-sm hover:bg-gray-50 ${
+                  isActive ? "bg-gray-200" : "bg-white"
+                }`
+              }
+            >
+              Anuncio
+            </NavLink>
           </nav>
         </div>
       </header>

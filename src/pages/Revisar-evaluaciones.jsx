@@ -270,7 +270,7 @@ const handleSave = async (formData) => {
     }
 
     const data = competidoresFiltrados.map((c) => ({
-      ID_Inscrito: c.id,
+      ID_Inscrito: c.id_inscrito,
       Competidor: c.competidor,
       Nota: c.nota,
       Observación: c.observacion,
