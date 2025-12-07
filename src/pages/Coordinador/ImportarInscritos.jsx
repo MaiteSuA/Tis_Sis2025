@@ -55,12 +55,12 @@ export default function ImportarInscritos() {
       try {
         const r = await getDashboardStats();
         if (r?.data) {
-        setTotals(r.data);
-      }
+          setTotals(r.data);
+        }
       } catch (err) {
-      console.debug("No se pudieron cargar las stats:", err);
-      setMsg("No se pudieron cargar las estadísticas del dashboard.");
-    }
+        console.debug("No se pudieron cargar las stats:", err);
+        setMsg("No se pudieron cargar las estadísticas del dashboard.");
+      }
     })();
   }, []);
 
@@ -175,8 +175,20 @@ export default function ImportarInscritos() {
       });
 
       if (r?.ok) {
-        const { total, importados, errores } = r.data;
-        setMsg(`✅ Importados: ${importados}/${total}. Errores: ${errores}.`);
+        const { total, importados, errores, duplicados: dupFromApi } = r.data;
+
+        const duplicados =
+          typeof dupFromApi === "number"
+            ? dupFromApi
+            : Math.max(total - importados - errores, 0);
+
+        const correctos = importados;
+
+        setMsg(
+          `✅ Correctos: ${correctos} | 🔁 Duplicados: ${duplicados} | ❌ Errores: ${errores} | Total filas: ${total}`
+        );
+
+        /* setMsg(`✅ Importados: ${importados}/${total}. Errores: ${errores}.`); */
         const s = await getDashboardStats().catch(() => null);
         if (s?.ok && s.data) setTotals(s.data);
       } else {
