@@ -172,76 +172,131 @@ export default function ResponsableDocumentosClasificados() {
 
   // GUARDAR A LA API
   const handleSave = async () => {
-    if (!files.length) {
-      setMessage("Primero adjunta al menos un documento.");
+  if (!files.length) {
+    setMessage("Primero adjunta al menos un documento.");
+    return;
+  }
+
+  const confirmar = window.confirm(
+    "⚠️ ADVERTENCIA\n\n" +
+    "Desea Publicar los clasificados actuales.\n\n" +
+    "¿Está seguro de continuar?"
+  );
+
+  if (!confirmar) {
+    setMessage("Operación cancelada por el usuario.");
+    return;
+  }
+
+  setSaving(true);
+  setMessage("");
+
+  try {
+    const rows = await extractExcelData();
+
+    if (!rows.length) {
+      setMessage("❌ El Excel no contiene datos válidos.");
+      setSaving(false);
       return;
     }
 
-    setSaving(true);
-    setMessage("");
+    // 1️⃣ Validar que TODOS los estados sean "Clasificado" (exactamente)
+    const filasInvalidas = rows.filter(
+      (r) => String(r.estadoTexto || "").trim() !== "Clasificado"
+    );
 
-    try {
-      const rows = await extractExcelData();
-
-      if (!rows.length) {
-        setMessage("❌ El Excel no contiene datos válidos.");
-        setSaving(false);
-        return;
-      }
-
-      // 1️⃣ Validar estados válidos
-      const filasInvalidas = rows.filter(
-        (r) =>
-          !r.estadoTexto ||
-          (r.estadoTexto !== "Clasificado" &&
-            r.estadoTexto !== "No Clasificado")
+    if (filasInvalidas.length > 0) {
+      setMessage(
+        `❌ No se puede publicar: hay ${filasInvalidas.length} ` +
+        `fila(s) con estado diferente de "Clasificado". ` +
+        `Para publicar, TODOS deben estar exactamente como "Clasificado".`
       );
-
-      if (filasInvalidas.length > 0) {
-        setMessage(
-          ` No se puede publicar: hay ${filasInvalidas.length} filas con estado inválido (Clasificado).`
-        );
-        setSaving(false);
-        return;
-      }
-
-      // 2️⃣ Solo filas "Clasificado"
-      const soloClasificados = rows.filter(
-        (r) => r.estadoTexto === "Clasificado"
-      );
-
-      if (!soloClasificados.length) {
-        setMessage("Publicar solo participantes clasificados.");
-        setSaving(false);
-        return;
-      }
-
-      // 3️⃣ Enviar al backend
-      const token = localStorage.getItem("token");
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/clasificados/cargar`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ rows: soloClasificados }),
-        }
-      );
-
-      const result = await res.json();
-      if (!result.ok)
-        throw new Error(result.message || "Error al cargar los clasificados");
-
-      setMessage("✅ Documentos publicados correctamente.");
-    } catch (err) {
-      console.error(err);
-      setMessage("❌ Error al publicar los documentos.");
-    } finally {
       setSaving(false);
+      console.log("Filas con estado inválido:", filasInvalidas);
+      return;
     }
-  };
+
+    // 2️⃣ Todos están clasificados
+    const participantesClasificados = rows;
+
+    // 3️⃣ Enviar al backend
+    const token = localStorage.getItem("token");
+    const apiUrl = `${import.meta.env.VITE_API_URL}/clasificados/cargar`;
+    
+    console.log("📤 URL:", apiUrl);
+    console.log("📤 Datos a enviar:", { rows: participantesClasificados });
+
+    const res = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ rows: participantesClasificados }),
+    });
+
+    console.log("📥 Respuesta HTTP:", {
+      status: res.status,
+      statusText: res.statusText,
+      ok: res.ok
+    });
+
+    // ✅ Primero intenta leer como texto para debug
+    const responseText = await res.text();
+    console.log("📥 Response text:", responseText);
+
+    let result;
+    try {
+      result = JSON.parse(responseText);
+      console.log("📥 Response JSON:", result);
+    } catch (jsonError) {
+      console.error("❌ Error parsing JSON:", jsonError);
+      throw new Error(`La respuesta no es JSON válido: ${responseText.substring(0, 100)}...`);
+    }
+
+    // ✅ Verifica si la respuesta tiene la estructura esperada
+    if (!result) {
+      throw new Error("La respuesta está vacía");
+    }
+
+    // ✅ Si result.ok es false, lanza error
+    if (result.ok === false) {
+      throw new Error(result.message || "Error del servidor");
+    }
+
+    // ✅ Si llegamos aquí, fue exitoso
+    let mensaje = `✅ Publicados ${result.count || 0} participantes clasificados.\n`;
+    /*
+    if (result.duplicados > 0) {
+      mensaje += `⚠️ Se omitieron ${result.duplicados} duplicados dentro del Excel.\n`;
+    }
+    
+    if (result.errores > 0) {
+      mensaje += `❌ Hubo ${result.errores} errores en el procesamiento.\n`;
+    }
+    
+    // ✅ Mostrar resumen si existe
+    if (result.summary) {
+      mensaje += `\n📊 Resumen:\n`;
+      mensaje += `• Total en Excel: ${result.summary.totalEnviado}\n`;
+      mensaje += `• Duplicados omitidos: ${result.summary.duplicadosOmitidos}\n`;
+      mensaje += `• Filas únicas: ${result.summary.filasUnicas}\n`;
+      mensaje += `• Publicados exitosamente: ${result.summary.exitosas}\n`;
+      mensaje += `• Errores: ${result.summary.errores}`;
+    } else {
+      // Si no hay summary, mostrar info básica
+      mensaje += `\n📊 Total procesado: ${participantesClasificados.length} participantes.`;
+    }
+*/
+    setMessage(mensaje);
+    
+  } catch (err) {
+    console.error("❌ Error completo al publicar:", err);
+    setMessage(`❌ Error al publicar los documentos: ${err.message}`);
+  } finally {
+    setSaving(false);
+  }
+};
 
   const extractExcelData = async () => {
     if (!files.length) return [];
