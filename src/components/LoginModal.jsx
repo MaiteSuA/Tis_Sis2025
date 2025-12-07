@@ -13,7 +13,7 @@ const ROLE_ROUTES = {
 export default function LoginModal({
   open,
   onClose,
-  onOpenRegister,
+  /* onOpenRegister, */
   onOpenForgot,
 }) {
   const [correo, setCorreo] = useState("");
@@ -42,11 +42,9 @@ export default function LoginModal({
       console.log("✅ Login ok:", result);
 
       if (!result.ok) {
-        // 👇 INCREMENTAR ANTES de verificar el límite
         const newAttempts = failedAttempts + 1;
         setFailedAttempts(newAttempts);
-        
-        // 👇 Verificar después de incrementar
+
         if (newAttempts >= 3) {
           setError(
             <span>
@@ -61,14 +59,14 @@ export default function LoginModal({
             </span>
           );
           setLoading(false);
-          return; 
+          return;
         } else {
           throw new Error(result.error || "Credenciales incorrectas");
         }
       } else {
-        // 👇 Resetear si es exitoso
+        // Login exitoso
         setFailedAttempts(0);
-        
+
         if (result.token) {
           localStorage.setItem("token", result.token);
         }
@@ -77,29 +75,54 @@ export default function LoginModal({
 
         setTimeout(() => {
           const token = result.token;
-          const decoded = JSON.parse(atob(token.split(".")[1]));
 
-          const MAPA_ROLES = {
-            Administrador: "ADMIN",
-            "Coordinador Area": "COORDINADOR",
-            "Responsable de Area": "RESPONSABLE",
-            Evaluador: "EVALUADOR",
-          };
+          // 1) Sacar rol del token (payload)
+          let roleFromToken = "";
+          try {
+            const decoded = JSON.parse(atob(token.split(".")[1]));
+            roleFromToken = decoded.role; // "ADMIN", "COORDINADOR", "EVALUADOR", "RESPONSABLE"
+          } catch (e) {
+            console.error("Error decodificando token:", e);
+          }
 
-          const rolBackend = decoded.role;
-          const rolFront = MAPA_ROLES[rolBackend] || "";
+          // 2) También considerar el usuario que pueda venir del backend
+          const usuario = result.usuario || result.user || null;
+          const finalRole =
+            roleFromToken ||
+            usuario?.rol ||
+            usuario?.role ||
+            "";
 
-          const path = ROLE_ROUTES[rolFront] || "/";
+          // 3) Guardar el usuario normalizado en localStorage
+          if (usuario) {
+            const userData = {
+              ...usuario,
+              rol: usuario.rol || finalRole,
+              role: usuario.role || finalRole,
+            };
+            localStorage.setItem("user", JSON.stringify(userData));
+          } else if (finalRole) {
+            // fallback por si el backend solo envía token
+            const userData = {
+              correo,
+              rol: finalRole,
+              role: finalRole,
+            };
+            localStorage.setItem("user", JSON.stringify(userData));
+          }
 
+          console.log("🎭 Rol final detectado:", finalRole);
+
+          // 4) Redirigir según el rol CANÓNICO
+          const path = ROLE_ROUTES[finalRole] || "/";
           setLoginSuccess(false);
           onClose();
-          navigate(path);
+          navigate(path, { replace: true });
         }, 1500);
       }
     } catch (err) {
       console.error("❌ Error en login:", err);
-      
-      // 👇 Solo mostrar error normal si no hemos alcanzado el límite
+
       if (failedAttempts < 3) {
         setError(err.message || "Credenciales incorrectas");
       }
@@ -110,14 +133,14 @@ export default function LoginModal({
 
   const handleOpenForgot = () => {
     console.log("🎯 CLIC en Recuperar contraseña - Antes de cerrar LoginModal");
-    
+
     if (loading || loginSuccess) {
       return;
     }
 
     console.log("🔄 Cerrando LoginModal y abriendo ForgotPasswordModal");
     onClose();
-    setFailedAttempts(0); // 👈 Resetear intentos al ir a recuperar
+    setFailedAttempts(0);
 
     if (onOpenForgot) {
       onOpenForgot();
@@ -216,19 +239,16 @@ export default function LoginModal({
             </div>
           )}
 
-          {/* 👇 Para debug - puedes ver los intentos en tiempo real */}
-          {/* <div className="text-xs text-gray-500 text-center">
-            Intentos fallidos: {failedAttempts}
-          </div> */}
-
           <button
             type="submit"
-            disabled={loading || loginSuccess || failedAttempts >= 3} 
+            disabled={loading || loginSuccess || failedAttempts >= 3}
             className="w-full mt-2 bg-[#a19f99] hover:bg-[#c4bfba] text-white font-semibold py-2 rounded-full text-sm transition disabled:opacity-60"
           >
-            {loading ? "Verificando..." : 
-            failedAttempts >= 3 ? "Límite de intentos alcanzado" :
-            "Iniciar sesión"}
+            {loading
+              ? "Verificando..."
+              : failedAttempts >= 3
+              ? "Límite de intentos alcanzado"
+              : "Iniciar sesión"}
           </button>
 
           <div className="text-center mt-3">

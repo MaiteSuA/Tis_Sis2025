@@ -19,11 +19,12 @@ import PerfilCoordinador from "../pages/Coordinador/PerfilCoordinador.jsx";
 import RegistroResponsablesArea from "../pages/Coordinador/RegistroResponsablesArea.jsx";
 import InicioExclusivo from "../components/InicioExclusivo.jsx";
 import LoginModal from "../components/LoginModal.jsx";
+import GestionarInscritos from "../pages/Coordinador/GestionarInscritos.jsx";
 import ResponsableDocumentosClasificados from "../pages/ResponsableDocumentosClasificados.jsx";
 import ResponsableMedallero from "../pages/ResponsableMedallero.jsx";
 import ResponsableAnuncios from "../pages/ResponsableAnuncios.jsx";
 import CrearAnuncio from "../pages/CrearAnuncio.jsx";
-
+import AdminLayout from "../components/AdminLayout.jsx";
 
 
 
@@ -40,8 +41,7 @@ export default function AppRouter() {
       <Route path="/LoginModal" element={<LoginModal/>} />
 
       
-      <Route path="/ResponsableAnuncios" element={<ResponsableAnuncios />} />
-      <Route path="/crear-anuncio" element={<CrearAnuncio />} />
+    
 
 
       {/* Rutas temporales para reportes y fase final */}
@@ -49,9 +49,32 @@ export default function AppRouter() {
 
       {/* ← Hacerla pública */}
       {/* Demos por rol */}
-      <Route path="/admin" element={<AdminUsuarios />} />
-      <Route path="/admin/log" element={<AdminLog />} />
-      <Route path="/admin/usuarios" element={<AdminUsuarios />} />
+      {/* RUTAS ADMIN protegidas */}
+      <Route element={<ProtectedRoute allow={["ADMIN"]} />}>
+        {/* Todas las rutas dentro de este bloque requieren ADMIN */}
+        <Route path="/admin/usuarios" element={<AdminUsuarios />} />
+        <Route path="/admin/log" element={<AdminLog />} />
+
+
+
+        <Route
+          path="/admin/anuncio"
+          element={
+            <AdminLayout>
+              <ResponsableAnuncios />
+            </AdminLayout>
+          }
+        />
+        <Route
+          path="/admin/anuncio/nuevo"
+          element={
+            <AdminLayout>
+              <CrearAnuncio />
+            </AdminLayout>
+          }
+        />
+      </Route>
+      
       <Route
         path="/coordinador"
         element={<Navigate to="/coordinador/importar-inscritos" replace />}
@@ -65,6 +88,12 @@ export default function AppRouter() {
         path="/coordinador/importar-inscritos"
         element={<ImportarInscritos />}
       />
+
+      <Route
+        path="/coordinador/gestionar-inscritos"
+        element={<GestionarInscritos />}
+      />
+
       <Route
         path="/ResponsableDocumentosClasificados"
         element={<ResponsableDocumentosClasificados />}
@@ -81,6 +110,12 @@ export default function AppRouter() {
       <Route element={<ProtectedRoute allow={["ADMIN"]} />}>
         {/* coloca aquí SOLO rutas que realmente requieran ADMIN */}
         {/* <Route path="/admin/otra-ruta" element={<Algo />} /> */}
+        {/* Que /admin redirija al dashboard de admin */}
+          <Route
+           path="/admin"
+           element={<Navigate to="/admin/usuarios" replace />}
+          />
+
       </Route>
       <Route path="/forbidden" element={<Forbidden />} />
       <Route path="*" element={<Navigate to="/" replace />} />

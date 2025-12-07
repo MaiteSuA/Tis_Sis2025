@@ -1,4 +1,4 @@
-// src/pages/Home.jsx
+// src/pages/Login.jsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -32,7 +32,15 @@ const NEWS_FALLBACK = [
   },
 ];
 
-export default function Home() {
+// RUTAS por rol CANÓNICO (los mismos que maneja el backend / JWT)
+const ROLE_ROUTES = {
+  ADMIN: "/admin",
+  COORDINADOR: "/coordinador",
+  EVALUADOR: "/evaluador",
+  RESPONSABLE: "/responsable",
+};
+
+export default function Login() {
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
@@ -40,9 +48,9 @@ export default function Home() {
   const [showReset, setShowReset] = useState(false);
   const [correoRecuperacion, setCorreoRecuperacion] = useState("");
 
-  // 👇 anuncios que se mostrarán en el carrusel
+  // anuncios que se mostrarán en el carrusel
   const [anuncios, setAnuncios] = useState(NEWS_FALLBACK);
-  const [loadingAnuncios, setLoadingAnuncios] = useState(true);
+  const [/* loadingAnuncios */, setLoadingAnuncios] = useState(true);
 
   const navigate = useNavigate();
 
@@ -54,21 +62,17 @@ export default function Home() {
         const data = await getAnunciosCarrusel(); // viene del backend
 
         if (Array.isArray(data) && data.length > 0) {
-          // Adaptamos los campos de BD al formato que espera <Carousel />
           const adaptados = data.map((a) => ({
             title: a.titulo,
             description: a.contenido,
-            image: a.imagen_url, // asegúrate que en BD guardas la URL de la imagen
+            image: a.imagen_url,
           }));
-
           setAnuncios(adaptados);
         } else {
-          // si viene vacío, usamos el fallback estático
           setAnuncios(NEWS_FALLBACK);
         }
       } catch (err) {
         console.error("Error cargando anuncios del carrusel:", err);
-        // en caso de error, mostramos también el fallback
         setAnuncios(NEWS_FALLBACK);
       } finally {
         setLoadingAnuncios(false);
@@ -76,23 +80,61 @@ export default function Home() {
     })();
   }, []);
 
-  // Funciones para navegación entre modales
+  // ---------- Navegación entre modales ----------
   const handleOpenLogin = () => setShowLogin(true);
+
   const handleOpenRegister = () => {
     setShowLogin(false);
     setShowRegister(true);
   };
+
   const handleOpenForgot = () => {
     setShowLogin(false);
     setShowForgot(true);
   };
+
   const handleCloseLogin = () => setShowLogin(false);
+
+  // ---------- CUANDO EL LOGIN ES EXITOSO ----------
+  /**
+   * Esta función la debe llamar el LoginModal cuando el backend
+   * responda correctamente al login.
+   *
+   * Espera un objeto de la forma:
+   *   { token, usuario }
+   * donde "usuario.rol" o "usuario.role" es uno de:
+   *   "ADMIN", "COORDINADOR", "EVALUADOR", "RESPONSABLE"
+   */
+  const handleLoginSuccess = ({ token, usuario }) => {
+    const role = usuario.rol || usuario.role;
+
+    if (!role) {
+      console.error("No se recibió rol en la respuesta de login:", usuario);
+      return;
+    }
+
+    const normalizedUser = {
+      ...usuario,
+      rol: role,
+      role: role,
+    };
+
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(normalizedUser));
+
+    const ruta = ROLE_ROUTES[role] || "/";
+    navigate(ruta, { replace: true });
+
+    setShowLogin(false);
+  };
 
   return (
     <div className="min-h-screen w-screen bg-white overflow-x-hidden">
-      <Navbar />
+      {/* Si tu Navbar tiene botón de login, pásale handleOpenLogin como prop; 
+          si no, puedes mostrar el modal por otro lado */}
+      <Navbar onOpenLogin={handleOpenLogin} />
 
-      {/* HERO esto ocupa toda la pantalla */}
+      {/* HERO */}
       <section className="w-screen min-h-screen bg-gray-200 flex flex-col items-center justify-center text-center px-6">
         <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-8">
           Sistema de <br className="hidden md:block" />
@@ -102,8 +144,6 @@ export default function Home() {
 
         {/* Carrusel centrado debajo del título */}
         <div className="w-full max-w-5xl mb-8">
-          {/* Si quieres, podrías mostrar un mensaje mientras carga,
-              pero el carrusel igual funciona con el fallback */}
           <Carousel items={anuncios} />
         </div>
 
@@ -135,6 +175,8 @@ export default function Home() {
         onClose={handleCloseLogin}
         onOpenRegister={handleOpenRegister}
         onOpenForgot={handleOpenForgot}
+        // 👇 importante: el modal debe llamar a esto cuando el login sea OK
+        onLoginSuccess={handleLoginSuccess}
       />
 
       <RegisterModal

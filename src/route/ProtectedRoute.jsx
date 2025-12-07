@@ -1,14 +1,20 @@
+// src/components/ProtectedRoute.jsx
 import { Navigate, Outlet } from "react-router-dom";
 
 export default function ProtectedRoute({ allow = [] }) {
-  // Ejemplo: lee usuario desde localStorage (ajústalo a tu auth)
-  const user = JSON.parse(localStorage.getItem("user") || "null");
-  const role = user?.role || null;
+  const raw = localStorage.getItem("user");
+  const user = raw ? JSON.parse(raw) : null;
 
-  // Si no hay sesión → al login (mejor UX que forbidden)
+  // Aceptar tanto "role" como "rol"
+  const role = user?.role || user?.rol || null;
+
+  console.log("🔐 ProtectedRoute user:", user);
+  console.log("🔐 role:", role, "allow:", allow);
+
+  // Sin sesión → login
   if (!role) return <Navigate to="/login" replace />;
 
-  // Si hay sesión pero rol no permitido → forbidden
+  // Rol no permitido → forbidden
   if (allow.length && !allow.includes(role)) {
     return <Navigate to="/forbidden" replace />;
   }

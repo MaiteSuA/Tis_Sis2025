@@ -170,8 +170,6 @@ export default function AdminUsuarios() {
         .filter(c => idsInscritosBajoNota.includes(Number(c.id_inscrito)))
         .map(c => Number(c.id_clasificado));
 
-      console.log(idsAEliminar);
-
       // Eliminar si hay algo
       if (idsAEliminar.length > 0) {
         await eliminarClasificadosPorNotaMinima(idsAEliminar);

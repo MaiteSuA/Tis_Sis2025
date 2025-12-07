@@ -94,57 +94,62 @@ export default function RegistrarNotasReplanteado() {
   // ============================
   //   CARGA DE DATOS DESDE BACK
   // ============================
-  const cargarDatos = async () => {
-    try {
-      setCargando(true);
-      setError("");
+const cargarDatos = async () => {
+  try {
+    setCargando(true);
+    setError("");
 
-      // Evaluaciones
-      const resEval = await fetch(`${API_BASE_URL}/evaluaciones`);
-      if (!resEval.ok) {
-        const errorText = await resEval.text();
-        console.error("❌ Error del servidor:", errorText);
-        throw new Error(`Error al obtener evaluaciones: ${resEval.status}`);
-      }
-      
-      const jsonEval = await resEval.json();
-      console.log("📊 Respuesta del servidor:", jsonEval);
-      
-      // El backend devuelve { ok: true, data: [...] }
-      const dataEval = jsonEval.ok ? jsonEval.data : (Array.isArray(jsonEval) ? jsonEval : []);
-      
-      console.log("✅ Evaluaciones cargadas:", dataEval.length, "registros");
-      setEvaluaciones(dataEval);
-
-      // Historial
-      const resHist = await fetch(`${API_BASE_URL}/evaluaciones/historial`);
-      if (resHist.ok) {
-        const jsonHist = await resHist.json();
-        const dataHist = jsonHist.ok ? jsonHist.data : (Array.isArray(jsonHist) ? jsonHist : []);
-        console.log("✅ Historial cargado:", dataHist.length, "registros");
-        setHistorial(dataHist);
-      } else {
-        console.warn("⚠️ No se pudo cargar el historial");
-        setHistorial([]);
-      }
-    } catch (err) {
-      console.error("❌ Error en cargarDatos:", err);
-      setError(err.message || "Error al cargar datos");
-    } finally {
-      setCargando(false);
+    // Evaluaciones
+    const resEval = await fetch(`${API_BASE_URL}/evaluaciones`);
+    if (!resEval.ok) {
+      const errorText = await resEval.text();
+      console.error("❌ Error del servidor:", errorText);
+      throw new Error(`Error al obtener evaluaciones: ${resEval.status}`);
     }
-  };
+    
+    const jsonEval = await resEval.json();
+    console.log("📊 Respuesta del servidor:", jsonEval);
+    
+    // El backend devuelve { ok: true, data: [...] }
+    const dataEval = jsonEval.ok ? jsonEval.data : (Array.isArray(jsonEval) ? jsonEval : []);
+    
+    console.log("✅ Evaluaciones cargadas:", dataEval.length, "registros");
+    setEvaluaciones(dataEval);
+
+    // Historial
+    const resHist = await fetch(`${API_BASE_URL}/evaluaciones/historial`);
+    if (resHist.ok) {
+      const jsonHist = await resHist.json();
+      const dataHist = jsonHist.ok ? jsonHist.data : (Array.isArray(jsonHist) ? jsonHist : []);
+      console.log("✅ Historial cargado:", dataHist.length, "registros");
+      setHistorial(dataHist);
+    } else {
+      console.warn("⚠️ No se pudo cargar el historial");
+      setHistorial([]);
+    }
+  } catch (err) {
+    console.error("❌ Error en cargarDatos:", err);
+    setError(err.message || "Error al cargar datos");
+  } finally {
+    setCargando(false);
+  }
+};
+
 
   useEffect(() => {
     cargarDatos();
   }, []);
 
-  // ============================
-  //   MÉTRICAS
-  // ============================
-  const totalAsignados = evaluaciones.length;
-  const totalPendientes = evaluaciones.filter((e) => e.estado === "Pendiente").length;
-  const totalHechas = evaluaciones.filter((e) => String(e.nota ?? "").trim() !== "").length;
+// ============================
+//   MÉTRICAS
+// ============================
+    const totalAsignados = evaluaciones.length;
+
+    const totalHechas = evaluaciones.filter(
+      (e) => String(e.nota ?? "").trim() !== ""
+    ).length;
+
+    const totalPendientes = totalAsignados - totalHechas;
 
   // ============================
   //   COLUMNAS
@@ -174,8 +179,17 @@ export default function RegistrarNotasReplanteado() {
   //   DATOS FILTRADOS
   // ============================
   const dataEval = useMemo(
-    () =>
-      evaluaciones.filter(
+  () =>
+    evaluaciones
+      .map((r) => {
+        const tieneNota = String(r.nota ?? "").trim() !== "";
+        return {
+          ...r,
+          // 👉 estado siempre calculado desde la nota
+          estado: tieneNota ? "Calificado" : "Pendiente",
+        };
+      })
+      .filter(
         (r) =>
           (r.competidor || "")
             .toLowerCase()
@@ -183,9 +197,10 @@ export default function RegistrarNotasReplanteado() {
           (r.observacion || "")
             .toLowerCase()
             .includes(busqEval.toLowerCase())
-      ),
-    [evaluaciones, busqEval]
-  );
+        ),
+       [evaluaciones, busqEval]
+    );
+
 
   const dataHist = useMemo(
     () =>
@@ -248,7 +263,6 @@ export default function RegistrarNotasReplanteado() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(evaluacionesConId),
       });
-
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         console.error("❌ Error del servidor:", errorData);
