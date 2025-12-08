@@ -175,20 +175,17 @@ export default function ImportarInscritos() {
       });
 
       if (r?.ok) {
-        const { total, importados, errores, duplicados: dupFromApi } = r.data;
-
-        const duplicados =
-          typeof dupFromApi === "number"
-            ? dupFromApi
-            : Math.max(total - importados - errores, 0);
+        const { total, importados, yaRegistrados = 0, errores = 0 } = r.data;
 
         const correctos = importados;
 
         setMsg(
-          `✅ Correctos: ${correctos} | 🔁 Duplicados: ${duplicados} | ❌ Errores: ${errores} | Total filas: ${total}`
+          `✅ Importados: ${correctos}` +
+            ` | 📂 Ya registrados: ${yaRegistrados}` +
+            ` | ❌ Errores: ${errores}` +
+            ` | Total filas: ${total}`
         );
 
-        /* setMsg(`✅ Importados: ${importados}/${total}. Errores: ${errores}.`); */
         const s = await getDashboardStats().catch(() => null);
         if (s?.ok && s.data) setTotals(s.data);
       } else {
