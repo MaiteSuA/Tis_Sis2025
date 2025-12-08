@@ -392,16 +392,6 @@ export default function GestionarInscritos() {
                     : "Asignar inscritos seleccionados"}
                 </button>
 
-                <button
-                  className="btn btn-primary w-full mt-2"
-                  disabled={assigning || !selected.size}
-                  onClick={handleAsignar}
-                >
-                  {assigning
-                    ? "Asignando..."
-                    : "Asignar inscritos seleccionados"}
-                </button>
-
                 {assignStatus && (
                   <p className="text-xs text-gray-500 mt-2">{assignStatus}</p>
                 )}
