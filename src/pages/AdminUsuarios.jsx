@@ -699,7 +699,7 @@ export default function AdminUsuarios() {
         </div>
 
         <div className="px-4 pb-4 flex justify-between">
-          <button className="btn-light">Historial</button>
+          
           <button className="btn-dark" onClick={handleCreate}>
             + Agregar nuevo usuario
           </button>
