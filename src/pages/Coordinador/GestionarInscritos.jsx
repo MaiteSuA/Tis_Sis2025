@@ -142,7 +142,7 @@ export default function GestionarInscritos() {
 
       // 👉 No nos complicamos con la respuesta del back:
       // si no lanzó error asumimos que intentó asignar.
-      setAssignInfo("Inscritos asignados");
+      setAssignInfo("Inscritos asignados o sobre escritos correctamente.");
 
       await buscarInscritos(); // refrescar la tabla
     } catch (e) {
