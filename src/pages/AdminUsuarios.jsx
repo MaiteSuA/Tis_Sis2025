@@ -230,34 +230,56 @@ export default function AdminUsuarios() {
     }
   };
 
-  // ============================================================
-  // ESTADO DEL PROCESO
-  // ============================================================
-  const PROCESS_KEY = "ohsansi_estado_proceso";
-  const [proceso, setProceso] = useState({ en: false, fin: false });
-  const [dirtyProceso, setDirtyProceso] = useState(false);
-  const [savedProceso, setSavedProceso] = useState(false);
-  const lastSavedProceso = useRef({ en: false, fin: false });
+ // ============================================================
+// ESTADO DEL PROCESO (solo frontend + localStorage)
+// ============================================================
+const PROCESS_KEY = "ohsansi_estado_proceso_v2";
 
-  const onChangeProceso = (campo) => (e) => {
-    const value = e.target.checked;
-    const nuevo = { ...proceso, [campo]: value };
-    setProceso(nuevo);
+const FASES = {
+  CLASIFICATORIA: "CLASIFICATORIA",
+  FINAL: "FINAL",
+  CONCLUIDO: "CONCLUIDO",
+};
 
-    const isDifferent =
-      nuevo.en !== lastSavedProceso.current.en ||
-      nuevo.fin !== lastSavedProceso.current.fin;
+const [fase, setFase] = useState(FASES.CLASIFICATORIA);
+const [dirtyProceso, setDirtyProceso] = useState(false);
+const [savedProceso, setSavedProceso] = useState(false);
+const lastSavedFase = useRef(FASES.CLASIFICATORIA);
 
-    setDirtyProceso(isDifferent);
-    setSavedProceso(false);
-  };
+// cargar fase guardada al montar
+useEffect(() => {
+  try {
+    const raw = localStorage.getItem(PROCESS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.fase === "string") {
+        setFase(parsed.fase);
+        lastSavedFase.current = parsed.fase;
+        return;
+      }
+    }
+    // si no hay nada, guardamos la fase por defecto
+    localStorage.setItem(
+      PROCESS_KEY,
+      JSON.stringify({ fase: FASES.CLASIFICATORIA })
+    );
+  } catch {
+    // si algo falla, dejamos la fase por defecto
+  }
+}, []);
 
-  const guardarProceso = () => {
-    localStorage.setItem(PROCESS_KEY, JSON.stringify(proceso));
-    lastSavedProceso.current = { ...proceso };
-    setDirtyProceso(false);
-    setSavedProceso(true);
-  };
+const onChangeFase = (nuevaFase) => {
+  setFase(nuevaFase);
+  setSavedProceso(false);
+  setDirtyProceso(nuevaFase !== lastSavedFase.current);
+};
+
+const guardarFase = () => {
+  localStorage.setItem(PROCESS_KEY, JSON.stringify({ fase }));
+  lastSavedFase.current = fase;
+  setDirtyProceso(false);
+  setSavedProceso(true);
+};
 
   // ============================================================
   // LISTAS DESDE BACKEND
@@ -639,28 +661,41 @@ export default function AdminUsuarios() {
             <span className="section">Estado del proceso:</span>
 
             <label className="inline-flex items-center gap-2 text-gray-800 text-sm">
-              <span>En evaluación</span>
               <input
-                type="checkbox"
+                type="radio"
+                name="fase-proceso"
                 className="accent-gray-700"
-                checked={proceso.en}
-                onChange={onChangeProceso("en")}
+                checked={fase === FASES.CLASIFICATORIA}
+                onChange={() => onChangeFase(FASES.CLASIFICATORIA)}
               />
+              <span>Fase clasificatoria</span>
             </label>
 
             <label className="inline-flex items-center gap-2 text-gray-800 text-sm">
-              <span>Concluido</span>
               <input
-                type="checkbox"
+                type="radio"
+                name="fase-proceso"
                 className="accent-gray-700"
-                checked={proceso.fin}
-                onChange={onChangeProceso("fin")}
+                checked={fase === FASES.FINAL}
+                onChange={() => onChangeFase(FASES.FINAL)}
               />
+              <span>Fase final</span>
+            </label>
+
+            <label className="inline-flex items-center gap-2 text-gray-800 text-sm">
+              <input
+                type="radio"
+                name="fase-proceso"
+                className="accent-gray-700"
+                checked={fase === FASES.CONCLUIDO}
+                onChange={() => onChangeFase(FASES.CONCLUIDO)}
+              />
+              <span>Concluido</span>
             </label>
 
             <div className="ml-auto flex items-center gap-3">
               <button
-                onClick={guardarProceso}
+                onClick={guardarFase}
                 disabled={!dirtyProceso}
                 className={`btn-dark ${
                   !dirtyProceso ? "opacity-60 cursor-not-allowed" : ""
