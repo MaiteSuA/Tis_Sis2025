@@ -3,7 +3,7 @@
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 // ===============================
-// BACK -> UI.
+// BACK -> UI..
 // ===============================
 function mapBackToUICoordinador(r) {
   if (!r) return null;

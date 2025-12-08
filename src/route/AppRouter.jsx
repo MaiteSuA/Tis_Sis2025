@@ -15,7 +15,6 @@ import ProtectedRoute from "./ProtectedRoute.jsx";
 import RegistrarNotasReplanteado from "../pages/Registrar-notas.jsx";
 import ImportarInscritos from "../pages/Coordinador/ImportarInscritos.jsx";
 import Temporal from "../pages/Temporal.jsx";
-import PerfilCoordinador from "../pages/Coordinador/PerfilCoordinador.jsx";
 import RegistroResponsablesArea from "../pages/Coordinador/RegistroResponsablesArea.jsx";
 import InicioExclusivo from "../components/InicioExclusivo.jsx";
 import LoginModal from "../components/LoginModal.jsx";
@@ -79,7 +78,6 @@ export default function AppRouter() {
         path="/coordinador"
         element={<Navigate to="/coordinador/importar-inscritos" replace />}
       />
-      <Route path="/coordinador/perfil" element={<PerfilCoordinador />} />
       <Route
         path="/coordinador/registro-responsables"
         element={<RegistroResponsablesArea />}
