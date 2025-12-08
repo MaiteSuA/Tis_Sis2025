@@ -1,7 +1,7 @@
 // src/components/AnuncioCarruselModal.jsx
 import { useEffect, useState } from "react";
 //import { crearAnuncioCarrusel } from "../api/anuncios";
-
+// Asegurarse de importar la función crearAnuncioCarrusel
 export default function AnuncioCarruselModal({ open, onClose, onSaved }) {
   const [titulo, setTitulo] = useState("");
   const [contenido, setContenido] = useState("");
@@ -12,7 +12,7 @@ export default function AnuncioCarruselModal({ open, onClose, onSaved }) {
   const [expDate, setExpDate] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-
+//ordem importar la función crearAnuncioCarrusel
   useEffect(() => {
     if (!open) {
       setTitulo("");

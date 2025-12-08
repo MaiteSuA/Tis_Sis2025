@@ -1,10 +1,8 @@
-// 📂 src/api/auth.js
+//  src/api/auth.js
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
 
-/* =========================
- *  LOGIN (acepta { username } o { correo })
- * =======================*/
+//login acepta usuario y contraseña
 export async function loginApi({ username, correo, password, role }) {
   const userOrCorreo = (username ?? correo ?? "").trim();
 
@@ -25,21 +23,19 @@ export async function loginApi({ username, correo, password, role }) {
     throw new Error(data.error || "Login failed");
   }
 
-  // 👇 Intentamos obtener el usuario de varias propiedades posibles
+  //  Intentamos obtener el usuario de varias propiedades posibles
   const rawUser =
-    data.user ??     // caso: { ok, token, user: {...} }
-    data.data ??     // caso: { ok, token, data: {...} }
+    data.user ??     // caso: { ok, token, user:  }
+    data.data ??     // caso: { ok, token, data:  }
     data.usuario ??  // otros nombres posibles
     data.userData ??
     {};
 
-  // Puedes descomentar esto un momento si quieres ver qué llega
-  // console.log("Respuesta login:", data);
-  // console.log("Usuario bruto:", rawUser);
+  // Alias para facilitar lectura
 
   const u = rawUser;
 
-  // 🔽 Normalizar siempre lo que se guarda en localStorage
+  // Normalizar siempre lo que se guarda en localStorage
   const normalizado = {
     id:
       Number(
@@ -85,9 +81,7 @@ export async function loginApi({ username, correo, password, role }) {
   return { ...data, user: normalizado };
 }
 
-/* =========================
- *  REGISTRO
- * =======================*/
+//registro de nuevo usuario
 export async function registerApi({
   nombre,
   apellido,
@@ -118,9 +112,7 @@ export async function registerApi({
   return data; // { ok: true, usuario }
 }
 
-/* =========================
- *  ENVIAR CÓDIGO RESET
- * =======================*/
+//enviar correo reset
 export async function sendResetCodeApi({ correo }) {
   const res = await fetch(`${BASE_URL}/password/forgot`, {
     method: "POST",
@@ -137,9 +129,7 @@ export async function sendResetCodeApi({ correo }) {
   return data; // { ok: true }
 }
 
-/* =========================
- *  VERIFICAR CÓDIGO RESET
- * =======================*/
+//verificar correo reset
 export async function verifyResetCodeApi({ correo, code }) {
   const res = await fetch(`${BASE_URL}/password/verify`, {
     method: "POST",
@@ -156,9 +146,7 @@ export async function verifyResetCodeApi({ correo, code }) {
   return data; // { ok: true }
 }
 
-/* =========================
- *  CAMBIAR CONTRASEÑA
- * =======================*/
+//cambiamos contraseña reset
 export async function resetPasswordApi({ correo, password }) {
   const res = await fetch(`${BASE_URL}/password/reset`, {
     method: "POST",

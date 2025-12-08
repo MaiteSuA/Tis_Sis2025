@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import * as XLSX from "xlsx";
 import { renderAsync } from "docx-preview";
 
-/* ---------- Vista previa CSV ---------- */
+//vista previa CSV simple
 function CsvPreview({ file }) {
   const [rows, setRows] = useState([]);
 
@@ -48,7 +48,7 @@ function CsvPreview({ file }) {
   );
 }
 
-/* ---------- Vista previa Excel ---------- */
+//vista previa Excel usando xlsx
 function ExcelPreview({ file }) {
   const [html, setHtml] = useState("");
 
@@ -80,7 +80,7 @@ function ExcelPreview({ file }) {
   );
 }
 
-/* ---------- Vista previa DOCX usando docx-preview ---------- */
+//vista previa DOCX usando docx-preview
 function DocxPreview({ file }) {
   const containerRef = useRef(null);
 
@@ -102,7 +102,7 @@ function DocxPreview({ file }) {
   );
 }
 
-/* ---------- Página principal ---------- */
+// Página principal
 export default function ResponsableDocumentosClasificados() {
   const [files, setFiles] = useState([]); // archivos seleccionados
   const [previewIndex, setPreviewIndex] = useState(0); // cuál estoy previsualizando
@@ -178,7 +178,7 @@ export default function ResponsableDocumentosClasificados() {
   }
 
   const confirmar = window.confirm(
-    "⚠️ ADVERTENCIA\n\n" +
+    "ADVERTENCIA\n\n" +
     "Desea Publicar los clasificados actuales.\n\n" +
     "¿Está seguro de continuar?"
   );
@@ -195,19 +195,19 @@ export default function ResponsableDocumentosClasificados() {
     const rows = await extractExcelData();
 
     if (!rows.length) {
-      setMessage("❌ El Excel no contiene datos válidos.");
+      setMessage(" El Excel no contiene datos válidos.");
       setSaving(false);
       return;
     }
 
-    // 1️⃣ Validar que TODOS los estados sean "Clasificado" (exactamente)
+    //  Validar que TODOS los estados sean "Clasificado" (exactamente)
     const filasInvalidas = rows.filter(
       (r) => String(r.estadoTexto || "").trim() !== "Clasificado"
     );
 
     if (filasInvalidas.length > 0) {
       setMessage(
-        `❌ No se puede publicar: hay ${filasInvalidas.length} ` +
+        ` No se puede publicar: hay ${filasInvalidas.length} ` +
         `fila(s) con estado diferente de "Clasificado". ` +
         `Para publicar, TODOS deben estar exactamente como "Clasificado".`
       );
@@ -216,15 +216,15 @@ export default function ResponsableDocumentosClasificados() {
       return;
     }
 
-    // 2️⃣ Todos están clasificados
+    // Todos están clasificados
     const participantesClasificados = rows;
 
-    // 3️⃣ Enviar al backend
+    //  Enviar al backend
     const token = localStorage.getItem("token");
     const apiUrl = `${import.meta.env.VITE_API_URL}/clasificados/cargar`;
     
-    console.log("📤 URL:", apiUrl);
-    console.log("📤 Datos a enviar:", { rows: participantesClasificados });
+    console.log(" URL:", apiUrl);
+    console.log(" Datos a enviar:", { rows: participantesClasificados });
 
     const res = await fetch(apiUrl, {
       method: "POST",
@@ -241,41 +241,41 @@ export default function ResponsableDocumentosClasificados() {
       ok: res.ok
     });
 
-    // ✅ Primero intenta leer como texto para debug
+    // Primero intenta leer como texto para debug
     const responseText = await res.text();
     console.log("📥 Response text:", responseText);
 
     let result;
     try {
       result = JSON.parse(responseText);
-      console.log("📥 Response JSON:", result);
+      console.log(" Response JSON:", result);
     } catch (jsonError) {
-      console.error("❌ Error parsing JSON:", jsonError);
+      console.error(" Error parsing JSON:", jsonError);
       throw new Error(`La respuesta no es JSON válido: ${responseText.substring(0, 100)}...`);
     }
 
-    // ✅ Verifica si la respuesta tiene la estructura esperada
+    //  Verifica si la respuesta tiene la estructura esperada
     if (!result) {
       throw new Error("La respuesta está vacía");
     }
 
-    // ✅ Si result.ok es false, lanza error
+    //  Si result.ok es false, lanza error
     if (result.ok === false) {
       throw new Error(result.message || "Error del servidor");
     }
 
-    // ✅ Si llegamos aquí, fue exitoso
-    let mensaje = `✅ Publicados ${result.count || 0} participantes clasificados.\n`;
+    //  Si llegamos aquí, fue exitoso
+    let mensaje = ` Publicados ${result.count || 0} participantes clasificados.\n`;
     /*
     if (result.duplicados > 0) {
-      mensaje += `⚠️ Se omitieron ${result.duplicados} duplicados dentro del Excel.\n`;
+      mensaje += ` Se omitieron ${result.duplicados} duplicados dentro del Excel.\n`;
     }
     
     if (result.errores > 0) {
-      mensaje += `❌ Hubo ${result.errores} errores en el procesamiento.\n`;
+      mensaje += ` Hubo ${result.errores} errores en el procesamiento.\n`;
     }
     
-    // ✅ Mostrar resumen si existe
+    // Mostrar resumen si existe
     if (result.summary) {
       mensaje += `\n📊 Resumen:\n`;
       mensaje += `• Total en Excel: ${result.summary.totalEnviado}\n`;
@@ -291,8 +291,8 @@ export default function ResponsableDocumentosClasificados() {
     setMessage(mensaje);
     
   } catch (err) {
-    console.error("❌ Error completo al publicar:", err);
-    setMessage(`❌ Error al publicar los documentos: ${err.message}`);
+    console.error(" Error completo al publicar:", err);
+    setMessage(` Error al publicar los documentos: ${err.message}`);
   } finally {
     setSaving(false);
   }
@@ -499,9 +499,9 @@ export default function ResponsableDocumentosClasificados() {
         {message && (
           <div
             className={`mb-4 text-sm px-3 py-2 rounded-md border ${
-              message.includes("✅")
+              message.includes("")
                 ? "bg-green-50 border-green-200 text-green-700"
-                : message.includes("❌")
+                : message.includes("")
                 ? "bg-red-50 border-red-200 text-red-700"
                 : "bg-gray-100 border-gray-300 text-gray-700"
             }`}

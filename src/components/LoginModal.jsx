@@ -13,7 +13,7 @@ const ROLE_ROUTES = {
 export default function LoginModal({
   open,
   onClose,
-  /* onOpenRegister, */
+  
   onOpenForgot,
 }) {
   const [correo, setCorreo] = useState("");
@@ -39,7 +39,7 @@ export default function LoginModal({
         password,
       });
 
-      console.log("✅ Login ok:", result);
+      console.log(" Login ok:", result);
 
       if (!result.ok) {
         const newAttempts = failedAttempts + 1;
@@ -111,7 +111,7 @@ export default function LoginModal({
             localStorage.setItem("user", JSON.stringify(userData));
           }
 
-          console.log("🎭 Rol final detectado:", finalRole);
+          console.log(" Rol final detectado:", finalRole);
 
           // 4) Redirigir según el rol CANÓNICO
           const path = ROLE_ROUTES[finalRole] || "/";
@@ -121,7 +121,7 @@ export default function LoginModal({
         }, 1500);
       }
     } catch (err) {
-      console.error("❌ Error en login:", err);
+      console.error(" Error en login:", err);
 
       if (failedAttempts < 3) {
         setError(err.message || "Credenciales incorrectas");
@@ -132,13 +132,13 @@ export default function LoginModal({
   };
 
   const handleOpenForgot = () => {
-    console.log("🎯 CLIC en Recuperar contraseña - Antes de cerrar LoginModal");
+    console.log(" CLIC en Recuperar contraseña - Antes de cerrar LoginModal");
 
     if (loading || loginSuccess) {
       return;
     }
 
-    console.log("🔄 Cerrando LoginModal y abriendo ForgotPasswordModal");
+    console.log(" Cerrando LoginModal y abriendo ForgotPasswordModal");
     onClose();
     setFailedAttempts(0);
 
@@ -151,7 +151,7 @@ export default function LoginModal({
     setFailedAttempts(0);
     onClose();
   };
-
+//estructura del modal
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center px-4 z-50">
       <div className="bg-white w-full max-w-md rounded-3xl shadow-xl p-8 relative">

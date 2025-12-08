@@ -54,7 +54,7 @@ export default function Login() {
 
   const navigate = useNavigate();
 
-  // ----- Cargar anuncios del carrusel desde el backend -----
+  // Cargar anuncios del carrusel desde el backend 
   useEffect(() => {
     (async () => {
       try {
@@ -80,7 +80,7 @@ export default function Login() {
     })();
   }, []);
 
-  // ---------- Navegación entre modales ----------
+  //Navegación entre modales
   const handleOpenLogin = () => setShowLogin(true);
 
   const handleOpenRegister = () => {
@@ -95,16 +95,7 @@ export default function Login() {
 
   const handleCloseLogin = () => setShowLogin(false);
 
-  // ---------- CUANDO EL LOGIN ES EXITOSO ----------
-  /**
-   * Esta función la debe llamar el LoginModal cuando el backend
-   * responda correctamente al login.
-   *
-   * Espera un objeto de la forma:
-   *   { token, usuario }
-   * donde "usuario.rol" o "usuario.role" es uno de:
-   *   "ADMIN", "COORDINADOR", "EVALUADOR", "RESPONSABLE"
-   */
+  // Cuando el login es exitoso, esta función es llamada por el modal
   const handleLoginSuccess = ({ token, usuario }) => {
     const role = usuario.rol || usuario.role;
 
@@ -175,7 +166,7 @@ export default function Login() {
         onClose={handleCloseLogin}
         onOpenRegister={handleOpenRegister}
         onOpenForgot={handleOpenForgot}
-        // 👇 importante: el modal debe llamar a esto cuando el login sea OK
+        // importante: el modal debe llamar a esto cuando el login sea OK
         onLoginSuccess={handleLoginSuccess}
       />
 

@@ -1,6 +1,6 @@
 // src/api/anuncios.js
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-
+//ingreso de anuncios
 async function handleResponse(res) {
   let json = {};
   try {

@@ -10,9 +10,7 @@ import VerifyCodeModal from "../components/VerifyCodeModal";
 import ResetPasswordModal from "../components/ResetPasswordModal";
 import { getAnunciosVigentes } from "../api/anuncios";
 
-// 👇 Si ya no quieres noticias estáticas, puedes borrar esto.
-// (Lo dejo eliminado para que SOLO use BD)
-// const news = [ ... ];
+// Página de inicio
 
 export default function Home() {
   const [showLogin, setShowLogin] = useState(false);
@@ -24,7 +22,7 @@ export default function Home() {
 
   const [anuncios, setAnuncios] = useState([]);
 
-  const navigate = useNavigate(); // 👈 para ir a medallero / clasificados
+  const navigate = useNavigate(); //  para ir a medallero / clasificados
 
   // Cargar anuncios vigentes para el carrusel del home
   useEffect(() => {
