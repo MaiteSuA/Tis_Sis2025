@@ -48,7 +48,7 @@ const RevisarEvaluaciones = () => {
 
   const competidoresPorArea = competidores.filter(c => {
     if (!user) return false;
-    return c.area === user.area; 
+    return c.area_nombre === user.area; 
   });
 
 
@@ -244,9 +244,18 @@ const handleSave = async (formData) => {
     if (notaMinima === null) return; // espera a que la nota mínima esté cargada
     const fetchCompetidores = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/evaluaciones`);
+        const token = localStorage.getItem("token"); // o donde lo tengas guardado
+
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/evaluaciones`, {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`, // <- aquí va el token
+          },
+        });
         const result = await response.json();
+
         if (!response.ok) throw new Error("Error al obtener los datos");
+
         
         if (result.ok) {
           const normalizados = result.data.map(c => {
