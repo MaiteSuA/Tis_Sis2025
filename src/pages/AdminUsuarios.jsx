@@ -35,6 +35,25 @@ import {
   eliminarClasificadosPorNotaMinima,
 } from "../api/fases.js";
 
+/**
+ * Helper para leer json.data de forma segura.
+ * Si la respuesta no es OK o no tiene data, devuelve [] para no romper los .filter
+ */
+async function leerDataSegura(res) {
+  if (!res.ok) {
+    console.warn("Respuesta HTTP no OK:", res.status);
+    return [];
+  }
+
+  try {
+    const json = await res.json();
+    return Array.isArray(json.data) ? json.data : [];
+  } catch (e) {
+    console.warn("Error parseando JSON:", e);
+    return [];
+  }
+}
+
 export default function AdminUsuarios() {
   // pestaña activa del módulo usuarios (RESPONSABLE | COORDINADOR)
   const [tab, setTab] = useState("RESPONSABLE");
@@ -151,32 +170,45 @@ export default function AdminUsuarios() {
     }
 
     try {
+      // 1. Actualizar parámetro en BD
       await updateParametroClasificacion(notaMinima);
-      
-      // Traer clasificados y evaluaciones
-      const resClasificados =  await fetch(`${import.meta.env.VITE_API_URL}/clasificados`);
-      const { data: clasificados } = await resClasificados.json();
 
-      const resEvaluaciones = await fetch(`${import.meta.env.VITE_API_URL}/evaluaciones`);
-      const { data: evaluaciones } = await resEvaluaciones.json();
-        
-      // Filtrar ids_inscritos con nota menor
-      const idsInscritosBajoNota = evaluaciones
-        .filter(ev => Number(ev.nota) < notaMinima && ev.nota !== "")
-        .map(ev => Number(ev.id_inscrito));
+      const baseUrl = import.meta.env.VITE_API_URL;
 
-      // Filtrar ids_clasificado a eliminar
-      const idsAEliminar = clasificados
-        .filter(c => idsInscritosBajoNota.includes(Number(c.id_inscrito)))
-        .map(c => Number(c.id_clasificado));
+      // 2. Traer clasificados (seguro)
+      const resClasificados = await fetch(`${baseUrl}/clasificados`);
+      const clasificados = await leerDataSegura(resClasificados);
 
-      // Eliminar si hay algo
-      if (idsAEliminar.length > 0) {
-        await eliminarClasificadosPorNotaMinima(idsAEliminar);
+      // 3. Traer evaluaciones (seguro)
+      const resEvaluaciones = await fetch(`${baseUrl}/evaluaciones`);
+      const evaluaciones = await leerDataSegura(resEvaluaciones);
+
+      // 4. Si no hay arrays válidos, no hacemos nada extra (pero tampoco rompemos)
+      if (!Array.isArray(evaluaciones) || !Array.isArray(clasificados)) {
+        console.warn(
+          "evaluaciones o clasificados no son arrays, se omite filtrado de clasificados."
+        );
+      } else {
+        // Filtrar ids_inscritos con nota menor a la nueva nota mínima
+        const idsInscritosBajoNota = evaluaciones
+          .filter(
+            (ev) =>
+              ev.nota !== "" &&
+              ev.nota != null &&
+              !Number.isNaN(Number(ev.nota)) &&
+              Number(ev.nota) < notaMinima
+          )
+          .map((ev) => Number(ev.id_inscrito));
+
+        // Filtrar ids_clasificado a eliminar
+        const idsAEliminar = clasificados
+          .filter((c) => idsInscritosBajoNota.includes(Number(c.id_inscrito)))
+          .map((c) => Number(c.id_clasificado));
+
+        if (idsAEliminar.length > 0) {
+          await eliminarClasificadosPorNotaMinima(idsAEliminar);
+        }
       }
-
-      // Vaciar array
-      idsAEliminar.length = 0;
 
       setNotaGuardada(true);
       setNotaDirty(false);
@@ -193,7 +225,7 @@ export default function AdminUsuarios() {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: e.message || "No se pudo guardar la nota mínima. d",
+        text: e.message || "No se pudo guardar la nota mínima.",
       });
     }
   };
