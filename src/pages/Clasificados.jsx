@@ -38,7 +38,7 @@ export default function ResponsableClasificados() {
 
       const token = localStorage.getItem("token");
       if (!token) {
-        setError("No hay token de autenticación");
+        setError("No hay lista de clasificados");
         return;
       }
 

@@ -201,9 +201,11 @@ export default function ResponsableDocumentosClasificados() {
     }
 
     //  Validar que TODOS los estados sean "Clasificado" (exactamente)
+    
     const filasInvalidas = rows.filter(
-      (r) => String(r.estadoTexto || "").trim() !== "Clasificado"
-    );
+  (r) => r.estadoTexto !== "CLASIFICADO"
+);
+
 
     if (filasInvalidas.length > 0) {
       setMessage(
@@ -299,34 +301,50 @@ export default function ResponsableDocumentosClasificados() {
 };
 
   const extractExcelData = async () => {
-    if (!files.length) return [];
+  if (!files.length) return [];
 
-    const excelFiles = files.filter(
-      (f) =>
-        f.name.toLowerCase().endsWith(".xls") ||
-        f.name.toLowerCase().endsWith(".xlsx")
+  const excelFiles = files.filter(
+    (f) =>
+      f.name.toLowerCase().endsWith(".xls") ||
+      f.name.toLowerCase().endsWith(".xlsx")
+  );
+  if (!excelFiles.length) return [];
+
+  // Tomamos solo el primer Excel
+  const file = excelFiles[0].file;
+  const data = await file.arrayBuffer();
+  const wb = XLSX.read(data);
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const json = XLSX.utils.sheet_to_json(ws);
+
+  // 🔍 Debug opcional: ver cómo vienen las filas del Excel
+  console.log("JSON crudo del Excel:", json);
+
+  return json.map((r) => {
+    // Buscar la columna de estado aunque el header tenga espacios raros
+    const keyEstadoEntry = Object.entries(r).find(([k]) =>
+      k.toLowerCase().includes("estado")
     );
-    if (!excelFiles.length) return [];
+    const rawEstado = keyEstadoEntry ? keyEstadoEntry[1] : "";
 
-    // Tomamos solo el primer Excel
-    const file = excelFiles[0].file;
-    const data = await file.arrayBuffer();
-    const wb = XLSX.read(data);
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const json = XLSX.utils.sheet_to_json(ws);
+    // Normalizamos
+    const estadoTexto = String(rawEstado || "").trim().toUpperCase();
 
-    // Mapeo de estados del Excel al enum de Prisma
-    const estadoMap = {
-      
-      Clasificado: "CLASIFICADO",
-    };
-
-    return json.map(r => ({
+    return {
       id_inscrito: Number(r.ID_Inscrito),
       id_fase: Number(r.Fase),
-      estado: estadoMap[r.Estado]
-    }));
-  };
+      estadoTexto, // siempre en mayúsculas para validar
+      // 👇 Si quieres aceptar solo "CLASIFICADO"
+      estado:
+        //estadoTexto === "CLASIFICADO"
+          //? "CLASIFICADO"
+         // : null,
+      //  Si quisieras aceptar también "CLASIFICADO2", usarías:
+       //estado:
+        estadoTexto.startsWith("CLASIFICADO") ? "CLASIFICADO" : null,
+    };
+  });
+};
 
   const current = files[previewIndex] || null;
   const ext = current ? current.name.toLowerCase().split(".").pop() : "";
