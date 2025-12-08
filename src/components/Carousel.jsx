@@ -3,13 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import leftArrow from "../assets/izquierda.jpg";
 import rightArrow from "../assets/derecha.jpg";
 
-/**
- * Este carrusel ahora admite:
- * - image  (frontend dummy data)
- * - imagen_url (backend anuncios)
- * - title
- * - descripcion / description
- */
+// Componente Carrusel genérico
 export default function Carousel({ items = [], intervalMs = 4500 }) {
   // Adaptamos los items para soportar ambos formatos (dummy y BD)
   const slides = useMemo(

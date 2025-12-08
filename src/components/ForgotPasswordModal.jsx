@@ -6,7 +6,7 @@ export default function ForgotPasswordModal({ open, onClose, onSuccess }) {
   const [correo, setCorreo] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
+//si no esta abierto
   if (!open) return null;
 
   const handleSubmit = async (e) => {
@@ -15,20 +15,20 @@ export default function ForgotPasswordModal({ open, onClose, onSuccess }) {
     setError("");
 
     try {
-      // 👉 AQUÍ LLAMAMOS AL BACKEND
+      //  AQUÍ LLAMAMOS AL BACKEND
       const res = await sendResetCodeApi({ correo });
-      console.log("✅ Código enviado:", res);
+      console.log(" Código enviado:", res);
 
       // Si todo ok, avisamos al padre
       if (onSuccess) onSuccess(correo);
     } catch (err) {
-      console.error("❌ Error enviando código:", err);
+      console.error(" Error enviando código:", err);
       setError(err.message || "No se pudo enviar el código");
     } finally {
       setLoading(false);
     }
   };
-
+//estructura del modal
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center px-4 z-[101]">
       <div className="bg-white w-full max-w-md rounded-3xl shadow-xl p-8 relative">

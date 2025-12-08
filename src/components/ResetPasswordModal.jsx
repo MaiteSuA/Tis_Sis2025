@@ -1,7 +1,7 @@
 //resepassword
 import { useState } from "react";
 import { resetPasswordApi } from "../api/auth";
-
+//estructura del modal
 export default function ResetPasswordModal({ open, correo, onClose, onSuccess }) {
   const [pwd, setPwd] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -9,12 +9,12 @@ export default function ResetPasswordModal({ open, correo, onClose, onSuccess })
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
+//si no esta abierto
   if (!open) return null;
 
   const passwordRegex =
     /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{10,}$/;
-
+//funcion para enviar la nueva contraseña
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -45,15 +45,15 @@ export default function ResetPasswordModal({ open, correo, onClose, onSuccess })
       setLoading(false);
     }
   };
-
+//mostrar o ocultar contraseña
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
-
+//mostrar o ocultar confirmar contraseña
   const toggleConfirmPasswordVisibility = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
-
+//estructura del modal
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center px-4 z-50">
       <div className="bg-white w-full max-w-md rounded-3xl shadow-xl p-8 relative">

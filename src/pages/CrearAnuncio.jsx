@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function CrearAnuncio() {
   const navigate = useNavigate();
-
+//estructura de la pagina crear anuncio
   return (
     <div className="min-h-screen bg-gray-100 py-8">
       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6">

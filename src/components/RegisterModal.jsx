@@ -7,7 +7,7 @@ export default function RegisterModal({ open, onClose, onOpenLogin }) {
   // Estado para los campos y errores
   const [formData, setFormData] = useState({
     nombre: '',
-    apellido: '', // Nuevo campo
+    apellido: '', 
     correo: '',
     password: '',
     confirmPassword: '',

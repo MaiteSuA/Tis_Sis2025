@@ -16,7 +16,7 @@ import {
 import html2canvas from "html2canvas";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
-
+//vista de los clasificados
 export default function ResponsableClasificados() {
   const [clasificados, setClasificados] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -78,9 +78,7 @@ export default function ResponsableClasificados() {
     }
   }
 
-  /* ===============================
-     HELPERS DE DATOS
-  =============================== */
+  // Funciones auxiliares para obtener datos de inscritos
 
   function getNombres(c) {
     // Si vienen datos anidados o planos
@@ -148,7 +146,7 @@ export default function ResponsableClasificados() {
     return c.tutor_academico || "";
   }
 
-  // Convierte estado → nombre de fase visible
+  // Convierte estado nombre de fase visible
   function getNombreFase(c) {
     if (c.estado === "CLASIFICADO") return "FINAL";
     if (c.estado === "NO_CLASIFICADO") return "NO FINALISTA";
@@ -173,10 +171,7 @@ export default function ResponsableClasificados() {
       Estado: c.estado,
     }));
   }
-
-  /* ===============================
-     DESCARGA EXCEL (formato mejorado)
-  =============================== */
+//descargar en excel
   function downloadExcel() {
     const rows = getExportRows();
     if (!rows.length) {
@@ -227,9 +222,7 @@ export default function ResponsableClasificados() {
     XLSX.writeFile(wb, "clasificados_publicados.xlsx");
   }
 
-  /* ===============================
-     DESCARGA CSV
-  =============================== */
+ //descargar en csv
   function downloadCsv() {
     const rows = getExportRows();
     if (!rows.length) {
@@ -256,9 +249,7 @@ export default function ResponsableClasificados() {
     URL.revokeObjectURL(url);
   }
 
-  /* ===============================
-     DESCARGA PDF
-  =============================== */
+  //descargar en pdf
   function downloadPdf() {
     const rows = getExportRows();
     if (!rows.length) {
@@ -310,9 +301,7 @@ export default function ResponsableClasificados() {
     }
   }
 
-  /* ===============================
-     DESCARGA WORD
-  =============================== */
+  //descargar en word
   async function downloadWord() {
     const rows = getExportRows();
     if (!rows.length) {
@@ -389,9 +378,7 @@ export default function ResponsableClasificados() {
     }
   }
 
-  /* ===============================
-     DESCARGA IMAGEN PNG - VERSIÓN MEJORADA
-  =============================== */
+  
   async function downloadImage() {
     if (!tableRef.current || !clasificados.length) {
       alert("No hay datos para exportar");
@@ -505,9 +492,7 @@ export default function ResponsableClasificados() {
     }
   }
 
-  /* ===============================
-     CONTROLADOR DE DESCARGAS
-  =============================== */
+  //controlar el formato de descarga
   async function handleDownload() {
     if (!clasificados.length) {
       alert("No hay clasificados para descargar");
@@ -530,9 +515,7 @@ export default function ResponsableClasificados() {
     }
   }
 
-  /* ===============================
-     VISTA - MANTENER LA MISMA TABLA SIMPLIFICADA
-  =============================== */
+ //vista principal
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">

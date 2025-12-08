@@ -1,10 +1,8 @@
-// 📂 src/api/auth.js
+//  src/api/auth.js
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
 
-/* =========================
- *  LOGIN (acepta { username } o { correo })
- * =======================*/
+//login acepta usuario y contraseña
 export async function loginApi({ username, correo, password, role }) {
   const userOrCorreo = (username ?? correo ?? "").trim();
 
@@ -20,31 +18,70 @@ export async function loginApi({ username, correo, password, role }) {
 
   const data = await res.json();
 
-  if (!res.ok || !data.ok) {
+  // si el backend no manda "ok", solo revisamos res.ok
+  if (!res.ok || data.ok === false) {
     throw new Error(data.error || "Login failed");
   }
 
-  // 🔽 Normalizar siempre lo que se guarda en localStorage
-  const u = data.user || {};
+  //  Intentamos obtener el usuario de varias propiedades posibles
+  const rawUser =
+    data.user ??     // caso: { ok, token, user:  }
+    data.data ??     // caso: { ok, token, data:  }
+    data.usuario ??  // otros nombres posibles
+    data.userData ??
+    {};
+
+  // Alias para facilitar lectura
+
+  const u = rawUser;
+
+  // Normalizar siempre lo que se guarda en localStorage
   const normalizado = {
-    id: Number(u.id ?? u.id_usuario ?? u?.evaluador?.id_evaluador) || null,
+    id:
+      Number(
+        u.id ??
+          u.id_usuario ??
+          u.id_coordinador ??
+          u?.evaluador?.id_evaluador
+      ) || null,
+
     username: u.username ?? u.correo ?? u.email ?? userOrCorreo,
     email: u.email ?? u.correo ?? null,
-    nombre: u.nombre ?? u?.evaluador?.nombre_evaluado ?? "",
-    apellidos: u.apellidos ?? u.apellido ?? u?.evaluador?.apellidos_evaluador ?? "",
-    id_area: Number(u.id_area ?? u?.evaluador?.id_area) || null,
-    rol: u.rol ?? null,
+
+    nombre:
+      u.nombre ??
+      u.nombres ??
+      u?.evaluador?.nombre_evaluado ??
+      "",
+
+    apellidos:
+      u.apellidos ??
+      u.apellido ??
+      u?.evaluador?.apellidos_evaluador ??
+      "",
+
+    id_area:
+      Number(
+        u.id_area ??
+          u.areaId ??
+          u?.coordinador_area?.id_area ??
+          u?.responsable_area?.id_area ??
+          u?.evaluador?.id_area
+      ) || null,
+
+    rol: (u.rol ?? u.role ?? "COORDINADOR") || null,
   };
 
-  localStorage.setItem("token", data.token);
+  // Guardar en localStorage
+  if (data.token) {
+    localStorage.setItem("token", data.token);
+  }
   localStorage.setItem("usuario", JSON.stringify(normalizado));
 
   return { ...data, user: normalizado };
 }
 
-/* =========================
- *  REGISTRO
- * =======================*/
+//registro de nuevo usuario
 export async function registerApi({
   nombre,
   apellido,
@@ -75,9 +112,7 @@ export async function registerApi({
   return data; // { ok: true, usuario }
 }
 
-/* =========================
- *  ENVIAR CÓDIGO RESET
- * =======================*/
+//enviar correo reset
 export async function sendResetCodeApi({ correo }) {
   const res = await fetch(`${BASE_URL}/password/forgot`, {
     method: "POST",
@@ -94,9 +129,7 @@ export async function sendResetCodeApi({ correo }) {
   return data; // { ok: true }
 }
 
-/* =========================
- *  VERIFICAR CÓDIGO RESET
- * =======================*/
+//verificar correo reset
 export async function verifyResetCodeApi({ correo, code }) {
   const res = await fetch(`${BASE_URL}/password/verify`, {
     method: "POST",
@@ -113,9 +146,7 @@ export async function verifyResetCodeApi({ correo, code }) {
   return data; // { ok: true }
 }
 
-/* =========================
- *  CAMBIAR CONTRASEÑA
- * =======================*/
+//cambiamos contraseña reset
 export async function resetPasswordApi({ correo, password }) {
   const res = await fetch(`${BASE_URL}/password/reset`, {
     method: "POST",

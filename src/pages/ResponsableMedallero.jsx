@@ -5,7 +5,7 @@ import { renderAsync } from "docx-preview";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
 
-/* ------- vistas previas CSV / Excel / DOCX ------- */
+// Componentes de vista previa para diferentes tipos de archivo
 function CsvPreview({ file }) {
   const [rows, setRows] = useState([]);
 
@@ -49,7 +49,7 @@ function CsvPreview({ file }) {
     </div>
   );
 }
-
+// Vista previa para archivos Excel
 function ExcelPreview({ file }) {
   const [html, setHtml] = useState("");
 
@@ -72,7 +72,7 @@ function ExcelPreview({ file }) {
       </div>
     );
   }
-
+// Renderizar el HTML generado
   return (
     <div
       className="w-full h-full overflow-auto bg-white p-3 text-xs md:text-sm"
@@ -100,7 +100,7 @@ function DocxPreview({ file }) {
   );
 }
 
-/* ---------- Página principal ---------- */
+// Componente principal
 export default function ResponsableMedallero() {
   const [files, setFiles] = useState([]);
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -154,7 +154,7 @@ export default function ResponsableMedallero() {
     setMessage("");
   };
 
-  // 🔎 LEE EL EXCEL DEL MEDALLERO
+  //  LEE EL EXCEL DEL MEDALLERO
   const extractExcelData = async () => {
     if (!files.length) return [];
 
@@ -240,7 +240,7 @@ export default function ResponsableMedallero() {
 
 
     const confirmar = window.confirm(
-    "⚠️ ADVERTENCIA\n\n" +
+    " ADVERTENCIA\n\n" +
     "Publicar Medallero.\n\n" +
     "¿Está seguro de continuar?"
   );
@@ -257,29 +257,29 @@ export default function ResponsableMedallero() {
       const rows = await extractExcelData();
 
       if (!rows.length) {
-        setMessage("❌ El Excel no contiene datos válidos.");
+        setMessage(" El Excel no contiene datos válidos.");
         setSaving(false);
         return;
       }
 
-      // 🔴 VALIDACIONES IMPORTANTES
+      //  VALIDACIONES IMPORTANTES
       const filasSinId = rows.filter(r => !r.id_clasificado);
       if (filasSinId.length > 0) {
-        setMessage(`❌ Hay ${filasSinId.length} filas sin ID_Clasificado.`);
+        setMessage(` Hay ${filasSinId.length} filas sin ID_Clasificado.`);
         setSaving(false);
         return;
       }
 
       const filasSinTipoMedalla = rows.filter(r => !r.tipo_medalla);
       if (filasSinTipoMedalla.length > 0) {
-        setMessage(`❌ Hay ${filasSinTipoMedalla.length} filas sin Tipo_Medalla.`);
+        setMessage(` Hay ${filasSinTipoMedalla.length} filas sin Tipo_Medalla.`);
         setSaving(false);
         return;
       }
 
       const filasSinPuntaje = rows.filter(r => r.puntaje_final === null || r.puntaje_final === undefined);
       if (filasSinPuntaje.length > 0) {
-        setMessage(`❌ Hay ${filasSinPuntaje.length} filas sin Puntaje_Final.`);
+        setMessage(` Hay ${filasSinPuntaje.length} filas sin Puntaje_Final.`);
         setSaving(false);
         return;
       }
@@ -291,7 +291,7 @@ export default function ResponsableMedallero() {
       );
 
       if (filasMedallaInvalida.length > 0) {
-        setMessage(`❌ Hay ${filasMedallaInvalida.length} filas con tipo de medalla inválido. Solo: Oro, Plata, Bronce.`);
+        setMessage(` Hay ${filasMedallaInvalida.length} filas con tipo de medalla inválido. Solo: Oro, Plata, Bronce.`);
         setSaving(false);
         return;
       }
@@ -302,7 +302,7 @@ export default function ResponsableMedallero() {
         tipo_medalla: r.tipo_medalla.trim().toUpperCase()
       }));
 
-      console.log("📤 Enviando al backend:", rowsNormalizados);
+      console.log(" Enviando al backend:", rowsNormalizados);
 
       const token = localStorage.getItem("token");
       const res = await fetch(
@@ -319,7 +319,7 @@ export default function ResponsableMedallero() {
 
       // Leer la respuesta
       const responseText = await res.text();
-      console.log("📥 Respuesta backend:", responseText);
+      console.log(" Respuesta backend:", responseText);
 
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}: ${responseText}`);
@@ -337,7 +337,7 @@ export default function ResponsableMedallero() {
         throw new Error(result.message || "Backend devolvió ok=false");
       }
 
-      setMessage("✅ Medallero publicado correctamente.");
+      setMessage(" Medallero publicado correctamente.");
       
       // Opcional: Limpiar archivos después de éxito
       setTimeout(() => {
@@ -346,14 +346,14 @@ export default function ResponsableMedallero() {
 
     } catch (err) {
       console.error("ERROR PUBLICANDO MEDALLERO:", err);
-      setMessage(`❌ Error al publicar el medallero: ${err.message}`);
+      setMessage(` Error al publicar el medallero: ${err.message}`);
     } finally {
       setSaving(false);
     }
   };
 
 
-
+// Vista previa del archivo seleccionado
 
   const current = files[previewIndex] || null;
   const ext = current ? current.name.toLowerCase().split(".").pop() : "";
@@ -499,9 +499,9 @@ export default function ResponsableMedallero() {
         {message && (
           <div
             className={`mb-4 text-sm px-3 py-2 rounded-md border ${
-              message.includes("✅")
+              message.includes("")
                 ? "bg-green-50 border-green-200 text-green-700"
-                : message.includes("❌")
+                : message.includes("")
                 ? "bg-red-50 border-red-200 text-red-700"
                 : "bg-gray-100 border-gray-300 text-gray-700"
             }`}

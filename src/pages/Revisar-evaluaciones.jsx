@@ -53,65 +53,67 @@ const RevisarEvaluaciones = () => {
 
 
   //Get Nota minima
- useEffect(() => {
-  const fetchNotaMinima = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      console.log("TOKEN ENVIADO:", token); // para verificar
+  useEffect(() => {
+    const fetchNotaMinima = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        console.log("TOKEN ENVIADO:", token); // para verificar
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/fases/clasificacion`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "authorization": `Bearer ${token}`
-        }
-      });
-      const data = await res.json();
-      console.log("RESPUESTA DEL BACKEND:", data);
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/fases/clasificacion`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const data = await res.json();
+        console.log("RESPUESTA DEL BACKEND:", data);
 
-      
-      setNotaMinima(Number(data.nota_minima));
-      
-    } catch (err) {
-      console.error("Error al obtener nota mínima:", err);
-    }
-  };
+        setNotaMinima(Number(data.nota_minima));
+      } catch (err) {
+        console.error("Error al obtener nota mínima:", err);
+      }
+    };
 
-  fetchNotaMinima();
-}, []);
-
+    fetchNotaMinima();
+  }, []);
 
   // ====================== LOGIN ======================
   useEffect(() => {
-  const fetchUser = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      // console.log("Token en frontend:", token);
-      if (!token) return;
+    const fetchUser = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        // console.log("Token en frontend:", token);
+        if (!token) return;
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/responsables/me`, {
-        headers: {
-          "Authorization": `Bearer ${token}`,
-        },
-      });
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/responsables/me`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-      if (!res.ok) throw new Error("No se pudo obtener el usuario");
+        if (!res.ok) throw new Error("No se pudo obtener el usuario");
 
-      const data = await res.json();
-      
-      if (data.ok) {
-        console.log(data);
+        const data = await res.json();
 
-        setUser(data.data); // Guarda directamente { nombres, apellidos, correo, area, estado, rol }
+        if (data.ok) {
+          console.log(data);
+
+          setUser(data.data); // Guarda directamente { nombres, apellidos, correo, area, estado, rol }
+        }
+      } catch (error) {
+        console.error("Error al obtener usuario:", error);
       }
-    } catch (error) {
-      console.error("Error al obtener usuario:", error);
-    }
-  };
+    };
 
-  fetchUser();
-}, []);
-
+    fetchUser();
+  }, []);
 
   // ====================== CARGAR EVALUADORES ======================
   useEffect(() => {
@@ -144,7 +146,7 @@ const RevisarEvaluaciones = () => {
       // 1 Eliminar evaluador
       await deleteEvaluadorCompleto(evaluador.id);
 
-      setEvaluadores(prev => prev.filter(e => e.id !== id));
+      setEvaluadores((prev) => prev.filter((e) => e.id !== id));
       showToast("Evaluador eliminado ✔");
     } catch (err) {
       alert("No se pudo eliminar: " + err.message);
@@ -152,15 +154,15 @@ const RevisarEvaluaciones = () => {
   };
 
   // ====================== GUARDAR ======================
-const handleSave = async (formData) => {
-  try {
-    const payload = {
-      nombre_evaluado: formData.nombres,
-      apellidos_evaluador: formData.apellidos,
-      correo: formData.correo,
-      telefono: formData.telefono,
-      id_area: Number(formData.areaId),
-    };
+  const handleSave = async (formData) => {
+    try {
+      const payload = {
+        nombre_evaluado: formData.nombres,
+        apellidos_evaluador: formData.apellidos,
+        correo: formData.correo,
+        telefono: formData.telefono,
+        id_area: Number(formData.areaId),
+      };
 
     if (mode === "create") {
       // 1 Crear evaluador + usuario en una sola llamada
@@ -199,16 +201,16 @@ const handleSave = async (formData) => {
         )
       );
 
-      showToast("Evaluador actualizado ✔");
-    }
+        showToast("Evaluador actualizado ✔");
+      }
 
-    // 3️⃣ Cerrar modal
-    setShowForm(false);
-    setSelected(null);
-  } catch (err) {
-    alert("Error: " + err.message);
-  }
-};
+      // 3️⃣ Cerrar modal
+      setShowForm(false);
+      setSelected(null);
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
 
   // ====================== CARGAR ÁREAS ======================
   useEffect(() => {
@@ -217,8 +219,8 @@ const handleSave = async (formData) => {
         const token = localStorage.getItem("token");
         const res = await fetch(`${import.meta.env.VITE_API_URL}/areas`, {
           headers: {
-            "Authorization": `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
         const data = await res.json();
 
@@ -258,11 +260,12 @@ const handleSave = async (formData) => {
 
         
         if (result.ok) {
-          const normalizados = result.data.map(c => {
+          const normalizados = result.data.map((c) => {
             const rawNota = c.nota;
-            const nota = rawNota !== null && rawNota !== undefined && rawNota !== "" 
-            ? Number(rawNota) 
-            : null;
+            const nota =
+              rawNota !== null && rawNota !== undefined && rawNota !== ""
+                ? Number(rawNota)
+                : null;
 
             let estado = "Pendiente"; // por defecto
 
@@ -285,8 +288,6 @@ const handleSave = async (formData) => {
     fetchCompetidores();
   }, [notaMinima]);
 
-  
-
   // ====================== EXPORTAR EXCEL ======================
   const exportExcel = () => {
     if (!competidoresFiltrados.length) {
@@ -301,7 +302,6 @@ const handleSave = async (formData) => {
       Observación: c.observacion,
       Estado: c.estado,
       Fase: 2,
-
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
@@ -322,7 +322,6 @@ const handleSave = async (formData) => {
     showToast("Excel descargado correctamente ✔");
   };
 
-  
   // ====================== CREAR ======================
   const handleCreate = () => {
     setSelected(null);
@@ -342,11 +341,11 @@ const handleSave = async (formData) => {
       return true; }
 });
 
-//Mostrar evluadores por Area unicamente
-const evaluadoresFiltrados = evaluadores.filter(e => {
-  if (!user) return false; // Evita mostrar algo antes de cargar usuario
-  return e.area === user.area;
-});
+  //Mostrar evluadores por Area unicamente
+  const evaluadoresFiltrados = evaluadores.filter((e) => {
+    if (!user) return false; // Evita mostrar algo antes de cargar usuario
+    return e.area === user.area;
+  });
 
   return (
     <div className="bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen">
@@ -360,7 +359,8 @@ const evaluadoresFiltrados = evaluadores.filter(e => {
               <div className="flex flex-wrap justify-between items-center mb-6">
                 <div>
                   <p className="text-gray-700">
-                    Nombre: {user ? `${user.nombres} ${user.apellidos}` : "Cargando..."}
+                    Nombre:{" "}
+                    {user ? `${user.nombres} ${user.apellidos}` : "Cargando..."}
                   </p>
                   <p className="text-gray-700">
                     Correo: {user ? user.correo : "Cargando..."}
@@ -368,11 +368,11 @@ const evaluadoresFiltrados = evaluadores.filter(e => {
                 </div>
               </div>
               <h2 className="text-2xl font-bold">
-                Área: {user ? user.area : "Cargando..."} 
+                Área: {user ? user.area : "Cargando..."}
               </h2>
               <p className="text-gray-500">
                 Estado: {user ? user.estado : "Cargando..."}
-                </p>
+              </p>
             </div>
           </div>
 
@@ -415,7 +415,6 @@ const evaluadoresFiltrados = evaluadores.filter(e => {
             </div>
           </div>
 
-          
           {/* EVALUADORES */}
           <h3 className="text-lg font-bold mt-10 mb-3">
             Evaluadores Registrados
@@ -484,9 +483,7 @@ const evaluadoresFiltrados = evaluadores.filter(e => {
           </div>
 
           {toast && (
-            <div
-              className="fixed bottom-6 right-6 bg-black text-white px-4 py-2 rounded-lg shadow-lg animate-fadeIn"
-            >
+            <div className="fixed bottom-6 right-6 bg-black text-white px-4 py-2 rounded-lg shadow-lg animate-fadeIn">
               {toast}
             </div>
           )}
@@ -520,7 +517,6 @@ const evaluadoresFiltrados = evaluadores.filter(e => {
 
               <tbody>
                 {competidoresFiltrados.map((c, i) => (
-
                   <tr key={i} className="border-t hover:bg-gray-50">
                     <td className="p-3">{c.competidor}</td>
                     <td className="p-3">{c.nota}</td>
@@ -542,21 +538,21 @@ const evaluadoresFiltrados = evaluadores.filter(e => {
                 Exportar Excel
               </button>
 
-                <button 
-                  onClick={() => navigate("/ResponsableDocumentosClasificados")} 
-                  className="!bg-gray-700 text-white px-4 py-2 rounded-lg hover:!bg-gray-600" > 
-                  Autorizar Publicación Clasificados
-                </button>
+              <button
+                onClick={() => navigate("/ResponsableDocumentosClasificados")}
+                className="!bg-gray-700 text-white px-4 py-2 rounded-lg hover:!bg-gray-600"
+              >
+                Autorizar Publicación Clasificados
+              </button>
 
-                <button 
-                  onClick={() => navigate("/ResponsableMedallero")} 
-                  className="!bg-gray-700 text-white px-4 py-2 rounded-lg hover:!bg-gray-600" > 
-                  Autorizar Publicación Medallero
-                </button>
-
+              <button
+                onClick={() => navigate("/ResponsableMedallero")}
+                className="!bg-gray-700 text-white px-4 py-2 rounded-lg hover:!bg-gray-600"
+              >
+                Autorizar Publicación Medallero
+              </button>
             </div>
           </div>
-
 
           {/* MODAL */}
           {showForm && (
@@ -564,7 +560,7 @@ const evaluadoresFiltrados = evaluadores.filter(e => {
               key={mode + (selected?.id ?? "nuevo")}
               mode={mode}
               title="Registro de Evaluador"
-              areas={areas.filter(a => a.nombre === user?.area)}
+              areas={areas.filter((a) => a.nombre === user?.area)}
               initialData={selected}
               defaultRol="EVALUADOR"
               onSubmit={handleSave}

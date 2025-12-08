@@ -53,7 +53,7 @@ export default function Navbar() {
           </div>
 
           <nav className="ml-auto flex items-center gap-4">
-            {/* Si quieres habilitar registro público, descomenta esto */}
+            {/* Si deseas habilitar registro público, descomenta esto */}
             {/*
             <button
               type="button"
@@ -95,7 +95,7 @@ export default function Navbar() {
         open={showForgot}
         onClose={() => setShowForgot(false)}
         onSuccess={(email) => {
-          console.log("✅ Email para recuperación:", email);
+          console.log(" Email para recuperación:", email);
           // guardamos el correo y pasamos al siguiente paso
           setCorreoRecuperacion(email);
           setShowForgot(false);

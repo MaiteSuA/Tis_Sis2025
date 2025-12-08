@@ -5,7 +5,7 @@ import {
   getAnunciosCarrusel,
   eliminarAnuncioCarrusel,
 } from "../api/anuncios";
-
+// Página para que el rol RESPONSABLE gestione los anuncios del carrusel
 export default function ResponsableAnuncios() {
   const [titulo, setTitulo] = useState("");
   const [contenido, setContenido] = useState("");
@@ -36,7 +36,7 @@ export default function ResponsableAnuncios() {
       setLoadingList(false);
     }
   };
-
+// Cargar anuncios al montar el componente
   useEffect(() => {
     cargarAnuncios();
   }, []);

@@ -1,7 +1,7 @@
 //verifycodemodal
 import { useState } from "react";
 import { verifyResetCodeApi } from "../api/auth";
-
+//estructura del modal
 export default function VerifyCodeModal({ open, correo, onClose, onVerified }) {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
@@ -28,7 +28,7 @@ export default function VerifyCodeModal({ open, correo, onClose, onVerified }) {
       setLoading(false);
     }
   };
-
+//estructura del modal
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center px-4 z-50">
       <div className="bg-white w-full max-w-md rounded-3xl shadow-xl p-8 relative">

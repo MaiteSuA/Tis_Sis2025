@@ -17,7 +17,7 @@ import html2canvas from "html2canvas";
 const API_MEDALLERO =
   import.meta.env.VITE_API_URL_PUBLICO ??
   "http://localhost:3000/api/publico/medallero";
-
+// Página de medallero oficial
 export default function Medallero() {
   const [registros, setRegistros] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,11 +25,11 @@ export default function Medallero() {
   const [downloadFormat, setDownloadFormat] = useState("pdf");
   const tableRef = useRef(null);
   const navigate = useNavigate();
-
+// Cargar datos del medallero al montar el componente
   useEffect(() => {
     cargarMedallero();
   }, []);
-
+// Cargar datos del medallero desde el backend
   async function cargarMedallero() {
     try {
       setLoading(true);
@@ -50,9 +50,7 @@ export default function Medallero() {
     }
   }
 
-  /* ===============================
-     HELPERS DE DATOS
-  =============================== */
+ // Funciones para obtener datos de cada registro
 
   function getNombres(r) {
     return r.nombres_inscrito ?? "";
@@ -98,9 +96,7 @@ export default function Medallero() {
     }));
   }
 
-  /* ===============================
-       DESCARGA PDF
-  =============================== */
+  //descarga PDF del medallero
   function downloadPdf() {
     const rows = getExportRows();
     if (!rows.length) return;
@@ -150,9 +146,7 @@ export default function Medallero() {
     }
   }
 
-  /* ===============================
-       DESCARGA WORD
-  =============================== */
+ // descarga Word del medallero
   async function downloadWord() {
     const rows = getExportRows();
     if (!rows.length) return;
@@ -213,9 +207,7 @@ export default function Medallero() {
     URL.revokeObjectURL(url);
   }
 
-  /* ===============================
-       DESCARGA IMAGEN PNG
-  =============================== */
+  
   async function downloadImage() {
     if (!tableRef.current) return alert("Tabla no encontrada");
 
@@ -250,9 +242,7 @@ export default function Medallero() {
     }
   }
 
-  /* ===============================
-       CONTROLADOR DE DESCARGAS
-  =============================== */
+  // Manejar descarga según formato seleccionado
   async function handleDownload() {
     switch (downloadFormat) {
       case "pdf":
@@ -266,9 +256,7 @@ export default function Medallero() {
     }
   }
 
-  /* ===============================
-       VISTA
-  =============================== */
+ // Renderizado principal
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">

@@ -35,6 +35,7 @@ export default function GestionarInscritos() {
   const [assigning, setAssigning] = useState(false);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
+  const [assignStatus, setAssignStatus] = useState("");
 
   // 🔹 Cargar evaluadores + áreas al entrar
   useEffect(() => {
@@ -117,6 +118,7 @@ export default function GestionarInscritos() {
   const handleAsignar = async () => {
     setError("");
     setMsg("");
+    setAssignStatus("");
 
     if (!idEvaluadorSeleccionado) {
       setError("Selecciona un evaluador primero");
@@ -390,11 +392,9 @@ export default function GestionarInscritos() {
                     : "Asignar inscritos seleccionados"}
                 </button>
 
-                <p className="text-xs text-gray-500 mt-2">
-                  Solo se recomienda asignar lotes que ya estén filtrados por
-                  área y nivel para que coincidan con las competencias del
-                  evaluador.
-                </p>
+                {assignStatus && (
+                  <p className="text-xs text-gray-500 mt-2">{assignStatus}</p>
+                )}
               </div>
             </div>
           </section>
