@@ -167,11 +167,14 @@ export default function ImportarInscritos() {
       setLoading(true);
       setMsg("Importando...");
 
+      const selectedCis = indexes.map(i => previewRows[i]["CI"]);
+
       const r = await importInscritosCsv({
         file,
         area: filters.area || undefined,
         nivel: filters.nivel || undefined,
-        selectedIndexes: indexes,
+        /* selectedIndexes: indexes, */
+        selectedCis,
       });
 
       if (r?.ok) {
