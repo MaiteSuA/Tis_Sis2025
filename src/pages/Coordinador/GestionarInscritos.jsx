@@ -35,7 +35,7 @@ export default function GestionarInscritos() {
   const [assigning, setAssigning] = useState(false);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
-  const [assignStatus] = useState("");
+  const [assignInfo, setAssignInfo] = useState("");
 
   // 🔹 Cargar evaluadores + áreas al entrar
   useEffect(() => {
@@ -118,6 +118,7 @@ export default function GestionarInscritos() {
   const handleAsignar = async () => {
     setError("");
     setMsg("");
+    setAssignInfo("");
 
     if (!idEvaluadorSeleccionado) {
       setError("Selecciona un evaluador primero");
@@ -132,34 +133,26 @@ export default function GestionarInscritos() {
     const idsInscritos = Array.from(selected);
 
     try {
-    setAssigning(true);
+      setAssigning(true);
 
-    const resp = await assignInscritosToEvaluador({
-      idEvaluador: Number(idEvaluadorSeleccionado),
-      idsInscritos,
-    });
+      await assignInscritosToEvaluador({
+        idEvaluador: Number(idEvaluadorSeleccionado),
+        idsInscritos,
+      });
 
-    // Resp puede venir como { ok, data } o solo data
-    const payload = resp?.data ?? resp ?? {};
+      // 👉 No nos complicamos con la respuesta del back:
+      // si no lanzó error asumimos que intentó asignar.
+      setAssignInfo("Inscritos asignados");
 
-    // Si el backend no devolvió "asignados", asumimos que NO asignó nada
-    const asignados = payload.asignados ?? 0;
-
-    if (asignados > 0) {
-      setMsg("Inscritos asignados");
-    } else {
-      setMsg("No se pudieron asignar o ya estaban asignados");
+      await buscarInscritos(); // refrescar la tabla
+    } catch (e) {
+      console.error(e);
+      setError("Error al asignar inscritos");
+      setAssignInfo("Error al asignar inscritos");
+    } finally {
+      setAssigning(false);
     }
-
-    await buscarInscritos();
-
-  } catch (e) {
-    console.error(e);
-    setError("Error al asignar inscritos");
-  } finally {
-    setAssigning(false);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
@@ -405,8 +398,8 @@ export default function GestionarInscritos() {
                     : "Asignar inscritos seleccionados"}
                 </button>
 
-                {assignStatus && (
-                  <p className="text-xs text-gray-500 mt-2">{assignStatus}</p>
+                {assignInfo && (
+                  <p className="text-xs mt-2 text-gray-700">{assignInfo}</p>
                 )}
               </div>
             </div>
