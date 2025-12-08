@@ -32,7 +32,7 @@ export default function Navbar() {
           />
           <div className="flex flex-col leading-tight">
             <span className="font-semibold text-lg text-gray-800">
-              OhSanSi
+              RESPONSABLE DE AREA
             </span>
             <span className="text-xs text-gray-500">
                · {label}

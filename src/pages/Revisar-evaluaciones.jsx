@@ -46,6 +46,12 @@ const RevisarEvaluaciones = () => {
     setTimeout(() => setToast(""), 3000);
   };
 
+  const competidoresPorArea = competidores.filter(c => {
+    if (!user) return false;
+    return c.area_nombre === user.area; 
+  });
+
+
   //Get Nota minima
   useEffect(() => {
     const fetchNotaMinima = async () => {
@@ -158,36 +164,42 @@ const RevisarEvaluaciones = () => {
         id_area: Number(formData.areaId),
       };
 
-      if (mode === "create") {
-        // 1️⃣ Crear evaluador + usuario en una sola llamada
-        const saved = await createEvaluadorCompleto(payload);
+    if (mode === "create") {
+      // 1 Crear evaluador + usuario en una sola llamada
+      const saved = await createEvaluadorCompleto(payload);
+      let areaTexto = "";
 
-        // 2️⃣ Actualizar el estado del front
-        setEvaluadores((prev) => [
-          ...prev,
-          {
-            ...saved,
-            area: areas.find((a) => a.id === Number(formData.areaId))?.nombre,
-          },
-        ]);
-
-        showToast("Evaluador registrado ✔");
+      if (areas.length > 0) {
+        areaTexto = areas.find(a => a.id === Number(formData.areaId))?.nombre || "";
       } else {
-        // 1️⃣ Actualizar evaluador + usuario
-        const saved = await updateEvaluadorCompleto(selected.id, payload);
+        // fallback — el backend siempre te devuelve id_area
+        areaTexto = user?.area || "";
+      }
 
-        // 2️⃣ Actualizar el estado del front
-        setEvaluadores((prev) =>
-          prev.map((e) =>
-            e.id === selected.id
-              ? {
-                  ...saved,
-                  area: areas.find((a) => a.id === Number(formData.areaId))
-                    ?.nombre,
-                }
-              : e
-          )
-        );
+      // 2 Actualizar el estado del front
+      setEvaluadores(prev => [
+        ...prev,
+        {
+          ...saved,
+          nombres: saved.nombre_evaluado,   // ⚠️ mapear al nombre correcto
+          apellidos: saved.apellidos_evaluador, // ⚠️ mapear al nombre correcto
+          area: user.area
+        }
+      ]);
+
+      showToast("Evaluador registrado ✔");
+    } else {
+      // 1 Actualizar evaluador + usuario
+      const saved = await updateEvaluadorCompleto(selected.id, payload);
+      
+
+      // 2 Actualizar el estado del front
+      setEvaluadores(prev =>
+        prev.map(e => e.id === selected.id
+          ? { ...saved, area: areas.find(a => a.id === Number(formData.areaId))?.nombre }
+          : e
+        )
+      );
 
         showToast("Evaluador actualizado ✔");
       }
@@ -234,21 +246,19 @@ const RevisarEvaluaciones = () => {
     if (notaMinima === null) return; // espera a que la nota mínima esté cargada
     const fetchCompetidores = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("token"); // o donde lo tengas guardado
 
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/evaluaciones`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/evaluaciones`, {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`, // <- aquí va el token
+          },
+        });
         const result = await response.json();
+
         if (!response.ok) throw new Error("Error al obtener los datos");
 
+        
         if (result.ok) {
           const normalizados = result.data.map((c) => {
             const rawNota = c.nota;
@@ -319,18 +329,17 @@ const RevisarEvaluaciones = () => {
     setShowForm(true);
   };
 
-  const competidoresFiltrados = competidores.filter((c) => {
-    switch (filterEstado) {
-      case "clasificados":
-        return c.estado === "Clasificado";
-      case "noClasificados":
-        return c.estado === "No Clasificado";
-      case "pendientes":
-        return c.estado === "Pendiente";
-      default:
-        return true;
-    }
-  });
+  const competidoresFiltrados = competidoresPorArea.filter((c) => {
+  switch (filterEstado) {
+    case "clasificados":
+      return c.estado === "Clasificado";
+    case "noClasificados":
+      return c.estado === "No Clasificado";
+    case "pendientes":
+      return c.estado === "Pendiente";
+    default:
+      return true; }
+});
 
   //Mostrar evluadores por Area unicamente
   const evaluadoresFiltrados = evaluadores.filter((e) => {
@@ -372,31 +381,22 @@ const RevisarEvaluaciones = () => {
             <div className="!bg-gray-50 p-4 rounded-lg border">
               <h3 className="text-lg font-semibold mb-2">Resumen</h3>
               <ul className="text-gray-700">
-                <li>Competidores Totales: {competidores.length}</li>
+                <li>Competidores Totales: {competidoresFiltrados.length}</li>
                 <li>
                   Clasificados:{" "}
-                  {
-                    competidores.filter((c) => c.estado === "Clasificado")
-                      .length
-                  }
+                  {competidoresFiltrados.filter((c) => c.estado === "Clasificado").length}
                 </li>
                 <li>
                   No Clasificados:{" "}
-                  {
-                    competidores.filter((c) => c.estado === "No Clasificado")
-                      .length
-                  }
+                  {competidoresFiltrados.filter((c) => c.estado === "No Clasificado").length}
                 </li>
                 <li>
                   Pendientes:{" "}
-                  {competidores.filter((c) => c.estado === "Pendiente").length}
+                  {competidoresFiltrados.filter((c) => c.estado === "Pendiente").length}
                 </li>
                 <li>
                   Descalificado:{" "}
-                  {
-                    competidores.filter((c) => c.estado === "Descalificado")
-                      .length
-                  }
+                  {competidoresFiltrados.filter((c) => c.estado === "Descalificado").length}
                 </li>
               </ul>
             </div>
@@ -465,12 +465,21 @@ const RevisarEvaluaciones = () => {
 
           {/* BOTONES */}
           <div className="flex flex-wrap justify-end mt-6">
-            <button
+          
+            {/* <button
               className="!bg-gray-800 text-white px-4 py-2 rounded-lg hover:!bg-gray-700"
               onClick={handleCreate}
             >
               Registrar Evaluador
+            </button> */}
+             <button
+              className="!bg-gray-800 text-white px-4 py-2 rounded-lg hover:!bg-gray-700"
+              disabled={loadingAreas}
+              onClick={handleCreate}
+            >
+              Registrar Evaluador
             </button>
+
           </div>
 
           {toast && (
