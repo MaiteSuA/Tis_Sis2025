@@ -35,7 +35,7 @@ export default function GestionarInscritos() {
   const [assigning, setAssigning] = useState(false);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
-  const [assignStatus, setAssignStatus] = useState("");
+  const [assignStatus] = useState("");
 
   // 🔹 Cargar evaluadores + áreas al entrar
   useEffect(() => {
@@ -118,7 +118,6 @@ export default function GestionarInscritos() {
   const handleAsignar = async () => {
     setError("");
     setMsg("");
-    setAssignStatus("");
 
     if (!idEvaluadorSeleccionado) {
       setError("Selecciona un evaluador primero");
@@ -133,20 +132,34 @@ export default function GestionarInscritos() {
     const idsInscritos = Array.from(selected);
 
     try {
-      setAssigning(true);
-      await assignInscritosToEvaluador({
-        idEvaluador: Number(idEvaluadorSeleccionado),
-        idsInscritos,
-      });
-      setMsg(`Asignados ${idsInscritos.length} inscritos correctamente`);
-      await buscarInscritos(); // refrescar lista
-    } catch (e) {
-      console.error(e);
-      setError(e.message || "Error al asignar inscritos");
-    } finally {
-      setAssigning(false);
+    setAssigning(true);
+
+    const resp = await assignInscritosToEvaluador({
+      idEvaluador: Number(idEvaluadorSeleccionado),
+      idsInscritos,
+    });
+
+    // Resp puede venir como { ok, data } o solo data
+    const payload = resp?.data ?? resp ?? {};
+
+    // Si el backend no devolvió "asignados", asumimos que NO asignó nada
+    const asignados = payload.asignados ?? 0;
+
+    if (asignados > 0) {
+      setMsg("Inscritos asignados");
+    } else {
+      setMsg("No se pudieron asignar o ya estaban asignados");
     }
-  };
+
+    await buscarInscritos();
+
+  } catch (e) {
+    console.error(e);
+    setError("Error al asignar inscritos");
+  } finally {
+    setAssigning(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
