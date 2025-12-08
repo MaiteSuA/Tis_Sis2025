@@ -1,6 +1,6 @@
-import { Pencil, Save, FileDown } from "lucide-react";
+import { Pencil, Save, Send } from "lucide-react";
 
-const ActionButton = ({ type = "edit", label, onClick }) => {
+const ActionButton = ({ type = "edit", label, onClick, disabled = false }) => {
   const variants = {
     edit: {
       icon: <Pencil size={16} />,
@@ -13,7 +13,7 @@ const ActionButton = ({ type = "edit", label, onClick }) => {
         "bg-white hover:bg-gray-100 text-black border border-gray-300",
     },
     export: {
-      icon: <FileDown size={16} />,
+      icon: <Send size={16} />,
       className:
         "bg-black hover:bg-gray-800 text-white border border-transparent",
     },
@@ -24,7 +24,10 @@ const ActionButton = ({ type = "edit", label, onClick }) => {
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-2 font-medium px-4 py-2 rounded-lg transition ${className}`}
+      disabled={disabled}
+      className={`inline-flex items-center gap-2 font-medium px-4 py-2 rounded-lg transition ${className} ${
+        disabled ? 'opacity-50 cursor-not-allowed' : ''
+      }`}
       type="button"
     >
       {icon}
