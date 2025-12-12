@@ -86,7 +86,7 @@ export default function AdminLayout({ children }) {
               Inicio
             </NavLink>
 
-            {/* Log (si luego lo usas) */}
+            {/* Gestion (si luego lo usas) */}
             <NavLink
               to="/admin/log"
               className={({ isActive }) =>
@@ -95,7 +95,7 @@ export default function AdminLayout({ children }) {
                 }`
               }
             >
-              Log
+              Gestión
             </NavLink>
             {/* Nueva ventana: Anuncio */}
             <NavLink

@@ -1,286 +1,285 @@
 import { useState } from "react";
 import AdminLayout from "../components/AdminLayout.jsx";
 
-//  Ejemplo de datos mock (luego lo cambias por props o fetch)
-const MOCK_ROWS = [
+const MOCK_OLIMPIADAS = [
   {
     id: 1,
-    usuario: "María Pérez",
-    fecha: "2025-10-25",
-    hora: "18:45",
-    competidor: "Juan Gutiérrez",
-    area: "Ventas",
-    notaActual: 85,
-    notaNueva: 90,
-    obs: "Ajuste por recálculo. Excelente desempeño.",
+    nombre: "Olimpiadas Verano 2025",
+    estado: "Activa",
+    colorEstado: "bg-emerald-100 text-emerald-700",
+    fechas: "2025-11-01 - 2025-11-28",
+    areas: ["Astronomía", "Biología", "Física", "Informática", "Matemática", "Química", "Robótica", "Astrofísica"],
   },
   {
     id: 2,
-    usuario: "Carlos Rojas",
-    fecha: "2025-10-25",
-    hora: "18:50",
-    competidor: "Ana Torres",
-    area: "Atención Cliente",
-    notaActual: 92,
-    notaNueva: 92,
-    obs: "Agregó observación sin cambio de nota.",
+    nombre: "Olimpiada Invierno 2026",
+    estado: "En planificación",
+    colorEstado: "bg-rose-100 text-rose-600",
+    fechas: "2026-07-01 - 2026-07-31",
+    areas: ["Astronomía", "Biología", "Física", "Informática", "Matemática", "Química", "Astrofísica"],
   },
 ];
 
 export default function AdminLog() {
-  // estados de filtro
-  const [filtroUsuario, setFiltroUsuario] = useState("");
-  const [filtroArea, setFiltroArea] = useState("");
-  const [filtroFecha, setFiltroFecha] = useState("");
+  const [olimpiadas] = useState(MOCK_OLIMPIADAS);
+  const [showModal, setShowModal] = useState(false);
+  const [olimpiadaSeleccionada, setOlimpiadaSeleccionada] = useState(null);
 
-  // handlers de export
-  const handleExportExcel = () => {
-    // TODO: aquí conectas tu export real (ej. XLSX.utils.json_to_sheet + file-saver)
-    console.log("Exportar a Excel con filas filtradas...");
+  // estado del formulario
+  const [nombre, setNombre] = useState("");
+  const [fases, setFases] = useState("");
+  const [fechaInicio, setFechaInicio] = useState("");
+  const [fechaFin, setFechaFin] = useState("");
+  const [areas, setAreas] = useState([]);
+  const [errores, setErrores] = useState({});
+
+  const AREAS_DISPONIBLES = [
+    "Astronomía",
+    "Biología",
+    "Física",
+    "Informática",
+    "Matemática",
+    "Química",
+    "Robótica",
+    "Astrofísica",
+  ];
+
+  const abrirModal = (oli) => {
+    setOlimpiadaSeleccionada(oli);
+    setNombre(oli?.nombre || "");
+    setFases("");
+    setFechaInicio("");
+    setFechaFin("");
+    setAreas([]);
+    setErrores({});
+    setShowModal(true);
   };
 
-  const handleExportPDF = () => {
-    // TODO: aquí conectas tu export real (ej. jsPDF / pdfmake)
-    console.log("Exportar a PDF con filas filtradas...");
+  const cerrarModal = () => {
+    setShowModal(false);
+    setOlimpiadaSeleccionada(null);
   };
 
-  //  handler de búsqueda
-  const handleBuscar = () => {
-    console.log("Buscar con:", {
-      usuario: filtroUsuario,
-      area: filtroArea,
-      fecha: filtroFecha,
+  const toggleArea = (area) => {
+    setAreas((prev) =>
+      prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area]
+    );
+  };
+
+  const handleCrear = (e) => {
+    e.preventDefault();
+    const nuevosErrores = {};
+
+    if (!nombre.trim()) nuevosErrores.nombre = "El nombre de la olimpiada es obligatorio";
+    if (!fases || Number(fases) < 2)
+      nuevosErrores.fases = "El número de etapas es obligatorio (mínimo 2)";
+    if (!fechaInicio) nuevosErrores.fechaInicio = "La fecha de inicio es obligatoria";
+    if (!fechaFin) nuevosErrores.fechaFin = "La fecha de finalización es obligatoria";
+    if (!areas.length) nuevosErrores.areas = "Selecciona al menos un área";
+
+    setErrores(nuevosErrores);
+    if (Object.keys(nuevosErrores).length > 0) return;
+
+    console.log("Datos enviados:", {
+      nombre,
+      fases,
+      fechaInicio,
+      fechaFin,
+      areas,
+      olimpiadaBase: olimpiadaSeleccionada,
     });
-    // Aquí haces fetch o actualizas el estado con resultados filtrados
-  };
 
-  // Por ahora usamos el mock. Idealmente acá irían los resultados filtrados:
-  const rows = MOCK_ROWS;
+    cerrarModal();
+  };
 
   return (
     <AdminLayout>
-      {/* migas / breadcrumb */}
       <div className="text-xs text-gray-500 mb-2">
-        Dashboard / Auditoría de Evaluaciones
+        Dashboard / Configurar Gestión
       </div>
 
-      {/* contenedor principal tipo card */}
-      <section className="bg-white border border-gray-300 rounded-xl shadow-sm p-4 sm:p-6 space-y-4">
-        {/* Título */}
-        <h1 className="text-base font-semibold text-gray-800 text-center">
-          Auditoría de Evaluaciones
+      <section className="space-y-4">
+        <h1 className="text-base font-semibold text-gray-800">
+          Configurar Gestión
         </h1>
+        <p className="text-sm text-gray-600">
+          Selecciona una olimpiada para configurar su gestión.
+        </p>
 
-        {/* Filtros */}
-        <div className="w-full bg-gray-100 border border-gray-300 rounded-lg p-4">
-          <div className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-            <span>Filtros:</span>
-          </div>
+        {/* GRID DE CARDS */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {olimpiadas.map((oli) => (
+            <article
+              key={oli.id}
+              className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 flex flex-col justify-between"
+            >
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-800">
+                    {oli.nombre}
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Fechas: {oli.fechas}
+                  </p>
+                </div>
+                <span
+                  className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${oli.colorEstado}`}
+                >
+                  {oli.estado}
+                </span>
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 items-end">
-            {/* Usuario */}
-            <div className="flex flex-col">
-              <label
-                htmlFor="filtroUsuario"
-                className="text-[11px] font-medium text-gray-600 mb-1"
-              >
-                Usuario
-              </label>
-              <select
-                id="filtroUsuario"
-                className="border border-gray-300 rounded-md px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
-                value={filtroUsuario}
-                onChange={(e) => setFiltroUsuario(e.target.value)}
-              >
-                <option value="">Todos</option>
-                <option value="maria">María Pérez</option>
-                <option value="carlos">Carlos Rojas</option>
-              </select>
-            </div>
-
-            {/* Área */}
-            <div className="flex flex-col">
-              <label
-                htmlFor="filtroArea"
-                className="text-[11px] font-medium text-gray-600 mb-1"
-              >
-                Área
-              </label>
-              <select
-                id="filtroArea"
-                className="border border-gray-300 rounded-md px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
-                value={filtroArea}
-                onChange={(e) => setFiltroArea(e.target.value)}
-              >
-                <option value="">Todas</option>
-                <option value="ventas">Quimica</option>
-                <option value="atc">Matematicas</option>
-              </select>
-            </div>
-
-            {/* Fecha */}
-            <div className="flex flex-col">
-              <label
-                htmlFor="filtroFecha"
-                className="text-[11px] font-medium text-gray-600 mb-1"
-              >
-                Fecha
-              </label>
-              <input
-                id="filtroFecha"
-                type="date"
-                className="border border-gray-300 rounded-md px-2 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
-                value={filtroFecha}
-                onChange={(e) => setFiltroFecha(e.target.value)}
-              />
-            </div>
-
-            {/* Botón Buscar */}
-            <div className="flex sm:col-span-2 sm:justify-start">
-              <button
-                onClick={handleBuscar}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-md bg-gray-800 text-white text-sm font-medium px-4 py-2 hover:bg-gray-700 transition-colors"
-              >
-                Buscar
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Tabla */}
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-gray-700">
-            Tabla de Evaluaciones
-          </div>
-
-          <div className="overflow-x-auto bg-white rounded-xl border border-gray-300 shadow-sm">
-            <table className="table-auto w-full border-collapse text-sm text-gray-800">
-              <thead className="bg-gray-100 border-b border-gray-300">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-4 py-2 text-left font-semibold text-gray-700 whitespace-nowrap"
-                  >
-                    Usuario
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-2 text-left font-semibold text-gray-700 whitespace-nowrap"
-                  >
-                    Fecha
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-2 text-left font-semibold text-gray-700 whitespace-nowrap"
-                  >
-                    Hora
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-2 text-left font-semibold text-gray-700 whitespace-nowrap"
-                  >
-                    Competidor
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-2 text-left font-semibold text-gray-700 whitespace-nowrap"
-                  >
-                    Área
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-2 text-left font-semibold text-gray-700 whitespace-nowrap"
-                  >
-                    Nota Actual
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-2 text-left font-semibold text-gray-700 whitespace-nowrap"
-                  >
-                    Nota Nueva
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-4 py-2 text-left font-semibold text-gray-700 whitespace-nowrap"
-                  >
-                    OBS.
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {rows.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={8}
-                      className="text-center text-gray-500 py-10 text-sm"
-                    >
-                      Sin registros
-                    </td>
-                  </tr>
-                )}
-
-                {rows.map((r) => (
-                  <tr
-                    key={r.id}
-                    className="border-b border-gray-200 hover:bg-gray-50 transition-colors align-top"
-                  >
-                    <td className="px-4 py-2 font-medium text-gray-900 whitespace-nowrap">
-                      {r.usuario}
-                    </td>
-                    <td className="px-4 py-2 text-gray-700 whitespace-nowrap">
-                      {r.fecha}
-                    </td>
-                    <td className="px-4 py-2 text-gray-700 whitespace-nowrap">
-                      {r.hora}
-                    </td>
-                    <td className="px-4 py-2 text-gray-700 whitespace-nowrap">
-                      {r.competidor}
-                    </td>
-                    <td className="px-4 py-2 text-gray-700 whitespace-nowrap">
-                      {r.area}
-                    </td>
-                    <td className="px-4 py-2 text-gray-700 text-center">
-                      {r.notaActual}
-                    </td>
-                    <td className="px-4 py-2 text-gray-700 text-center font-semibold">
-                      {r.notaNueva}
-                    </td>
-                    <td className="px-4 py-2 text-gray-700 text-xs leading-snug max-w-[220px]">
-                      {r.obs}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Barra de acciones (Exportar) */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
-            <div className="text-[11px] text-gray-500">
-              {rows.length} registro(s) encontrados
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2">
+              {/* Botón inferior, sin “Áreas asignadas” */}
               <button
                 type="button"
-                onClick={handleExportExcel}
-                className="inline-flex items-center justify-center rounded-md border border-gray-400 bg-white text-gray-700 text-xs font-medium px-3 py-2 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+                onClick={() => abrirModal(oli)}
+                className="w-full mt-2 inline-flex items-center justify-center rounded-md bg-gray-900 text-white text-sm font-semibold px-4 py-2 hover:bg-gray-800 transition-colors"
               >
-                Exportar Excel
+                Configurar Gestión
               </button>
-
-              <button
-                type="button"
-                onClick={handleExportPDF}
-                className="inline-flex items-center justify-center rounded-md border border-gray-800 bg-gray-900 text-white text-xs font-medium px-3 py-2 hover:bg-gray-700 transition-colors"
-              >
-                Exportar PDF
-              </button>
-            </div>
-          </div>
+            </article>
+          ))}
         </div>
       </section>
+
+      {/* MODAL FORMULARIO CREAR OLIMPIADA */}
+      {showModal && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-xl mx-4">
+            <div className="flex items-center justify-between border-b px-5 py-3">
+              <h2 className="text-sm font-semibold text-gray-800">
+                {olimpiadaSeleccionada
+                  ? `Configurar olimpiada: ${olimpiadaSeleccionada.nombre}`
+                  : "Crear olimpiada"}
+              </h2>
+              <button
+                onClick={cerrarModal}
+                className="text-gray-400 hover:text-gray-700 text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleCrear} className="px-5 py-4 space-y-4">
+              {/* Nombre */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Nombre Olimpiada
+                </label>
+                <input
+                  type="text"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                    errores.nombre
+                      ? "border-red-400 focus:ring-red-300"
+                      : "border-gray-300 focus:ring-indigo-200"
+                  }`}
+                  placeholder="Olimpiada Nacional de Tecnología 2025"
+                />
+                {errores.nombre && (
+                  <p className="text-[11px] text-red-500 mt-1">
+                    {errores.nombre}
+                  </p>
+                )}
+              </div>
+
+              {/* Número de fases */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Número de Fases
+                </label>
+                <input
+                  type="number"
+                  min={2}
+                  value={fases}
+                  onChange={(e) => setFases(e.target.value)}
+                  className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                    errores.fases
+                      ? "border-red-400 focus:ring-red-300"
+                      : "border-gray-300 focus:ring-indigo-200"
+                  }`}
+                  placeholder="Ingrese el número de etapas (mínimo 2)"
+                />
+                {errores.fases && (
+                  <p className="text-[11px] text-red-500 mt-1">
+                    {errores.fases}
+                  </p>
+                )}
+              </div>
+
+              {/* Fechas */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Fecha de inicio
+                  </label>
+                  <input
+                    type="date"
+                    value={fechaInicio}
+                    onChange={(e) => setFechaInicio(e.target.value)}
+                    className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                      errores.fechaInicio
+                        ? "border-red-400 focus:ring-red-300"
+                        : "border-gray-300 focus:ring-indigo-200"
+                    }`}
+                  />
+                  {errores.fechaInicio && (
+                    <p className="text-[11px] text-red-500 mt-1">
+                      {errores.fechaInicio}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Fecha de finalización
+                  </label>
+                  <input
+                    type="date"
+                    value={fechaFin}
+                    onChange={(e) => setFechaFin(e.target.value)}
+                    className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                      errores.fechaFin
+                        ? "border-red-400 focus:ring-red-300"
+                        : "border-gray-300 focus:ring-indigo-200"
+                    }`}
+                  />
+                  {errores.fechaFin && (
+                    <p className="text-[11px] text-red-500 mt-1">
+                      {errores.fechaFin}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {Object.keys(errores).length > 0 && (
+                <p className="text-[11px] text-red-500">
+                  Corrige los errores antes de continuar.
+                </p>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2 border-t">
+                <button
+                  type="button"
+                  onClick={cerrarModal}
+                  className="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300 text-xs"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn-dark px-3 py-1 rounded-md hover:bg-gray-800 transition-colors"
+                >
+                  Crear olimpiada
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }
+
+
