@@ -1,9 +1,9 @@
+// src/pages/Revisar-evaluaciones.jsx
 import React, { useEffect, useState } from "react";
 import Header from "../components/header";
 import EvaluadorForm from "../components/EvaluadorForm.jsx";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-
 import { useNavigate } from "react-router-dom";
 
 // Servicios
@@ -14,7 +14,10 @@ import {
   deleteEvaluadorCompleto,
 } from "../api/evaluadores.js";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const RevisarEvaluaciones = () => {
+  // ==== STATE ====
   const [competidores, setCompetidores] = useState([]);
   const [areas, setAreas] = useState([]);
 
@@ -30,14 +33,12 @@ const RevisarEvaluaciones = () => {
   const [error, setError] = useState(null);
 
   const [toast, setToast] = useState("");
-
   const [user, setUser] = useState(null);
-
   const [filterEstado, setFilterEstado] = useState("todos");
 
   const navigate = useNavigate();
 
-  //get NOTA MINIMA
+  // get NOTA MINIMA
   const [notaMinima, setNotaMinima] = useState(null);
 
   // ====================== TOAST ======================
@@ -46,32 +47,26 @@ const RevisarEvaluaciones = () => {
     setTimeout(() => setToast(""), 3000);
   };
 
-  const competidoresPorArea = competidores.filter(c => {
+  const competidoresPorArea = competidores.filter((c) => {
     if (!user) return false;
-    return c.area_nombre === user.area; 
+    return (c.area_nombre ?? c.area) === user.area;
   });
 
-
-  //Get Nota minima
+  // ====================== GET NOTA MÍNIMA ======================
   useEffect(() => {
     const fetchNotaMinima = async () => {
       try {
         const token = localStorage.getItem("token");
-        console.log("TOKEN ENVIADO:", token); // para verificar
+        if (!token) return;
 
-        const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/fases/clasificacion`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const res = await fetch(`${API_BASE_URL}/fases/clasificacion`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
         const data = await res.json();
-        console.log("RESPUESTA DEL BACKEND:", data);
-
         setNotaMinima(Number(data.nota_minima));
       } catch (err) {
         console.error("Error al obtener nota mínima:", err);
@@ -86,27 +81,16 @@ const RevisarEvaluaciones = () => {
     const fetchUser = async () => {
       try {
         const token = localStorage.getItem("token");
-        // console.log("Token en frontend:", token);
         if (!token) return;
 
-        const res = await fetch(
-          `${import.meta.env.VITE_API_URL}/responsables/me`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const res = await fetch(`${API_BASE_URL}/responsables/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         if (!res.ok) throw new Error("No se pudo obtener el usuario");
 
         const data = await res.json();
-
-        if (data.ok) {
-          console.log(data);
-
-          setUser(data.data); // Guarda directamente { nombres, apellidos, correo, area, estado, rol }
-        }
+        if (data.ok) setUser(data.data);
       } catch (error) {
         console.error("Error al obtener usuario:", error);
       }
@@ -130,97 +114,15 @@ const RevisarEvaluaciones = () => {
     load();
   }, []);
 
-  // ====================== EDITAR ======================
-  const handleEdit = (item) => {
-    setSelected(item);
-    setMode("edit");
-    setShowForm(true);
-  };
-
-  // ====================== ELIMINAR ======================
-  const handleDelete = async (id) => {
-    if (!confirm("¿Seguro que deseas eliminar este evaluador?")) return;
-    try {
-      const evaluador = evaluadores.find((e) => e.id === id);
-
-      // 1 Eliminar evaluador
-      await deleteEvaluadorCompleto(evaluador.id);
-
-      setEvaluadores((prev) => prev.filter((e) => e.id !== id));
-      showToast("Evaluador eliminado ✔");
-    } catch (err) {
-      alert("No se pudo eliminar: " + err.message);
-    }
-  };
-
-  // ====================== GUARDAR ======================
-  const handleSave = async (formData) => {
-    try {
-      const payload = {
-        nombre_evaluado: formData.nombres,
-        apellidos_evaluador: formData.apellidos,
-        correo: formData.correo,
-        telefono: formData.telefono,
-        id_area: Number(formData.areaId),
-      };
-
-    if (mode === "create") {
-      // 1 Crear evaluador + usuario en una sola llamada
-      const saved = await createEvaluadorCompleto(payload);
-      let areaTexto = "";
-
-      if (areas.length > 0) {
-        areaTexto = areas.find(a => a.id === Number(formData.areaId))?.nombre || "";
-      } else {
-        // fallback — el backend siempre te devuelve id_area
-        areaTexto = user?.area || "";
-      }
-
-      // 2 Actualizar el estado del front
-      setEvaluadores(prev => [
-        ...prev,
-        {
-          ...saved,
-          nombres: saved.nombre_evaluado,   // ⚠️ mapear al nombre correcto
-          apellidos: saved.apellidos_evaluador, // ⚠️ mapear al nombre correcto
-          area: user.area
-        }
-      ]);
-
-      showToast("Evaluador registrado ✔");
-    } else {
-      // 1 Actualizar evaluador + usuario
-      const saved = await updateEvaluadorCompleto(selected.id, payload);
-      
-
-      // 2 Actualizar el estado del front
-      setEvaluadores(prev =>
-        prev.map(e => e.id === selected.id
-          ? { ...saved, area: areas.find(a => a.id === Number(formData.areaId))?.nombre }
-          : e
-        )
-      );
-
-        showToast("Evaluador actualizado ✔");
-      }
-
-      // 3️⃣ Cerrar modal
-      setShowForm(false);
-      setSelected(null);
-    } catch (err) {
-      alert("Error: " + err.message);
-    }
-  };
-
   // ====================== CARGAR ÁREAS ======================
   useEffect(() => {
     const fetchAreas = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/areas`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        if (!token) return;
+
+        const res = await fetch(`${API_BASE_URL}/areas`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
 
@@ -243,22 +145,22 @@ const RevisarEvaluaciones = () => {
 
   // ====================== CARGAR COMPETIDORES ======================
   useEffect(() => {
-    if (notaMinima === null) return; // espera a que la nota mínima esté cargada
+    if (notaMinima === null) return;
+
     const fetchCompetidores = async () => {
       try {
-        const token = localStorage.getItem("token"); // o donde lo tengas guardado
+        const token = localStorage.getItem("token");
+        if (!token) return;
 
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/evaluaciones`, {
+        const response = await fetch(`${API_BASE_URL}/evaluaciones`, {
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`, // <- aquí va el token
+            Authorization: `Bearer ${token}`,
           },
         });
         const result = await response.json();
-
         if (!response.ok) throw new Error("Error al obtener los datos");
 
-        
         if (result.ok) {
           const normalizados = result.data.map((c) => {
             const rawNota = c.nota;
@@ -267,13 +169,10 @@ const RevisarEvaluaciones = () => {
                 ? Number(rawNota)
                 : null;
 
-            let estado = "Pendiente"; // por defecto
-
+            let estado = "Pendiente";
             if (nota !== null) {
-              if (nota >= notaMinima) estado = "Clasificado";
-              else estado = "No Clasificado";
+              estado = nota >= notaMinima ? "Clasificado" : "No Clasificado";
             }
-
             return { ...c, estado };
           });
 
@@ -285,10 +184,93 @@ const RevisarEvaluaciones = () => {
         setLoading(false);
       }
     };
+
     fetchCompetidores();
   }, [notaMinima]);
 
+  // ====================== EDITAR ======================
+  const handleEdit = (item) => {
+    setSelected(item);
+    setMode("edit");
+    setShowForm(true);
+  };
+
+  // ====================== ELIMINAR ======================
+  const handleDelete = async (id) => {
+    if (!confirm("¿Seguro que deseas eliminar este evaluador?")) return;
+    try {
+      const evaluador = evaluadores.find((e) => e.id === id);
+      await deleteEvaluadorCompleto(evaluador.id);
+      setEvaluadores((prev) => prev.filter((e) => e.id !== id));
+      showToast("Evaluador eliminado ✔");
+    } catch (err) {
+      alert("No se pudo eliminar: " + err.message);
+    }
+  };
+
+  // ====================== GUARDAR ======================
+  const handleSave = async (formData) => {
+    try {
+      const payload = {
+        nombre_evaluado: formData.nombres,
+        apellidos_evaluador: formData.apellidos,
+        correo: formData.correo,
+        telefono: formData.telefono,
+        id_area: Number(formData.areaId),
+      };
+
+      if (mode === "create") {
+        const saved = await createEvaluadorCompleto(payload);
+        let areaTexto = "";
+        if (areas.length > 0) {
+          areaTexto = areas.find((a) => a.id === Number(formData.areaId))?.nombre || "";
+        } else {
+          areaTexto = user?.area || "";
+        }
+
+        setEvaluadores((prev) => [
+          ...prev,
+          {
+            ...saved,
+            nombres: saved.nombre_evaluado,
+            apellidos: saved.apellidos_evaluador,
+            area: areaTexto,
+          },
+        ]);
+        showToast("Evaluador registrado ✔");
+      } else {
+        const saved = await updateEvaluadorCompleto(selected.id, payload);
+        setEvaluadores((prev) =>
+          prev.map((e) =>
+            e.id === selected.id
+              ? { ...saved, area: areas.find((a) => a.id === Number(formData.areaId))?.nombre }
+              : e
+          )
+        );
+        showToast("Evaluador actualizado ✔");
+      }
+
+      setShowForm(false);
+      setSelected(null);
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
+
   // ====================== EXPORTAR EXCEL ======================
+  const competidoresFiltrados = competidoresPorArea.filter((c) => {
+    switch (filterEstado) {
+      case "clasificados":
+        return c.estado === "Clasificado";
+      case "noClasificados":
+        return c.estado === "No Clasificado";
+      case "pendientes":
+        return c.estado === "Pendiente";
+      default:
+        return true;
+    }
+  });
+
   const exportExcel = () => {
     if (!competidoresFiltrados.length) {
       alert("No hay datos para exportar.");
@@ -308,45 +290,19 @@ const RevisarEvaluaciones = () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Clasificatoria");
 
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
-
-    const blob = new Blob([excelBuffer], {
-      type: "application/octet-stream",
-    });
-
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
     saveAs(blob, "Resultados_Clasificatoria.xlsx");
-
     showToast("Excel descargado correctamente ✔");
   };
 
-  // ====================== CREAR ======================
-  const handleCreate = () => {
-    setSelected(null);
-    setMode("create");
-    setShowForm(true);
-  };
-
-  const competidoresFiltrados = competidoresPorArea.filter((c) => {
-  switch (filterEstado) {
-    case "clasificados":
-      return c.estado === "Clasificado";
-    case "noClasificados":
-      return c.estado === "No Clasificado";
-    case "pendientes":
-      return c.estado === "Pendiente";
-    default:
-      return true; }
-});
-
-  //Mostrar evluadores por Area unicamente
+  // ====================== EVALUADORES POR ÁREA ======================
   const evaluadoresFiltrados = evaluadores.filter((e) => {
-    if (!user) return false; // Evita mostrar algo antes de cargar usuario
+    if (!user) return false;
     return e.area === user.area;
   });
 
+  // ====================== RENDER ======================
   return (
     <div className="bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen">
       <Header />
@@ -359,20 +315,13 @@ const RevisarEvaluaciones = () => {
               <div className="flex flex-wrap justify-between items-center mb-6">
                 <div>
                   <p className="text-gray-700">
-                    Nombre:{" "}
-                    {user ? `${user.nombres} ${user.apellidos}` : "Cargando..."}
+                    Nombre: {user ? `${user.nombres} ${user.apellidos}` : "Cargando..."}
                   </p>
-                  <p className="text-gray-700">
-                    Correo: {user ? user.correo : "Cargando..."}
-                  </p>
+                  <p className="text-gray-700">Correo: {user ? user.correo : "Cargando..."}</p>
                 </div>
               </div>
-              <h2 className="text-2xl font-bold">
-                Área: {user ? user.area : "Cargando..."}
-              </h2>
-              <p className="text-gray-500">
-                Estado: {user ? user.estado : "Cargando..."}
-              </p>
+              <h2 className="text-2xl font-bold">Área: {user ? user.area : "Cargando..."}</h2>
+              <p className="text-gray-500">Estado: {user ? user.estado : "Cargando..."}</p>
             </div>
           </div>
 
@@ -382,22 +331,10 @@ const RevisarEvaluaciones = () => {
               <h3 className="text-lg font-semibold mb-2">Resumen</h3>
               <ul className="text-gray-700">
                 <li>Competidores Totales: {competidoresFiltrados.length}</li>
-                <li>
-                  Clasificados:{" "}
-                  {competidoresFiltrados.filter((c) => c.estado === "Clasificado").length}
-                </li>
-                <li>
-                  No Clasificados:{" "}
-                  {competidoresFiltrados.filter((c) => c.estado === "No Clasificado").length}
-                </li>
-                <li>
-                  Pendientes:{" "}
-                  {competidoresFiltrados.filter((c) => c.estado === "Pendiente").length}
-                </li>
-                <li>
-                  Descalificado:{" "}
-                  {competidoresFiltrados.filter((c) => c.estado === "Descalificado").length}
-                </li>
+                <li>Clasificados: {competidoresFiltrados.filter((c) => c.estado === "Clasificado").length}</li>
+                <li>No Clasificados: {competidoresFiltrados.filter((c) => c.estado === "No Clasificado").length}</li>
+                <li>Pendientes: {competidoresFiltrados.filter((c) => c.estado === "Pendiente").length}</li>
+                <li>Descalificado: {competidoresFiltrados.filter((c) => c.estado === "Descalificado").length}</li>
               </ul>
             </div>
 
@@ -416,9 +353,7 @@ const RevisarEvaluaciones = () => {
           </div>
 
           {/* EVALUADORES */}
-          <h3 className="text-lg font-bold mt-10 mb-3">
-            Evaluadores Registrados
-          </h3>
+          <h3 className="text-lg font-bold mt-10 mb-3">Evaluadores Registrados</h3>
 
           <div className="overflow-x-auto">
             <table className="w-full bg-white border-collapse shadow rounded-lg">
@@ -465,21 +400,17 @@ const RevisarEvaluaciones = () => {
 
           {/* BOTONES */}
           <div className="flex flex-wrap justify-end mt-6">
-          
-            {/* <button
-              className="!bg-gray-800 text-white px-4 py-2 rounded-lg hover:!bg-gray-700"
-              onClick={handleCreate}
-            >
-              Registrar Evaluador
-            </button> */}
-             <button
+            <button
               className="!bg-gray-800 text-white px-4 py-2 rounded-lg hover:!bg-gray-700"
               disabled={loadingAreas}
-              onClick={handleCreate}
+              onClick={() => {
+                setSelected(null);
+                setMode("create");
+                setShowForm(true);
+              }}
             >
               Registrar Evaluador
             </button>
-
           </div>
 
           {toast && (

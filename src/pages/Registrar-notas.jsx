@@ -4,7 +4,8 @@ import SearchBar from "../components/search_bar";
 import ExcelGrid from "../components/excel_grid";
 import ActionButton from "../components/action_button";
 import MetricCard from "../components/metric_card";
-import Header from "../components/header";
+import Header from "../components/headEva";
+import { useEstadoProceso } from "../hook/useEstadoProceso"; // ✅ agregado
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000/api";
 
@@ -25,6 +26,9 @@ export default function RegistrarNotasReplanteado() {
   // ============================
   const [nombreEvaluador, setNombreEvaluador] = useState("");
   const [nivelAsignado, setNivelAsignado] = useState("");
+
+  // ✅ fase/estado de proceso (label)
+  const { label } = useEstadoProceso(); // ej. "Fase final", "Fase clasificatoria"
 
   useEffect(() => {
     const cargarNombreEvaluador = async () => {
@@ -377,7 +381,11 @@ export default function RegistrarNotasReplanteado() {
         <div className="flex flex-wrap items-center justify-between gap-6 bg-gray-200 rounded-lg p-4 mb-4">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-700">Dashboard:</span>
-            <span className="text-slate-600">Clasificación General</span>
+            <h2 className="text-lg sm:text-xl font-bold text-black">
+              {label?.toLowerCase().includes("final")
+                ? "Lista de Evaluaciones - Fase final"
+                : "Lista de Evaluaciones - Clasificatoria"}
+            </h2>
           </div>
 
           <div className="flex items-center gap-2">
@@ -420,7 +428,9 @@ export default function RegistrarNotasReplanteado() {
         <section className="bg-white rounded-xl border border-slate-200 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-slate-200 sticky top-0 bg-white z-10 rounded-t-xl">
             <h2 className="text-lg sm:text-xl font-bold text-black">
-              Lista de Evaluaciones - Clasificatoria
+              {label?.toLowerCase().includes("final")
+                ? "Lista de Evaluaciones - Fase final"
+                : "Lista de Evaluaciones - Clasificatoria"}
             </h2>
             <SearchBar value={busqEval} onChange={setBusqEval} />
           </div>

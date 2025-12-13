@@ -62,3 +62,14 @@ export async function eliminarClasificadosPorNotaMinima(ids) {
 
   return res.json();
 }
+
+// NUEVO: activar/desactivar Fase Final
+export async function setFaseFinal(activa) {
+  const res = await fetch(`${BASE}/fases/final`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ activa }),
+  });
+  if (!res.ok) throw new Error("No se pudo cambiar el estado de la fase.");
+  return res.json(); // { ok, data:{ fase_final, nota_minima } }
+}

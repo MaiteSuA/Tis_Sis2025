@@ -6,10 +6,9 @@ import {
   getAreas,
 } from "../../services/api";
 import { getEvaluadores } from "../../api/evaluadores";
-import TopNav from "../../components/coordinador/TopNav"; // ajusta si tu path es distinto
-import Sidebar from "../../components/coordinador/Sidebar"; // idem
+import TopNav from "../../components/coordinador/TopNav";
+import Sidebar from "../../components/coordinador/Sidebar";
 
-// Helper para obtener ID del inscrito
 const getInscritoId = (ins) =>
   ins.id_inscritos ?? ins.id_inscrito ?? ins.id ?? ins.idInscrito;
 
@@ -37,7 +36,7 @@ export default function GestionarInscritos() {
   const [msg, setMsg] = useState("");
   const [assignInfo, setAssignInfo] = useState("");
 
-  // 🔹 Cargar evaluadores + áreas al entrar
+  // Cargar evaluadores + áreas al entrar
   useEffect(() => {
     (async () => {
       try {
@@ -46,7 +45,6 @@ export default function GestionarInscritos() {
           getAreas(),
         ]);
 
-        // Normalizar por si la API responde { ok, data: [...] }
         const listaEvaluadores = Array.isArray(evaluadoresData?.data)
           ? evaluadoresData.data
           : Array.isArray(evaluadoresData)
@@ -68,7 +66,6 @@ export default function GestionarInscritos() {
     })();
   }, []);
 
-  // Buscar inscritos con los filtros actuales
   const buscarInscritos = async () => {
     setError("");
     setMsg("");
@@ -84,7 +81,7 @@ export default function GestionarInscritos() {
 
       const lista = Array.isArray(data?.data) ? data.data : data ?? [];
       setInscritos(lista);
-      setSelected(new Set()); // limpiar selección al refrescar
+      setSelected(new Set());
     } catch (e) {
       console.error(e);
       setError(e.message || "Error al cargar inscritos");
@@ -93,7 +90,14 @@ export default function GestionarInscritos() {
     }
   };
 
-  // Seleccionar/deseleccionar uno
+  // Si el filtro es FINALISTA, no ocultar por “soloSinEvaluador”
+  useEffect(() => {
+    if (estado === "FINALISTA" && soloSinEvaluador) {
+      setSoloSinEvaluador(false);
+    }
+  }, [estado]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // selección
   const toggleOne = (inscrito) => {
     const id = getInscritoId(inscrito);
     setSelected((prev) => {
@@ -104,14 +108,10 @@ export default function GestionarInscritos() {
     });
   };
 
-  // Seleccionar/deseleccionar todos los visibles
   const toggleAll = () => {
     setSelected((prev) => {
-      if (prev.size === inscritos.length) {
-        return new Set();
-      }
-      const all = new Set(inscritos.map((i) => getInscritoId(i)));
-      return all;
+      if (prev.size === inscritos.length) return new Set();
+      return new Set(inscritos.map((i) => getInscritoId(i)));
     });
   };
 
@@ -124,7 +124,6 @@ export default function GestionarInscritos() {
       setError("Selecciona un evaluador primero");
       return;
     }
-
     if (!selected.size) {
       setError("Selecciona al menos un inscrito");
       return;
@@ -138,13 +137,20 @@ export default function GestionarInscritos() {
       await assignInscritosToEvaluador({
         idEvaluador: Number(idEvaluadorSeleccionado),
         idsInscritos,
+        // mantener flags actuales
+        replaceExisting: true,
+        exclusive: true,
       });
 
-      // 👉 No nos complicamos con la respuesta del back:
-      // si no lanzó error asumimos que intentó asignar.
-      setAssignInfo("Inscritos asignados o sobre escritos correctamente.");
+      // ⬇️ Remover inmediatamente de la lista local para evitar reasignación doble
+      setInscritos((prev) =>
+        prev.filter((i) => !idsInscritos.includes(getInscritoId(i)))
+      );
+      setSelected(new Set());
+      setAssignInfo("Inscritos asignados correctamente.");
 
-      await buscarInscritos(); // refrescar la tabla
+      // ⬇️ Refetch para quedar consistentes con el backend
+      await buscarInscritos();
     } catch (e) {
       console.error(e);
       setError("Error al asignar inscritos");
@@ -227,6 +233,7 @@ export default function GestionarInscritos() {
                   <option value="">Todos</option>
                   <option value="PENDIENTE">Pendiente</option>
                   <option value="ASIGNADO">Asignado</option>
+                  <option value="FINALISTA">FINALISTA</option>
                 </select>
               </div>
 
@@ -265,13 +272,18 @@ export default function GestionarInscritos() {
 
           {/* Tabla + panel de asignación */}
           <section className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-            {/* Tabla de inscritos */}
+            {/* Tabla */}
             <div className="lg:col-span-3 bg-white rounded-xl shadow overflow-hidden">
               <div className="flex items-center justify-between px-4 py-2 border-b">
                 <div className="text-sm text-gray-600">
                   {inscritos.length
                     ? `Mostrando ${inscritos.length} inscritos`
                     : "Sin resultados aún"}
+                  {soloSinEvaluador && inscritos.length === 0 && (
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-700 text-xs font-semibold">
+                      ✓ Todos asignados
+                    </span>
+                  )}
                 </div>
                 {inscritos.length > 0 && (
                   <button
@@ -312,6 +324,12 @@ export default function GestionarInscritos() {
                     {inscritos.map((ins) => {
                       const id = getInscritoId(ins);
                       const checked = selected.has(id);
+
+                      // Mostrar "FINALISTA" si viene finalista: true (virtual)
+                      const estadoUi = ins.finalista
+                        ? "FINALISTA"
+                        : ins.estado || "—";
+
                       return (
                         <tr key={id}>
                           <td>
@@ -329,7 +347,23 @@ export default function GestionarInscritos() {
                           <td>{ins.unidad_educativa || "-"}</td>
                           <td>{ins.nivel || "-"}</td>
                           <td>{ins.area || "-"}</td>
-                          <td>{ins.estado || "-"}</td>
+
+                          <td>
+                            <span
+                              className={[
+                                "px-2 py-0.5 rounded-full text-xs font-semibold",
+                                estadoUi === "FINALISTA"
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : estadoUi === "ASIGNADO"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : estadoUi === "PENDIENTE"
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-gray-100 text-gray-600",
+                              ].join(" ")}
+                            >
+                              {estadoUi}
+                            </span>
+                          </td>
                         </tr>
                       );
                     })}
@@ -371,7 +405,6 @@ export default function GestionarInscritos() {
                         .filter(Boolean)
                         .join(" ");
 
-                      // 👇 aquí soportamos string, objeto o alias area_nombre
                       const areaNombre =
                         (typeof ev.area === "string" && ev.area) ||
                         (ev.area && ev.area.nombre_area) ||
